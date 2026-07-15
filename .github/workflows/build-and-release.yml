@@ -1,0 +1,78 @@
+name: Build Release Artifact
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build deployable artifact
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Composer dependencies (production)
+        run: composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction --no-progress
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Package artifact
+        run: |
+          mkdir -p dist
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='storage/framework/cache/data' \
+            --exclude='storage/framework/sessions' \
+            --exclude='storage/framework/views' \
+            --exclude='storage/logs' \
+            --exclude='.env' \
+            --exclude='dist' \
+            ./ dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pos-release
+          path: dist/
+          retention-days: 14
+
+      # Optional: uncomment and configure repository secrets (HOSTINGER_SSH_HOST,
+      # HOSTINGER_SSH_USER, HOSTINGER_SSH_KEY, HOSTINGER_APP_PATH) to deploy
+      # straight to Hostinger via SSH/rsync after the artifact is built. See
+      # deploy/HOSTINGER_DEPLOY.md for the manual equivalent of these steps.
+      #
+      # - name: Deploy to Hostinger via rsync over SSH
+      #   uses: burnett01/rsync-deployments@7.0.2
+      #   with:
+      #     switches: -avz --delete
+      #     path: dist/
+      #     remote_path: ${{ secrets.HOSTINGER_APP_PATH }}
+      #     remote_host: ${{ secrets.HOSTINGER_SSH_HOST }}
+      #     remote_user: ${{ secrets.HOSTINGER_SSH_USER }}
+      #     remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}

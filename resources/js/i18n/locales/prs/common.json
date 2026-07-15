@@ -1,0 +1,36 @@
+{
+    "app_name": "سیستم فروش",
+    "nav": {
+        "dashboard": "داشبورد",
+        "products": "محصولات",
+        "inventory": "موجودی",
+        "purchases": "خریداری‌ها",
+        "pos": "فروشگاه",
+        "sales": "فروش‌ها",
+        "customers": "مشتریان",
+        "suppliers": "تهیه کنندگان",
+        "expenses": "مصارف",
+        "employees": "کارمندان",
+        "payroll": "معاشات",
+        "period_closing": "تصفیه",
+        "reports": "راپورها",
+        "settings": "تنظیمات"
+    },
+    "actions": {
+        "save": "ذخیره",
+        "cancel": "لغو",
+        "delete": "حذف",
+        "edit": "ویرایش",
+        "add": "افزودن",
+        "search": "جستجو",
+        "login": "ورود",
+        "logout": "خروج"
+    },
+    "common": {
+        "welcome": "خوش آمدید",
+        "language": "زبان",
+        "yes": "بلی",
+        "no": "نخیر",
+        "loading": "در حال بارگذاری..."
+    }
+}

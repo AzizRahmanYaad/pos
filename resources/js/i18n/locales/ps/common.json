@@ -1,0 +1,36 @@
+{
+    "app_name": "د پلورنځي سیسټم",
+    "nav": {
+        "dashboard": "ډشبورډ",
+        "products": "توکي",
+        "inventory": "ګدام",
+        "purchases": "پیرودنې",
+        "pos": "پلورنځی",
+        "sales": "پلورنې",
+        "customers": "پیرودونکي",
+        "suppliers": "عرضه کوونکي",
+        "expenses": "لګښتونه",
+        "employees": "کارکوونکي",
+        "payroll": "معاشونه",
+        "period_closing": "تصفیه",
+        "reports": "راپورونه",
+        "settings": "تنظیمات"
+    },
+    "actions": {
+        "save": "خوندي کول",
+        "cancel": "لغوه کول",
+        "delete": "ړنګول",
+        "edit": "سمول",
+        "add": "زیاتول",
+        "search": "لټون",
+        "login": "ننوتل",
+        "logout": "وتل"
+    },
+    "common": {
+        "welcome": "ښه راغلاست",
+        "language": "ژبه",
+        "yes": "هو",
+        "no": "نه",
+        "loading": "بار کیږي..."
+    }
+}

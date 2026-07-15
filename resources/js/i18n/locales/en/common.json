@@ -1,0 +1,36 @@
+{
+    "app_name": "POS",
+    "nav": {
+        "dashboard": "Dashboard",
+        "products": "Products",
+        "inventory": "Inventory",
+        "purchases": "Purchases",
+        "pos": "Point of Sale",
+        "sales": "Sales",
+        "customers": "Customers",
+        "suppliers": "Suppliers",
+        "expenses": "Expenses",
+        "employees": "Employees",
+        "payroll": "Payroll",
+        "period_closing": "Clearance",
+        "reports": "Reports",
+        "settings": "Settings"
+    },
+    "actions": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "add": "Add",
+        "search": "Search",
+        "login": "Login",
+        "logout": "Logout"
+    },
+    "common": {
+        "welcome": "Welcome",
+        "language": "Language",
+        "yes": "Yes",
+        "no": "No",
+        "loading": "Loading..."
+    }
+}

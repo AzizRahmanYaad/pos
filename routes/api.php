@@ -2,8 +2,12 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\BusinessSettingController;
+use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -19,5 +23,10 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/roles', [RoleController::class, 'index']);
         Route::apiResource('users', UserController::class);
+
+        Route::apiResource('categories', CategoryController::class);
+        Route::apiResource('units', UnitController::class);
+        Route::apiResource('warehouses', WarehouseController::class);
+        Route::apiResource('products', ProductController::class);
     });
 });

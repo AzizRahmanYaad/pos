@@ -32,5 +32,13 @@
         "yes": "Yes",
         "no": "No",
         "loading": "Loading..."
+    },
+    "auth": {
+        "email": "Email",
+        "password": "Password",
+        "sign_in": "Sign in",
+        "signing_in": "Signing in...",
+        "login_error": "Invalid email or password",
+        "signed_in_as": "Signed in as {{name}}"
     }
 }

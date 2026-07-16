@@ -210,5 +210,24 @@
     "payments_dialog": {
         "receive_payment": "دریافت پرداخت",
         "save_failed": "پرداخت ثبت نشد."
+    },
+    "settings_page": {
+        "company_name": "نام شرکت",
+        "address": "آدرس",
+        "email": "ایمیل",
+        "currency_code": "کد پول",
+        "currency_symbol": "علامه پول",
+        "invoice_prefix": "پیشوند رسید",
+        "purchase_prefix": "پیشوند خریداری",
+        "default_tax_rate": "فیصدی مالیه (%)",
+        "fiscal_year_start_month": "ماه شروع سال مالی",
+        "receipt_footer": "متن پایان رسید",
+        "auto_close_daily": "هر روز به ساعت ۲۳:۵۹ به صورت خودکار تصفیه شود",
+        "change_password": "تغییر رمز عبور",
+        "current_password": "رمز عبور فعلی",
+        "new_password": "رمز عبور جدید",
+        "confirm_password": "تایید رمز عبور جدید",
+        "password_updated": "رمز عبور تغییر یافت.",
+        "password_update_failed": "رمز عبور تغییر نکرد — مطمئن شوید رمز عبور فعلی درست است."
     }
 }

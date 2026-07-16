@@ -26,6 +26,7 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import LockClockIcon from '@mui/icons-material/LockClock';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -54,6 +55,7 @@ const NAV_ITEMS: NavItem[] = [
     { to: '/payroll', labelKey: 'nav.payroll', icon: <ReceiptLongIcon />, permission: 'payroll.manage' },
     { to: '/period-closing', labelKey: 'nav.period_closing', icon: <LockClockIcon />, permission: 'period-closing.close' },
     { to: '/reports', labelKey: 'nav.reports', icon: <AssessmentIcon />, permission: 'reports.view' },
+    { to: '/settings', labelKey: 'nav.settings', icon: <SettingsIcon /> },
 ];
 
 export function AppLayout() {

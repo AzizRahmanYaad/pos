@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -68,6 +69,32 @@ class AuthenticationTest extends TestCase
     public function test_guest_cannot_fetch_profile(): void
     {
         $this->getJson('/api/v1/auth/me')->assertUnauthorized();
+    }
+
+    public function test_user_can_update_their_own_password(): void
+    {
+        $user = User::factory()->create(['password' => bcrypt('secret123')]);
+
+        $this->actingAs($user)->putJson('/api/v1/auth/password', [
+            'current_password' => 'secret123',
+            'password' => 'new-secret-456',
+            'password_confirmation' => 'new-secret-456',
+        ])->assertNoContent();
+
+        $this->assertTrue(Hash::check('new-secret-456', $user->fresh()->password));
+    }
+
+    public function test_password_update_rejected_with_wrong_current_password(): void
+    {
+        $user = User::factory()->create(['password' => bcrypt('secret123')]);
+
+        $this->actingAs($user)->putJson('/api/v1/auth/password', [
+            'current_password' => 'wrong-password',
+            'password' => 'new-secret-456',
+            'password_confirmation' => 'new-secret-456',
+        ])->assertUnprocessable();
+
+        $this->assertTrue(Hash::check('secret123', $user->fresh()->password));
     }
 
     public function test_user_can_logout(): void

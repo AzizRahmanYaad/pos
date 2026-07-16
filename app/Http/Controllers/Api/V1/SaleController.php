@@ -17,7 +17,7 @@ class SaleController extends Controller
     {
         $this->authorize('viewAny', Sale::class);
 
-        $sales = QueryBuilder::for(Sale::class)
+        $query = QueryBuilder::for(Sale::class)
             ->allowedFilters(
                 AllowedFilter::exact('customer_id'),
                 AllowedFilter::exact('warehouse_id'),
@@ -26,8 +26,13 @@ class SaleController extends Controller
             )
             ->allowedSorts('sale_date', 'created_at', 'grand_total')
             ->with(['customer', 'warehouse', 'cashier'])
-            ->defaultSort('-sale_date')
-            ->paginate(request()->integer('per_page', 20));
+            ->defaultSort('-sale_date');
+
+        if (! request()->user()->can('sales.view-all')) {
+            $query->where('cashier_id', request()->user()->id);
+        }
+
+        $sales = $query->paginate(request()->integer('per_page', 20));
 
         return SaleResource::collection($sales);
     }
@@ -46,7 +51,7 @@ class SaleController extends Controller
 
     public function show(Sale $sale): SaleResource
     {
-        $this->authorize('viewAny', Sale::class);
+        $this->authorize('view', $sale);
 
         return new SaleResource($sale->load(['items.product', 'payments.cashAccount', 'customer', 'warehouse', 'cashier']));
     }

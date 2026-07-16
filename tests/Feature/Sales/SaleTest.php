@@ -196,4 +196,81 @@ class SaleTest extends TestCase
 
         $response->assertCreated()->assertJsonPath('data.due_amount', 0);
     }
+
+    public function test_cashier_only_sees_their_own_sales_in_the_list(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $product = $this->stockedProduct($warehouse, 50);
+
+        $cashierA = User::factory()->create();
+        $cashierA->assignRole('cashier');
+        $cashierB = User::factory()->create();
+        $cashierB->assignRole('cashier');
+
+        $saleA = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 25]],
+            cashierId: $cashierA->id,
+        );
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 25]],
+            cashierId: $cashierB->id,
+        );
+
+        $response = $this->actingAs($cashierA)->getJson('/api/v1/sales')->assertOk();
+        $ids = collect($response->json('data'))->pluck('id');
+        $this->assertEquals([$saleA->id], $ids->all());
+    }
+
+    public function test_cashier_cannot_view_another_cashiers_sale_detail(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $product = $this->stockedProduct($warehouse, 50);
+
+        $cashierA = User::factory()->create();
+        $cashierA->assignRole('cashier');
+        $cashierB = User::factory()->create();
+        $cashierB->assignRole('cashier');
+
+        $saleB = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 25]],
+            cashierId: $cashierB->id,
+        );
+
+        $this->actingAs($cashierA)->getJson("/api/v1/sales/{$saleB->id}")->assertForbidden();
+        $this->actingAs($cashierB)->getJson("/api/v1/sales/{$saleB->id}")->assertOk();
+    }
+
+    public function test_manager_sees_all_sales_regardless_of_cashier(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $product = $this->stockedProduct($warehouse, 50);
+
+        $cashier = User::factory()->create();
+        $cashier->assignRole('cashier');
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $sale = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 25]],
+            cashierId: $cashier->id,
+        );
+
+        $this->actingAs($manager)->getJson("/api/v1/sales/{$sale->id}")->assertOk();
+        $response = $this->actingAs($manager)->getJson('/api/v1/sales')->assertOk();
+        $this->assertCount(1, $response->json('data'));
+    }
 }

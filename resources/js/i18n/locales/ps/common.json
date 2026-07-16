@@ -210,5 +210,24 @@
     "payments_dialog": {
         "receive_payment": "تادیه ترلاسه کړئ",
         "save_failed": "تادیه ونشوه ثبتېدای."
+    },
+    "settings_page": {
+        "company_name": "د شرکت نوم",
+        "address": "پته",
+        "email": "بریښنالیک",
+        "currency_code": "د پیسو کوډ",
+        "currency_symbol": "د پیسو نښه",
+        "invoice_prefix": "د رسید مخکتنی",
+        "purchase_prefix": "د پیرودنې مخکتنی",
+        "default_tax_rate": "د تکس اندازه (%)",
+        "fiscal_year_start_month": "د مالي کال پیل میاشت",
+        "receipt_footer": "د رسید لاندنی متن",
+        "auto_close_daily": "هره ورځ په ۲۳:۵۹ بجو په خودکار ډول وتړئ",
+        "change_password": "پټنوم بدلول",
+        "current_password": "اوسنی پټنوم",
+        "new_password": "نوی پټنوم",
+        "confirm_password": "نوی پټنوم تایید کړئ",
+        "password_updated": "پټنوم بدل شو.",
+        "password_update_failed": "پټنوم ونشو بدلېدای — ډاډ ترلاسه کړئ چې ستاسو اوسنی پټنوم سم دی."
     }
 }

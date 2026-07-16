@@ -93,6 +93,12 @@ Fix permissions if needed so the PHP-FPM user can write to `storage/` and
 chmod -R 775 storage bootstrap/cache
 ```
 
+**Log in immediately and change the default administrator password.** The
+seeder creates `admin@example.com` / `password` so there's an account to log
+in with on a fresh database — leaving it unchanged on a live deployment is a
+real credential-exposure risk. Change it from the app's Settings page (bottom
+of the sidebar → Change password) before sharing the URL with anyone else.
+
 ## 7. Set up the cron job
 
 Hostinger's Business plan includes cron under hPanel → Advanced → Cron Jobs.

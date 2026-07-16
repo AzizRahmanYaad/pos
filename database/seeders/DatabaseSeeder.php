@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             BusinessSettingsSeeder::class,
             DefaultWarehouseSeeder::class,
+            DefaultCashAccountSeeder::class,
         ]);
     }
 }

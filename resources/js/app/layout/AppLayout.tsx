@@ -25,6 +25,16 @@ export function AppLayout() {
                             {t('nav.products')}
                         </Button>
                     </Can>
+                    <Can permission="sales.manage">
+                        <Button color="inherit" component={RouterLink} to="/customers">
+                            {t('nav.customers')}
+                        </Button>
+                    </Can>
+                    <Can permission="purchases.manage">
+                        <Button color="inherit" component={RouterLink} to="/suppliers">
+                            {t('nav.suppliers')}
+                        </Button>
+                    </Can>
                     <Box sx={{ flexGrow: 1 }} />
                     {user && (
                         <Typography variant="body2" sx={{ opacity: 0.9 }}>

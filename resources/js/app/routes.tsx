@@ -3,6 +3,8 @@ import { AppLayout } from '@/app/layout/AppLayout';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ProductsListPage } from '@/features/products/ProductsListPage';
+import { CustomersListPage } from '@/features/customers/CustomersListPage';
+import { SuppliersListPage } from '@/features/suppliers/SuppliersListPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -16,6 +18,8 @@ export const router = createBrowserRouter([
                 children: [
                     { index: true, element: <DashboardPage /> },
                     { path: 'products', element: <ProductsListPage /> },
+                    { path: 'customers', element: <CustomersListPage /> },
+                    { path: 'suppliers', element: <SuppliersListPage /> },
                 ],
             },
         ],

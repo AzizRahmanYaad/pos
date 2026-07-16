@@ -53,6 +53,7 @@ jobs:
             --exclude='storage/logs' \
             --exclude='.env' \
             --exclude='dist' \
+            --exclude='database/database.sqlite' \
             ./ dist/
 
       - name: Upload artifact

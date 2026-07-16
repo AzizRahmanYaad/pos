@@ -48,6 +48,16 @@ export function AppLayout() {
                             {t('nav.expenses')}
                         </Button>
                     </Can>
+                    <Can permission="employees.manage">
+                        <Button color="inherit" component={RouterLink} to="/employees">
+                            {t('nav.employees')}
+                        </Button>
+                    </Can>
+                    <Can permission="payroll.manage">
+                        <Button color="inherit" component={RouterLink} to="/payroll">
+                            {t('nav.payroll')}
+                        </Button>
+                    </Can>
                     <Box sx={{ flexGrow: 1 }} />
                     {user && (
                         <Typography variant="body2" sx={{ opacity: 0.9 }}>

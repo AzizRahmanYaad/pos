@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Employees\Exceptions\PayrollAlreadyProcessedException;
 use App\Domain\Expenses\Exceptions\InvalidExpenseException;
 use App\Domain\Inventory\Exceptions\InsufficientStockException;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
@@ -54,5 +55,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(fn (InvalidExpenseException $e, Request $request) => $request->is('api/*')
             ? response()->json(['message' => $e->getMessage()], 422)
+            : null);
+
+        $exceptions->render(fn (PayrollAlreadyProcessedException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => $e->getMessage()], 409)
             : null);
     })->create();

@@ -9,6 +9,8 @@ import { PurchasesListPage } from '@/features/purchases/PurchasesListPage';
 import { NewPurchasePage } from '@/features/purchases/NewPurchasePage';
 import { PosPage } from '@/features/pos/PosPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
+import { EmployeesListPage } from '@/features/employees/EmployeesListPage';
+import { PayrollPage } from '@/features/payroll/PayrollPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -28,6 +30,8 @@ export const router = createBrowserRouter([
                     { path: 'purchases', element: <PurchasesListPage /> },
                     { path: 'purchases/new', element: <NewPurchasePage /> },
                     { path: 'expenses', element: <ExpensesPage /> },
+                    { path: 'employees', element: <EmployeesListPage /> },
+                    { path: 'payroll', element: <PayrollPage /> },
                 ],
             },
         ],

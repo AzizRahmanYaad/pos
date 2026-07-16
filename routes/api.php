@@ -5,9 +5,11 @@ use App\Http\Controllers\Api\V1\BusinessSettingController;
 use App\Http\Controllers\Api\V1\CashAccountController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\ExpenseCategoryController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PayrollRunController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PurchaseController;
 use App\Http\Controllers\Api\V1\RoleController;
@@ -61,5 +63,13 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('expense-categories', ExpenseCategoryController::class)->only(['index', 'store', 'destroy']);
         Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'destroy']);
+
+        Route::get('/employees/{employee}/ledger', [EmployeeController::class, 'ledger']);
+        Route::post('/employees/{employee}/advances', [EmployeeController::class, 'storeAdvance']);
+        Route::apiResource('employees', EmployeeController::class);
+
+        Route::put('/payroll-items/{payrollItem}', [PayrollRunController::class, 'updateItem']);
+        Route::post('/payroll-runs/{payrollRun}/pay', [PayrollRunController::class, 'pay']);
+        Route::apiResource('payroll-runs', PayrollRunController::class)->only(['index', 'store', 'show']);
     });
 });

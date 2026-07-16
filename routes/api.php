@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\BusinessSettingController;
 use App\Http\Controllers\Api\V1\CashAccountController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\ExpenseCategoryController;
 use App\Http\Controllers\Api\V1\ExpenseController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\V1\PayrollRunController;
 use App\Http\Controllers\Api\V1\PeriodClosingController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PurchaseController;
+use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\StockAdjustmentController;
@@ -75,5 +77,13 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/period-closings/{periodClosing}/reopen', [PeriodClosingController::class, 'reopen']);
         Route::apiResource('period-closings', PeriodClosingController::class)->only(['index', 'store', 'show']);
+
+        Route::middleware('permission:reports.view')->group(function () {
+            Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
+            Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
+            Route::get('/reports/inventory-valuation', [ReportController::class, 'inventoryValuation']);
+            Route::get('/reports/sales-summary', [ReportController::class, 'salesSummary']);
+            Route::get('/reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
+        });
     });
 });

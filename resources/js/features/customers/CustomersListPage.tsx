@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     Alert,
     Box,
+    Button,
     Chip,
     CircularProgress,
     Paper,
@@ -14,7 +16,9 @@ import {
     Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { fetchCustomers } from '@/features/customers/api';
+import { fetchCustomers, type CustomerListItem } from '@/features/customers/api';
+import { PaymentDialog } from '@/features/payments/PaymentDialog';
+import { Can } from '@/components/Can';
 
 export function CustomersListPage() {
     const { t } = useTranslation();
@@ -22,6 +26,7 @@ export function CustomersListPage() {
         queryKey: ['customers'],
         queryFn: fetchCustomers,
     });
+    const [paying, setPaying] = useState<CustomerListItem | null>(null);
 
     return (
         <Box>
@@ -40,6 +45,9 @@ export function CustomersListPage() {
                                 <TableCell>{t('nav.customers')}</TableCell>
                                 <TableCell>Phone</TableCell>
                                 <TableCell align="right">Balance</TableCell>
+                                <Can permission="payments.manage">
+                                    <TableCell align="right"> </TableCell>
+                                </Can>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -54,11 +62,29 @@ export function CustomersListPage() {
                                             label={customer.current_balance.toFixed(2)}
                                         />
                                     </TableCell>
+                                    <Can permission="payments.manage">
+                                        <TableCell align="right">
+                                            <Button size="small" onClick={() => setPaying(customer)}>
+                                                Receive payment
+                                            </Button>
+                                        </TableCell>
+                                    </Can>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
+            )}
+
+            {paying && (
+                <PaymentDialog
+                    open
+                    onClose={() => setPaying(null)}
+                    partyType="customer"
+                    partyId={paying.id}
+                    partyName={paying.name}
+                    invalidateQueryKey="customers"
+                />
             )}
         </Box>
     );

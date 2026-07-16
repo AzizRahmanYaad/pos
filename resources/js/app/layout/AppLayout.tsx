@@ -20,6 +20,11 @@ export function AppLayout() {
                     <Button color="inherit" component={RouterLink} to="/">
                         {t('nav.dashboard')}
                     </Button>
+                    <Can permission="pos.access">
+                        <Button color="inherit" component={RouterLink} to="/pos">
+                            {t('nav.pos')}
+                        </Button>
+                    </Can>
                     <Can permission="products.manage">
                         <Button color="inherit" component={RouterLink} to="/products">
                             {t('nav.products')}

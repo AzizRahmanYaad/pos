@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PurchaseController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\StockAdjustmentController;
 use App\Http\Controllers\Api\V1\StockMovementController;
 use App\Http\Controllers\Api\V1\SupplierController;
@@ -49,5 +50,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/purchases/{purchase}/receive', [PurchaseController::class, 'receive']);
         Route::post('/purchases/{purchase}/cancel', [PurchaseController::class, 'cancel']);
         Route::apiResource('purchases', PurchaseController::class)->except(['update']);
+
+        Route::post('/sales/{sale}/refund', [SaleController::class, 'refund']);
+        Route::apiResource('sales', SaleController::class)->only(['index', 'store', 'show']);
     });
 });

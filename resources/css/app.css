@@ -13,3 +13,21 @@ body,
 body {
     font-family: 'Vazirmatn', 'Noto Sans Arabic', 'Instrument Sans', system-ui, sans-serif;
 }
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .receipt-print,
+    .receipt-print * {
+        visibility: visible;
+    }
+
+    .receipt-print {
+        position: absolute;
+        inset-inline-start: 0;
+        top: 0;
+        width: 100%;
+    }
+}

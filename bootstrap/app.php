@@ -2,6 +2,8 @@
 
 use App\Domain\Inventory\Exceptions\InsufficientStockException;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
+use App\Domain\Sales\Exceptions\InvalidSalePaymentException;
+use App\Domain\Sales\Exceptions\SaleAlreadyProcessedException;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -39,5 +41,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(fn (PurchaseAlreadyProcessedException $e, Request $request) => $request->is('api/*')
             ? response()->json(['message' => $e->getMessage()], 409)
+            : null);
+
+        $exceptions->render(fn (SaleAlreadyProcessedException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => $e->getMessage()], 409)
+            : null);
+
+        $exceptions->render(fn (InvalidSalePaymentException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => $e->getMessage()], 422)
             : null);
     })->create();

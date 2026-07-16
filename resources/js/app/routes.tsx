@@ -7,6 +7,7 @@ import { CustomersListPage } from '@/features/customers/CustomersListPage';
 import { SuppliersListPage } from '@/features/suppliers/SuppliersListPage';
 import { PurchasesListPage } from '@/features/purchases/PurchasesListPage';
 import { NewPurchasePage } from '@/features/purchases/NewPurchasePage';
+import { PosPage } from '@/features/pos/PosPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
                 element: <AppLayout />,
                 children: [
                     { index: true, element: <DashboardPage /> },
+                    { path: 'pos', element: <PosPage /> },
                     { path: 'products', element: <ProductsListPage /> },
                     { path: 'customers', element: <CustomersListPage /> },
                     { path: 'suppliers', element: <SuppliersListPage /> },

@@ -3,6 +3,7 @@
 namespace App\Domain\Employees\Actions;
 
 use App\Domain\Ledger\Actions\PostLedgerEntryAction;
+use App\Domain\PeriodClosing\Services\PeriodGuard;
 use App\Models\CashAccount;
 use App\Models\Employee;
 use App\Models\EmployeeAdvance;
@@ -14,6 +15,7 @@ class RecordEmployeeAdvanceAction
 {
     public function __construct(
         private readonly PostLedgerEntryAction $postLedgerEntry,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -29,6 +31,8 @@ class RecordEmployeeAdvanceAction
         int $createdBy,
         ?Carbon $advanceDate = null,
     ): EmployeeAdvance {
+        $this->periodGuard->assertMutable($advanceDate ?? now());
+
         return DB::transaction(function () use ($employee, $amount, $cashAccount, $reason, $createdBy, $advanceDate) {
             $advance = EmployeeAdvance::create([
                 'employee_id' => $employee->id,

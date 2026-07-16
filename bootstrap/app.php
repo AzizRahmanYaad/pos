@@ -3,6 +3,8 @@
 use App\Domain\Employees\Exceptions\PayrollAlreadyProcessedException;
 use App\Domain\Expenses\Exceptions\InvalidExpenseException;
 use App\Domain\Inventory\Exceptions\InsufficientStockException;
+use App\Domain\PeriodClosing\Exceptions\InvalidPeriodClosingException;
+use App\Domain\PeriodClosing\Exceptions\PeriodClosedException;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
 use App\Domain\Sales\Exceptions\InvalidSalePaymentException;
 use App\Domain\Sales\Exceptions\SaleAlreadyProcessedException;
@@ -59,5 +61,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(fn (PayrollAlreadyProcessedException $e, Request $request) => $request->is('api/*')
             ? response()->json(['message' => $e->getMessage()], 409)
+            : null);
+
+        $exceptions->render(fn (PeriodClosedException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => $e->getMessage()], 423)
+            : null);
+
+        $exceptions->render(fn (InvalidPeriodClosingException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => $e->getMessage()], 422)
             : null);
     })->create();

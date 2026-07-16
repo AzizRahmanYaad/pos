@@ -58,6 +58,11 @@ export function AppLayout() {
                             {t('nav.payroll')}
                         </Button>
                     </Can>
+                    <Can permission="period-closing.close">
+                        <Button color="inherit" component={RouterLink} to="/period-closing">
+                            {t('nav.period_closing')}
+                        </Button>
+                    </Can>
                     <Box sx={{ flexGrow: 1 }} />
                     {user && (
                         <Typography variant="body2" sx={{ opacity: 0.9 }}>

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\ExpenseCategoryController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PayrollRunController;
+use App\Http\Controllers\Api\V1\PeriodClosingController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PurchaseController;
 use App\Http\Controllers\Api\V1\RoleController;
@@ -71,5 +72,8 @@ Route::prefix('v1')->group(function () {
         Route::put('/payroll-items/{payrollItem}', [PayrollRunController::class, 'updateItem']);
         Route::post('/payroll-runs/{payrollRun}/pay', [PayrollRunController::class, 'pay']);
         Route::apiResource('payroll-runs', PayrollRunController::class)->only(['index', 'store', 'show']);
+
+        Route::post('/period-closings/{periodClosing}/reopen', [PeriodClosingController::class, 'reopen']);
+        Route::apiResource('period-closings', PeriodClosingController::class)->only(['index', 'store', 'show']);
     });
 });

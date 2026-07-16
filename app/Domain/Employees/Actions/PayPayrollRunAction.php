@@ -4,6 +4,7 @@ namespace App\Domain\Employees\Actions;
 
 use App\Domain\Employees\Exceptions\PayrollAlreadyProcessedException;
 use App\Domain\Ledger\Actions\PostLedgerEntryAction;
+use App\Domain\PeriodClosing\Services\PeriodGuard;
 use App\Models\CashAccount;
 use App\Models\LedgerEntry;
 use App\Models\PayrollRun;
@@ -13,6 +14,7 @@ class PayPayrollRunAction
 {
     public function __construct(
         private readonly PostLedgerEntryAction $postLedgerEntry,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -22,6 +24,8 @@ class PayPayrollRunAction
      */
     public function execute(PayrollRun $payrollRun, CashAccount $cashAccount, int $paidBy): PayrollRun
     {
+        $this->periodGuard->assertMutable(now());
+
         return DB::transaction(function () use ($payrollRun, $cashAccount, $paidBy) {
             $locked = PayrollRun::query()->whereKey($payrollRun->id)->lockForUpdate()->firstOrFail();
 

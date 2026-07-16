@@ -4,6 +4,7 @@ namespace App\Domain\Sales\Actions;
 
 use App\Domain\Inventory\Actions\RecordStockMovementAction;
 use App\Domain\Ledger\Actions\PostLedgerEntryAction;
+use App\Domain\PeriodClosing\Services\PeriodGuard;
 use App\Domain\Sales\Exceptions\InvalidSalePaymentException;
 use App\Models\BusinessSetting;
 use App\Models\CashAccount;
@@ -20,6 +21,7 @@ class CreateSaleAction
     public function __construct(
         private readonly RecordStockMovementAction $recordStockMovement,
         private readonly PostLedgerEntryAction $postLedgerEntry,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -29,6 +31,8 @@ class CreateSaleAction
      */
     public function execute(array $data, array $items, array $payments, int $cashierId): Sale
     {
+        $this->periodGuard->assertMutable($data['sale_date'] ?? now());
+
         return DB::transaction(function () use ($data, $items, $payments, $cashierId) {
             $warehouse = Warehouse::findOrFail($data['warehouse_id']);
             $subtotal = 0.0;

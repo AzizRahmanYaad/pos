@@ -3,6 +3,7 @@
 namespace App\Domain\Payments\Actions;
 
 use App\Domain\Ledger\Actions\PostLedgerEntryAction;
+use App\Domain\PeriodClosing\Services\PeriodGuard;
 use App\Models\CashAccount;
 use App\Models\LedgerEntry;
 use App\Models\Payment;
@@ -16,6 +17,7 @@ class RecordPaymentAction
 {
     public function __construct(
         private readonly PostLedgerEntryAction $postLedgerEntry,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -37,6 +39,8 @@ class RecordPaymentAction
         int $receivedBy,
         ?Carbon $paidAt = null,
     ): Payment {
+        $this->periodGuard->assertMutable($paidAt ?? now());
+
         return DB::transaction(function () use (
             $party, $direction, $amount, $cashAccount, $method, $description, $reference, $receivedBy, $paidAt,
         ) {

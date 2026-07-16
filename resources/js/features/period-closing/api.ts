@@ -1,0 +1,51 @@
+import { apiClient } from '@/lib/apiClient';
+
+export interface PeriodClosingSnapshotDto {
+    id: number;
+    snapshot_type: string;
+    reference_id: number | null;
+    reference_label: string | null;
+    amount: number;
+    quantity: number | null;
+}
+
+export interface PeriodClosingDto {
+    id: number;
+    period_type: 'daily' | 'monthly' | 'custom';
+    period_start: string;
+    period_end: string;
+    closed_at: string | null;
+    closed_by: string | null;
+    status: 'closed' | 'reopened';
+    notes: string | null;
+    snapshots: PeriodClosingSnapshotDto[];
+}
+
+interface CollectionResponse<T> {
+    data: T[];
+}
+
+export async function fetchPeriodClosings(): Promise<PeriodClosingDto[]> {
+    const { data } = await apiClient.get<CollectionResponse<PeriodClosingDto>>('/period-closings');
+    return data.data;
+}
+
+export async function fetchPeriodClosing(id: number): Promise<PeriodClosingDto> {
+    const { data } = await apiClient.get(`/period-closings/${id}`);
+    return data.data;
+}
+
+export async function closePeriod(payload: {
+    period_type: 'daily' | 'monthly' | 'custom';
+    period_start: string;
+    period_end: string;
+    notes?: string;
+}): Promise<PeriodClosingDto> {
+    const { data } = await apiClient.post('/period-closings', payload);
+    return data.data;
+}
+
+export async function reopenPeriod(id: number): Promise<PeriodClosingDto> {
+    const { data } = await apiClient.post(`/period-closings/${id}/reopen`);
+    return data.data;
+}

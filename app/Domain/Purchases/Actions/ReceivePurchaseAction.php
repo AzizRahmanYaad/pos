@@ -4,6 +4,7 @@ namespace App\Domain\Purchases\Actions;
 
 use App\Domain\Inventory\Actions\RecordStockMovementAction;
 use App\Domain\Ledger\Actions\PostLedgerEntryAction;
+use App\Domain\PeriodClosing\Services\PeriodGuard;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
 use App\Models\LedgerEntry;
 use App\Models\Purchase;
@@ -15,6 +16,7 @@ class ReceivePurchaseAction
     public function __construct(
         private readonly RecordStockMovementAction $recordStockMovement,
         private readonly PostLedgerEntryAction $postLedgerEntry,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -26,6 +28,8 @@ class ReceivePurchaseAction
      */
     public function execute(Purchase $purchase, int $receivedBy): Purchase
     {
+        $this->periodGuard->assertMutable($purchase->purchase_date);
+
         return DB::transaction(function () use ($purchase, $receivedBy) {
             $locked = Purchase::query()->whereKey($purchase->id)->lockForUpdate()->firstOrFail();
 

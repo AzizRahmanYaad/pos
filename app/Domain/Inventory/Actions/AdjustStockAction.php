@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory\Actions;
 
+use App\Domain\PeriodClosing\Services\PeriodGuard;
 use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\Warehouse;
@@ -10,6 +11,7 @@ class AdjustStockAction
 {
     public function __construct(
         private readonly RecordStockMovementAction $recordStockMovement,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -25,6 +27,8 @@ class AdjustStockAction
         ?float $unitCost,
         int $createdBy,
     ): StockMovement {
+        $this->periodGuard->assertMutable(now());
+
         return $this->recordStockMovement->execute(
             product: $product,
             warehouse: $warehouse,

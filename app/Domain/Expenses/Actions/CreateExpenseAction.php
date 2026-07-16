@@ -4,6 +4,7 @@ namespace App\Domain\Expenses\Actions;
 
 use App\Domain\Expenses\Exceptions\InvalidExpenseException;
 use App\Domain\Ledger\Actions\PostLedgerEntryAction;
+use App\Domain\PeriodClosing\Services\PeriodGuard;
 use App\Models\CashAccount;
 use App\Models\Expense;
 use App\Models\LedgerEntry;
@@ -15,6 +16,7 @@ class CreateExpenseAction
 {
     public function __construct(
         private readonly PostLedgerEntryAction $postLedgerEntry,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -22,6 +24,8 @@ class CreateExpenseAction
      */
     public function execute(array $data, int $createdBy): Expense
     {
+        $this->periodGuard->assertMutable($data['expense_date'] ?? now());
+
         return DB::transaction(function () use ($data, $createdBy) {
             $purchase = null;
 

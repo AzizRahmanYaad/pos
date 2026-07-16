@@ -11,6 +11,7 @@ import { PosPage } from '@/features/pos/PosPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 import { EmployeesListPage } from '@/features/employees/EmployeesListPage';
 import { PayrollPage } from '@/features/payroll/PayrollPage';
+import { PeriodClosingPage } from '@/features/period-closing/PeriodClosingPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
                     { path: 'expenses', element: <ExpensesPage /> },
                     { path: 'employees', element: <EmployeesListPage /> },
                     { path: 'payroll', element: <PayrollPage /> },
+                    { path: 'period-closing', element: <PeriodClosingPage /> },
                 ],
             },
         ],

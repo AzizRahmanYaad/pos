@@ -43,6 +43,11 @@ export function AppLayout() {
                             {t('nav.purchases')}
                         </Button>
                     </Can>
+                    <Can permission="expenses.manage">
+                        <Button color="inherit" component={RouterLink} to="/expenses">
+                            {t('nav.expenses')}
+                        </Button>
+                    </Can>
                     <Box sx={{ flexGrow: 1 }} />
                     {user && (
                         <Typography variant="body2" sx={{ opacity: 0.9 }}>

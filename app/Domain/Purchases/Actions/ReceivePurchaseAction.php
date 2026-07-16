@@ -36,7 +36,10 @@ class ReceivePurchaseAction
             }
 
             $items = $purchase->items()->with('product')->get();
-            $landedTotal = (float) $purchase->landed_cost_total;
+            // Recomputed from the relation (not the cached landed_cost_total
+            // column) so landed costs added later via an Expense — after the
+            // purchase was created but before it's received — are picked up.
+            $landedTotal = (float) $purchase->landedCosts()->sum('amount');
             $totalLineValue = $items->sum(fn ($item) => (float) $item->quantity * (float) $item->unit_cost);
 
             foreach ($items as $item) {
@@ -80,6 +83,7 @@ class ReceivePurchaseAction
             $locked->update([
                 'status' => Purchase::STATUS_RECEIVED,
                 'due_amount' => $purchase->grand_total,
+                'landed_cost_total' => $landedTotal,
             ]);
 
             return $purchase->fresh(['items.product', 'landedCosts', 'supplier']);

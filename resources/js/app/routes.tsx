@@ -8,6 +8,7 @@ import { SuppliersListPage } from '@/features/suppliers/SuppliersListPage';
 import { PurchasesListPage } from '@/features/purchases/PurchasesListPage';
 import { NewPurchasePage } from '@/features/purchases/NewPurchasePage';
 import { PosPage } from '@/features/pos/PosPage';
+import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
                     { path: 'suppliers', element: <SuppliersListPage /> },
                     { path: 'purchases', element: <PurchasesListPage /> },
                     { path: 'purchases/new', element: <NewPurchasePage /> },
+                    { path: 'expenses', element: <ExpensesPage /> },
                 ],
             },
         ],

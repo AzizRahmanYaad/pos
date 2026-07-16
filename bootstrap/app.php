@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Expenses\Exceptions\InvalidExpenseException;
 use App\Domain\Inventory\Exceptions\InsufficientStockException;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
 use App\Domain\Sales\Exceptions\InvalidSalePaymentException;
@@ -48,6 +49,10 @@ return Application::configure(basePath: dirname(__DIR__))
             : null);
 
         $exceptions->render(fn (InvalidSalePaymentException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => $e->getMessage()], 422)
+            : null);
+
+        $exceptions->render(fn (InvalidExpenseException $e, Request $request) => $request->is('api/*')
             ? response()->json(['message' => $e->getMessage()], 422)
             : null);
     })->create();

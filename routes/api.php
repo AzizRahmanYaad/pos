@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\V1\BusinessSettingController;
 use App\Http\Controllers\Api\V1\CashAccountController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\ExpenseCategoryController;
+use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PurchaseController;
@@ -56,5 +58,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('sales', SaleController::class)->only(['index', 'store', 'show']);
 
         Route::apiResource('payments', PaymentController::class)->only(['index', 'store']);
+
+        Route::apiResource('expense-categories', ExpenseCategoryController::class)->only(['index', 'store', 'destroy']);
+        Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'destroy']);
     });
 });

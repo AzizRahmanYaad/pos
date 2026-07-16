@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['ledgerable_type', 'ledgerable_id', 'transaction_date']);
+            $table->index(['ledgerable_type', 'ledgerable_id', 'transaction_date'], 'ledger_entries_ledgerable_date_idx');
         });
     }
 

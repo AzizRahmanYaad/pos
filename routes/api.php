@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\V1\BusinessSettingController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\StockAdjustmentController;
+use App\Http\Controllers\Api\V1\StockMovementController;
 use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\WarehouseController;
@@ -28,5 +30,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('units', UnitController::class);
         Route::apiResource('warehouses', WarehouseController::class);
         Route::apiResource('products', ProductController::class);
+
+        Route::get('/stock-movements', [StockMovementController::class, 'index']);
+        Route::post('/stock-adjustments', [StockAdjustmentController::class, 'store']);
     });
 });

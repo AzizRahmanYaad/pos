@@ -1,26 +1,73 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Alert,
     Box,
+    Button,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    MenuItem,
     Paper,
+    Stack,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
     TableRow,
+    TextField,
     Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { fetchProducts } from '@/features/products/api';
+import { fetchProducts, type ProductListItem } from '@/features/products/api';
+import { createStockAdjustment } from '@/features/inventory/api';
+import { Can } from '@/components/Can';
 
 export function ProductsListPage() {
     const { t } = useTranslation();
+    const queryClient = useQueryClient();
     const { data, isLoading, isError } = useQuery({
         queryKey: ['products'],
         queryFn: fetchProducts,
     });
+
+    const [adjusting, setAdjusting] = useState<ProductListItem | null>(null);
+    const [warehouseId, setWarehouseId] = useState<number | ''>('');
+    const [quantity, setQuantity] = useState('');
+    const [reason, setReason] = useState('');
+    const [error, setError] = useState<string | null>(null);
+
+    const mutation = useMutation({
+        mutationFn: createStockAdjustment,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            closeDialog();
+        },
+        onError: () => setError('Adjustment failed — check the quantity does not exceed available stock.'),
+    });
+
+    const openDialog = (product: ProductListItem) => {
+        setAdjusting(product);
+        setWarehouseId(product.stocks[0]?.warehouse_id ?? '');
+        setQuantity('');
+        setReason('');
+        setError(null);
+    };
+
+    const closeDialog = () => setAdjusting(null);
+
+    const submitAdjustment = () => {
+        if (!adjusting || warehouseId === '' || !quantity || !reason) return;
+        mutation.mutate({
+            product_id: adjusting.id,
+            warehouse_id: warehouseId,
+            quantity: Number(quantity),
+            reason,
+        });
+    };
 
     return (
         <Box>
@@ -41,6 +88,9 @@ export function ProductsListPage() {
                                 <TableCell>{t('nav.inventory')}</TableCell>
                                 <TableCell align="right">Stock</TableCell>
                                 <TableCell align="right">Price</TableCell>
+                                <Can permission="inventory.manage">
+                                    <TableCell align="right"> </TableCell>
+                                </Can>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -53,12 +103,65 @@ export function ProductsListPage() {
                                         {product.total_stock} {product.unit_short_name}
                                     </TableCell>
                                     <TableCell align="right">{product.sale_price.toFixed(2)}</TableCell>
+                                    <Can permission="inventory.manage">
+                                        <TableCell align="right">
+                                            <Button size="small" onClick={() => openDialog(product)}>
+                                                Adjust
+                                            </Button>
+                                        </TableCell>
+                                    </Can>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
             )}
+
+            <Dialog open={adjusting !== null} onClose={closeDialog} fullWidth maxWidth="xs">
+                <DialogTitle>Adjust stock — {adjusting?.name}</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} sx={{ mt: 1 }}>
+                        {error && <Alert severity="error">{error}</Alert>}
+                        <TextField
+                            select
+                            label={t('nav.inventory')}
+                            value={warehouseId}
+                            onChange={(e) => setWarehouseId(Number(e.target.value))}
+                            fullWidth
+                        >
+                            {adjusting?.stocks.map((stock) => (
+                                <MenuItem key={stock.warehouse_id} value={stock.warehouse_id}>
+                                    {stock.warehouse_name} ({stock.quantity})
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField
+                            label="Quantity (+/-)"
+                            type="number"
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            helperText="Positive to add stock, negative to remove it"
+                            fullWidth
+                        />
+                        <TextField
+                            label="Reason"
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            fullWidth
+                        />
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={closeDialog}>{t('actions.cancel')}</Button>
+                    <Button
+                        variant="contained"
+                        onClick={submitAdjustment}
+                        disabled={mutation.isPending || !quantity || !reason}
+                    >
+                        {t('actions.save')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\CashAccountController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\PurchaseController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\StockAdjustmentController;
 use App\Http\Controllers\Api\V1\StockMovementController;
@@ -44,5 +45,9 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('suppliers', SupplierController::class);
 
         Route::apiResource('cash-accounts', CashAccountController::class);
+
+        Route::post('/purchases/{purchase}/receive', [PurchaseController::class, 'receive']);
+        Route::post('/purchases/{purchase}/cancel', [PurchaseController::class, 'cancel']);
+        Route::apiResource('purchases', PurchaseController::class)->except(['update']);
     });
 });

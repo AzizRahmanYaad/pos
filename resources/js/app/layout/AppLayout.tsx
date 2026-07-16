@@ -34,6 +34,9 @@ export function AppLayout() {
                         <Button color="inherit" component={RouterLink} to="/suppliers">
                             {t('nav.suppliers')}
                         </Button>
+                        <Button color="inherit" component={RouterLink} to="/purchases">
+                            {t('nav.purchases')}
+                        </Button>
                     </Can>
                     <Box sx={{ flexGrow: 1 }} />
                     {user && (

@@ -5,6 +5,8 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { ProductsListPage } from '@/features/products/ProductsListPage';
 import { CustomersListPage } from '@/features/customers/CustomersListPage';
 import { SuppliersListPage } from '@/features/suppliers/SuppliersListPage';
+import { PurchasesListPage } from '@/features/purchases/PurchasesListPage';
+import { NewPurchasePage } from '@/features/purchases/NewPurchasePage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -20,6 +22,8 @@ export const router = createBrowserRouter([
                     { path: 'products', element: <ProductsListPage /> },
                     { path: 'customers', element: <CustomersListPage /> },
                     { path: 'suppliers', element: <SuppliersListPage /> },
+                    { path: 'purchases', element: <PurchasesListPage /> },
+                    { path: 'purchases/new', element: <NewPurchasePage /> },
                 ],
             },
         ],

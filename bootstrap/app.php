@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Inventory\Exceptions\InsufficientStockException;
+use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -33,6 +34,10 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $exceptions->render(fn (InsufficientStockException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => $e->getMessage()], 409)
+            : null);
+
+        $exceptions->render(fn (PurchaseAlreadyProcessedException $e, Request $request) => $request->is('api/*')
             ? response()->json(['message' => $e->getMessage()], 409)
             : null);
     })->create();

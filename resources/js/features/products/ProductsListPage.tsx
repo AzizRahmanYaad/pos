@@ -46,7 +46,7 @@ export function ProductsListPage() {
             queryClient.invalidateQueries({ queryKey: ['products'] });
             closeDialog();
         },
-        onError: () => setError('Adjustment failed — check the quantity does not exceed available stock.'),
+        onError: () => setError(t('products_page.adjustment_failed')),
     });
 
     const openDialog = (product: ProductListItem) => {
@@ -83,11 +83,11 @@ export function ProductsListPage() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>SKU</TableCell>
+                                <TableCell>{t('fields.sku')}</TableCell>
                                 <TableCell>{t('nav.products')}</TableCell>
-                                <TableCell>{t('nav.inventory')}</TableCell>
-                                <TableCell align="right">Stock</TableCell>
-                                <TableCell align="right">Price</TableCell>
+                                <TableCell>{t('fields.category')}</TableCell>
+                                <TableCell align="right">{t('fields.stock')}</TableCell>
+                                <TableCell align="right">{t('fields.price')}</TableCell>
                                 <Can permission="inventory.manage">
                                     <TableCell align="right"> </TableCell>
                                 </Can>
@@ -106,7 +106,7 @@ export function ProductsListPage() {
                                     <Can permission="inventory.manage">
                                         <TableCell align="right">
                                             <Button size="small" onClick={() => openDialog(product)}>
-                                                Adjust
+                                                {t('actions.adjust')}
                                             </Button>
                                         </TableCell>
                                     </Can>
@@ -118,13 +118,13 @@ export function ProductsListPage() {
             )}
 
             <Dialog open={adjusting !== null} onClose={closeDialog} fullWidth maxWidth="xs">
-                <DialogTitle>Adjust stock — {adjusting?.name}</DialogTitle>
+                <DialogTitle>{t('products_page.adjust_stock_title', { name: adjusting?.name })}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         {error && <Alert severity="error">{error}</Alert>}
                         <TextField
                             select
-                            label={t('nav.inventory')}
+                            label={t('fields.warehouse')}
                             value={warehouseId}
                             onChange={(e) => setWarehouseId(Number(e.target.value))}
                             fullWidth
@@ -136,15 +136,15 @@ export function ProductsListPage() {
                             ))}
                         </TextField>
                         <TextField
-                            label="Quantity (+/-)"
+                            label={t('products_page.quantity_placeholder')}
                             type="number"
                             value={quantity}
                             onChange={(e) => setQuantity(e.target.value)}
-                            helperText="Positive to add stock, negative to remove it"
+                            helperText={t('products_page.quantity_hint')}
                             fullWidth
                         />
                         <TextField
-                            label="Reason"
+                            label={t('fields.reason')}
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             fullWidth

@@ -14,4 +14,5 @@ return [
     'search' => 'Search',
     'yes' => 'Yes',
     'no' => 'No',
+    'walk_in' => 'Walk-in',
 ];

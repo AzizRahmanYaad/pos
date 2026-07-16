@@ -13,8 +13,8 @@ class SetLocale
 
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = $request->user()?->locale
-            ?? $request->header('X-Locale')
+        $locale = $request->header('X-Locale')
+            ?? $request->user()?->locale
             ?? $request->query('locale');
 
         if (is_string($locale) && in_array($locale, self::SUPPORTED_LOCALES, true)) {

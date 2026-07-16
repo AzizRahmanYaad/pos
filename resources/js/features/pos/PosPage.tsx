@@ -115,7 +115,7 @@ export function PosPage() {
             setError(null);
             queryClient.invalidateQueries({ queryKey: ['products'] });
         },
-        onError: () => setError('Could not complete sale — check stock levels and tender amounts.'),
+        onError: () => setError(t('pos_page.checkout_failed')),
     });
 
     const checkout = () => {
@@ -137,14 +137,14 @@ export function PosPage() {
         return (
             <Box>
                 <Alert severity="success" sx={{ mb: 2 }}>
-                    Sale {receipt.invoice_number} completed.
+                    {t('pos_page.sale_completed', { invoice: receipt.invoice_number })}
                 </Alert>
                 <ReceiptView sale={receipt} />
                 <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
                     <Button variant="contained" onClick={() => window.print()}>
-                        Print receipt
+                        {t('pos_page.print_receipt')}
                     </Button>
-                    <Button onClick={() => setReceipt(null)}>New sale</Button>
+                    <Button onClick={() => setReceipt(null)}>{t('pos_page.new_sale')}</Button>
                 </Stack>
             </Box>
         );
@@ -196,8 +196,9 @@ export function PosPage() {
                             value={customerId}
                             onChange={(e) => setCustomerId(e.target.value ? Number(e.target.value) : '')}
                             sx={{ flex: 1 }}
+                            SelectProps={{ displayEmpty: true }}
                         >
-                            <MenuItem value="">Walk-in</MenuItem>
+                            <MenuItem value="">{t('common.walk_in')}</MenuItem>
                             {customers?.map((c) => (
                                 <MenuItem key={c.id} value={c.id}>
                                     {c.name}
@@ -206,7 +207,7 @@ export function PosPage() {
                         </TextField>
                         <TextField
                             select
-                            label={t('nav.inventory')}
+                            label={t('fields.warehouse')}
                             value={warehouseId}
                             onChange={(e) => setWarehouseId(Number(e.target.value))}
                             sx={{ flex: 1 }}
@@ -223,8 +224,8 @@ export function PosPage() {
                         <TableHead>
                             <TableRow>
                                 <TableCell>{t('nav.products')}</TableCell>
-                                <TableCell align="right">Qty</TableCell>
-                                <TableCell align="right">Total</TableCell>
+                                <TableCell align="right">{t('fields.quantity')}</TableCell>
+                                <TableCell align="right">{t('fields.total')}</TableCell>
                                 <TableCell />
                             </TableRow>
                         </TableHead>
@@ -261,7 +262,7 @@ export function PosPage() {
                     </Typography>
 
                     <Typography variant="subtitle1" sx={{ mt: 2 }}>
-                        Payment
+                        {t('pos_page.payment')}
                     </Typography>
                     {tenders.map((tender, index) => (
                         <Stack direction="row" spacing={1} alignItems="center" key={index} sx={{ mt: 1 }}>
@@ -291,11 +292,13 @@ export function PosPage() {
                         </Stack>
                     ))}
                     <Button size="small" onClick={addTender} sx={{ mt: 1 }} disabled={!cashAccounts?.length}>
-                        {t('actions.add')} tender
+                        {t('pos_page.add_tender')}
                     </Button>
 
                     <Typography variant="body2" sx={{ mt: 1 }} color={remaining > 0 ? 'error' : 'text.secondary'}>
-                        {remaining > 0 ? `Remaining: ${remaining.toFixed(2)}` : 'Fully paid'}
+                        {remaining > 0
+                            ? t('pos_page.remaining', { amount: remaining.toFixed(2) })
+                            : t('pos_page.fully_paid')}
                     </Typography>
 
                     <Button
@@ -306,7 +309,7 @@ export function PosPage() {
                         disabled={cart.length === 0 || mutation.isPending || (customerId === '' && remaining !== 0)}
                         onClick={checkout}
                     >
-                        Complete sale
+                        {t('pos_page.complete_sale')}
                     </Button>
                 </Paper>
             </Grid>

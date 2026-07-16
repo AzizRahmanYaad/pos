@@ -47,7 +47,7 @@ export function NewPurchasePage() {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             navigate('/purchases');
         },
-        onError: () => setError('Could not create purchase — check the form values.'),
+        onError: () => setError(t('purchases_page.create_failed')),
     });
 
     const addItem = () => {
@@ -89,7 +89,7 @@ export function NewPurchasePage() {
     return (
         <Box>
             <Typography variant="h4" gutterBottom>
-                New Purchase
+                {t('purchases_page.title')}
             </Typography>
 
             <Paper sx={{ p: 3 }}>
@@ -112,7 +112,7 @@ export function NewPurchasePage() {
                         </TextField>
                         <TextField
                             select
-                            label={t('nav.inventory')}
+                            label={t('fields.warehouse')}
                             value={warehouseId}
                             onChange={(e) => setWarehouseId(Number(e.target.value))}
                             sx={{ minWidth: 240 }}
@@ -125,7 +125,7 @@ export function NewPurchasePage() {
                         </TextField>
                     </Stack>
 
-                    <Typography variant="h6">Items</Typography>
+                    <Typography variant="h6">{t('purchases_page.items')}</Typography>
                     {items.map((row) => (
                         <Stack direction="row" spacing={2} alignItems="center" key={row.key}>
                             <TextField
@@ -148,14 +148,14 @@ export function NewPurchasePage() {
                                 ))}
                             </TextField>
                             <TextField
-                                label="Quantity"
+                                label={t('fields.quantity')}
                                 type="number"
                                 value={row.quantity}
                                 onChange={(e) => updateItem(row.key, { quantity: Number(e.target.value) })}
                                 sx={{ width: 120 }}
                             />
                             <TextField
-                                label="Unit cost"
+                                label={t('fields.unit_cost')}
                                 type="number"
                                 value={row.unit_cost}
                                 onChange={(e) => updateItem(row.key, { unit_cost: Number(e.target.value) })}
@@ -167,19 +167,19 @@ export function NewPurchasePage() {
                         </Stack>
                     ))}
                     <Button onClick={addItem} sx={{ alignSelf: 'flex-start' }}>
-                        {t('actions.add')} item
+                        {t('purchases_page.add_item')}
                     </Button>
 
-                    <Typography variant="h6">Landed cost (optional)</Typography>
+                    <Typography variant="h6">{t('purchases_page.landed_cost')}</Typography>
                     <Stack direction="row" spacing={2}>
                         <TextField
-                            label="Description (e.g. transport)"
+                            label={t('purchases_page.landed_cost_description')}
                             value={landedCostDescription}
                             onChange={(e) => setLandedCostDescription(e.target.value)}
                             sx={{ minWidth: 240 }}
                         />
                         <TextField
-                            label="Amount"
+                            label={t('fields.amount')}
                             type="number"
                             value={landedCostAmount}
                             onChange={(e) => setLandedCostAmount(e.target.value)}
@@ -187,7 +187,7 @@ export function NewPurchasePage() {
                         />
                     </Stack>
 
-                    <Typography variant="subtitle1">Subtotal: {total.toFixed(2)}</Typography>
+                    <Typography variant="subtitle1">{t('fields.subtotal')}: {total.toFixed(2)}</Typography>
 
                     <Stack direction="row" spacing={2}>
                         <Button

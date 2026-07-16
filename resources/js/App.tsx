@@ -1,6 +1,6 @@
 import { CacheProvider } from '@emotion/react';
 import { CssBaseline, Snackbar, Alert, ThemeProvider } from '@mui/material';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { router } from '@/app/routes';
@@ -8,8 +8,7 @@ import { createEmotionCache } from '@/theme/rtlCache';
 import { createAppTheme } from '@/theme/theme';
 import { useLocaleStore } from '@/store/localeStore';
 import { useAuthStore } from '@/store/authStore';
-
-const queryClient = new QueryClient();
+import { queryClient } from '@/lib/queryClient';
 
 export function App() {
     const direction = useLocaleStore((state) => state.direction);

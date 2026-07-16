@@ -24,13 +24,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { fetchPeriodClosings, fetchPeriodClosing, closePeriod, reopenPeriod, type PeriodClosingDto } from '@/features/period-closing/api';
 import { Can } from '@/components/Can';
-
-function formatDate(value: string): string {
-    return value.slice(0, 10);
-}
+import { formatDate } from '@/lib/calendar';
 
 export function PeriodClosingPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const queryClient = useQueryClient();
     const { data: closings } = useQuery({ queryKey: ['period-closings'], queryFn: fetchPeriodClosings });
 
@@ -51,7 +48,7 @@ export function PeriodClosingPage() {
             setExpanded(closing);
             setError(null);
         },
-        onError: () => setError('Could not close period — check the dates do not overlap an already closed period.'),
+        onError: () => setError(t('period_closing_page.close_failed')),
     });
 
     const reopenMutation = useMutation({
@@ -72,7 +69,7 @@ export function PeriodClosingPage() {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">{t('nav.period_closing')}</Typography>
                 <Button variant="contained" onClick={() => setNewOpen(true)}>
-                    Close a period
+                    {t('period_closing_page.close_a_period')}
                 </Button>
             </Box>
 
@@ -81,29 +78,29 @@ export function PeriodClosingPage() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>Type</TableCell>
-                                <TableCell>From</TableCell>
-                                <TableCell>To</TableCell>
-                                <TableCell>Status</TableCell>
+                                <TableCell>{t('fields.type')}</TableCell>
+                                <TableCell>{t('fields.from')}</TableCell>
+                                <TableCell>{t('fields.to')}</TableCell>
+                                <TableCell>{t('fields.status')}</TableCell>
                                 <TableCell align="right"> </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {closings.map((closing) => (
                                 <TableRow key={closing.id}>
-                                    <TableCell>{closing.period_type}</TableCell>
-                                    <TableCell>{formatDate(closing.period_start)}</TableCell>
-                                    <TableCell>{formatDate(closing.period_end)}</TableCell>
+                                    <TableCell>{t(`period_closing_page.${closing.period_type}`)}</TableCell>
+                                    <TableCell>{formatDate(closing.period_start, i18n.language)}</TableCell>
+                                    <TableCell>{formatDate(closing.period_end, i18n.language)}</TableCell>
                                     <TableCell>
                                         <Chip
                                             size="small"
                                             color={closing.status === 'closed' ? 'success' : 'default'}
-                                            label={closing.status}
+                                            label={t(`status.${closing.status}`)}
                                         />
                                     </TableCell>
                                     <TableCell align="right">
                                         <Button size="small" onClick={() => viewClosing(closing.id)}>
-                                            View
+                                            {t('actions.view')}
                                         </Button>
                                         {closing.status === 'closed' && (
                                             <Can permission="period-closing.reopen">
@@ -112,7 +109,7 @@ export function PeriodClosingPage() {
                                                     color="warning"
                                                     onClick={() => reopenMutation.mutate(closing.id)}
                                                 >
-                                                    Reopen
+                                                    {t('period_closing_page.reopen')}
                                                 </Button>
                                             </Can>
                                         )}
@@ -127,21 +124,24 @@ export function PeriodClosingPage() {
             {expanded && (
                 <Paper sx={{ p: 2 }}>
                     <Typography variant="h6" gutterBottom>
-                        {formatDate(expanded.period_start)} — {formatDate(expanded.period_end)} ({expanded.status})
+                        <Box component="span" dir="ltr" sx={{ display: 'inline-block' }}>
+                            {formatDate(expanded.period_start, i18n.language)} — {formatDate(expanded.period_end, i18n.language)}
+                        </Box>{' '}
+                        ({t(`status.${expanded.status}`)})
                     </Typography>
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>Type</TableCell>
-                                <TableCell>Reference</TableCell>
-                                <TableCell align="right">Amount</TableCell>
+                                <TableCell>{t('fields.type')}</TableCell>
+                                <TableCell>{t('period_closing_page.reference')}</TableCell>
+                                <TableCell align="right">{t('fields.amount')}</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {(expanded.snapshots ?? []).map((snap) => (
                                 <TableRow key={snap.id}>
                                     <TableCell>{snap.snapshot_type}</TableCell>
-                                    <TableCell>{snap.reference_label ?? '—'}</TableCell>
+                                    <TableCell>{snap.reference_label ?? t('common.none')}</TableCell>
                                     <TableCell align="right">{snap.amount.toFixed(2)}</TableCell>
                                 </TableRow>
                             ))}
@@ -151,23 +151,23 @@ export function PeriodClosingPage() {
             )}
 
             <Dialog open={newOpen} onClose={() => setNewOpen(false)} fullWidth maxWidth="xs">
-                <DialogTitle>Close a period</DialogTitle>
+                <DialogTitle>{t('period_closing_page.close_a_period')}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         {error && <Alert severity="error">{error}</Alert>}
                         <TextField
                             select
-                            label="Type"
+                            label={t('fields.type')}
                             value={periodType}
                             onChange={(e) => setPeriodType(e.target.value as typeof periodType)}
                             fullWidth
                         >
-                            <MenuItem value="daily">Daily</MenuItem>
-                            <MenuItem value="monthly">Monthly</MenuItem>
-                            <MenuItem value="custom">Custom</MenuItem>
+                            <MenuItem value="daily">{t('period_closing_page.daily')}</MenuItem>
+                            <MenuItem value="monthly">{t('period_closing_page.monthly')}</MenuItem>
+                            <MenuItem value="custom">{t('period_closing_page.custom')}</MenuItem>
                         </TextField>
                         <TextField
-                            label="From"
+                            label={t('fields.from')}
                             type="date"
                             value={periodStart}
                             onChange={(e) => setPeriodStart(e.target.value)}
@@ -175,7 +175,7 @@ export function PeriodClosingPage() {
                             fullWidth
                         />
                         <TextField
-                            label="To"
+                            label={t('fields.to')}
                             type="date"
                             value={periodEnd}
                             onChange={(e) => setPeriodEnd(e.target.value)}

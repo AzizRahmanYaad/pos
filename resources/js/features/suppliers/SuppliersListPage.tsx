@@ -43,8 +43,8 @@ export function SuppliersListPage() {
                         <TableHead>
                             <TableRow>
                                 <TableCell>{t('nav.suppliers')}</TableCell>
-                                <TableCell>Phone</TableCell>
-                                <TableCell align="right">Balance</TableCell>
+                                <TableCell>{t('fields.phone')}</TableCell>
+                                <TableCell align="right">{t('fields.balance')}</TableCell>
                                 <Can permission="payments.manage">
                                     <TableCell align="right"> </TableCell>
                                 </Can>
@@ -65,7 +65,7 @@ export function SuppliersListPage() {
                                     <Can permission="payments.manage">
                                         <TableCell align="right">
                                             <Button size="small" onClick={() => setPaying(supplier)}>
-                                                Pay
+                                                {t('actions.pay')}
                                             </Button>
                                         </TableCell>
                                     </Can>

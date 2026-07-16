@@ -1,4 +1,5 @@
 import axios from 'axios';
+import i18n from '@/i18n/i18n';
 
 export const apiClient = axios.create({
     baseURL: '/api/v1',
@@ -7,6 +8,11 @@ export const apiClient = axios.create({
     headers: {
         Accept: 'application/json',
     },
+});
+
+apiClient.interceptors.request.use((config) => {
+    config.headers['X-Locale'] = i18n.language?.split('-')[0] ?? 'en';
+    return config;
 });
 
 export async function ensureCsrfCookie() {

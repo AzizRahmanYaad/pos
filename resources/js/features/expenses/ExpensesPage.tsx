@@ -69,7 +69,7 @@ export function ExpensesPage() {
             setPurchaseId('');
             setError(null);
         },
-        onError: () => setError('Could not save expense — check a draft purchase is selected for landed costs.'),
+        onError: () => setError(t('expenses_page.save_failed')),
     });
 
     const submit = () => {
@@ -98,10 +98,10 @@ export function ExpensesPage() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>Category</TableCell>
-                                <TableCell>Description</TableCell>
-                                <TableCell>Landed cost</TableCell>
-                                <TableCell align="right">Amount</TableCell>
+                                <TableCell>{t('fields.category')}</TableCell>
+                                <TableCell>{t('fields.description')}</TableCell>
+                                <TableCell>{t('expenses_page.landed_cost_column')}</TableCell>
+                                <TableCell align="right">{t('fields.amount')}</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -110,7 +110,7 @@ export function ExpensesPage() {
                                     <TableCell>{expense.category_name}</TableCell>
                                     <TableCell>{expense.description ?? '—'}</TableCell>
                                     <TableCell>
-                                        {expense.is_landed_cost ? expense.purchase_number ?? 'Yes' : '—'}
+                                        {expense.is_landed_cost ? expense.purchase_number ?? t('common.yes') : t('common.none')}
                                     </TableCell>
                                     <TableCell align="right">{expense.amount.toFixed(2)}</TableCell>
                                 </TableRow>
@@ -121,13 +121,13 @@ export function ExpensesPage() {
             )}
 
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="xs">
-                <DialogTitle>New expense</DialogTitle>
+                <DialogTitle>{t('expenses_page.new_expense')}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         {error && <Alert severity="error">{error}</Alert>}
                         <TextField
                             select
-                            label="Category"
+                            label={t('fields.category')}
                             value={categoryId}
                             onChange={(e) => setCategoryId(Number(e.target.value))}
                             fullWidth
@@ -141,7 +141,7 @@ export function ExpensesPage() {
                         <Stack direction="row" spacing={1}>
                             <TextField
                                 size="small"
-                                label="New category"
+                                label={t('expenses_page.new_category')}
                                 value={newCategoryName}
                                 onChange={(e) => setNewCategoryName(e.target.value)}
                                 fullWidth
@@ -156,7 +156,7 @@ export function ExpensesPage() {
                         </Stack>
                         <TextField
                             select
-                            label="Cash account"
+                            label={t('fields.cash_account')}
                             value={cashAccountId}
                             onChange={(e) => setCashAccountId(Number(e.target.value))}
                             fullWidth
@@ -168,14 +168,14 @@ export function ExpensesPage() {
                             ))}
                         </TextField>
                         <TextField
-                            label="Amount"
+                            label={t('fields.amount')}
                             type="number"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             fullWidth
                         />
                         <TextField
-                            label="Description"
+                            label={t('fields.description')}
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             fullWidth
@@ -187,12 +187,12 @@ export function ExpensesPage() {
                                     onChange={(e) => setIsLandedCost(e.target.checked)}
                                 />
                             }
-                            label="Landed cost (adds to a draft purchase's stock cost)"
+                            label={t('expenses_page.landed_cost_checkbox')}
                         />
                         {isLandedCost && (
                             <TextField
                                 select
-                                label="Draft purchase"
+                                label={t('expenses_page.draft_purchase')}
                                 value={purchaseId}
                                 onChange={(e) => setPurchaseId(Number(e.target.value))}
                                 fullWidth

@@ -24,14 +24,20 @@
         "add": "Add",
         "search": "Search",
         "login": "Login",
-        "logout": "Logout"
+        "logout": "Logout",
+        "view": "View",
+        "receive": "Receive",
+        "pay": "Pay",
+        "adjust": "Adjust"
     },
     "common": {
         "welcome": "Welcome",
         "language": "Language",
         "yes": "Yes",
         "no": "No",
-        "loading": "Loading..."
+        "loading": "Loading...",
+        "walk_in": "Walk-in",
+        "none": "—"
     },
     "auth": {
         "email": "Email",
@@ -40,5 +46,169 @@
         "signing_in": "Signing in...",
         "login_error": "Invalid email or password",
         "signed_in_as": "Signed in as {{name}}"
+    },
+    "fields": {
+        "sku": "SKU",
+        "phone": "Phone",
+        "balance": "Balance",
+        "price": "Price",
+        "stock": "Stock",
+        "category": "Category",
+        "warehouse": "Warehouse",
+        "status": "Status",
+        "quantity": "Quantity",
+        "unit_cost": "Unit cost",
+        "amount": "Amount",
+        "description": "Description",
+        "reason": "Reason",
+        "cash_account": "Cash account",
+        "method": "Method",
+        "name": "Name",
+        "designation": "Designation",
+        "monthly_salary": "Monthly salary",
+        "salary": "Salary",
+        "outstanding_advances": "Outstanding advances",
+        "grand_total": "Grand Total",
+        "total": "Total",
+        "subtotal": "Subtotal",
+        "due": "Due",
+        "period": "Period",
+        "total_net_pay": "Total net pay",
+        "base_salary": "Base",
+        "advances_deducted": "Advances",
+        "net_pay": "Net pay",
+        "pay_from": "Pay from",
+        "month": "Month",
+        "year": "Year",
+        "from": "From",
+        "to": "To",
+        "type": "Type",
+        "customer": "Customer",
+        "date": "Date",
+        "revenue": "Revenue",
+        "cogs": "Cost of goods sold",
+        "gross_profit": "Gross profit",
+        "operating_expenses": "Operating expenses",
+        "payroll_cost": "Payroll cost",
+        "net_profit": "Net profit",
+        "product": "Product",
+        "avg_cost": "Avg Cost",
+        "value": "Value",
+        "salary_type_monthly": "monthly",
+        "salary_type_daily": "daily"
+    },
+    "status": {
+        "draft": "Draft",
+        "received": "Received",
+        "cancelled": "Cancelled",
+        "paid": "Paid",
+        "closed": "Closed",
+        "reopened": "Reopened",
+        "completed": "Completed",
+        "refunded": "Refunded"
+    },
+    "payment_methods": {
+        "cash": "Cash",
+        "card": "Card",
+        "mobile_wallet": "Mobile wallet",
+        "bank": "Bank"
+    },
+    "months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+    ],
+    "products_page": {
+        "adjust_stock_title": "Adjust stock — {{name}}",
+        "quantity_placeholder": "Quantity (+/-)",
+        "quantity_hint": "Positive to add stock, negative to remove it",
+        "adjustment_failed": "Adjustment failed — check the quantity does not exceed available stock."
+    },
+    "purchases_page": {
+        "title": "New Purchase",
+        "items": "Items",
+        "add_item": "Add item",
+        "landed_cost": "Landed cost (optional)",
+        "landed_cost_description": "Description (e.g. transport)",
+        "create_failed": "Could not create purchase — check the form values."
+    },
+    "pos_page": {
+        "sale_completed": "Sale {{invoice}} completed.",
+        "print_receipt": "Print receipt",
+        "new_sale": "New sale",
+        "payment": "Payment",
+        "add_tender": "Add tender",
+        "fully_paid": "Fully paid",
+        "remaining": "Remaining: {{amount}}",
+        "complete_sale": "Complete sale",
+        "checkout_failed": "Could not complete sale — check stock levels and tender amounts."
+    },
+    "receipt": {
+        "customer": "Customer",
+        "subtotal": "Subtotal",
+        "total": "Total",
+        "due": "Due",
+        "thank_you": "Thank you for your business"
+    },
+    "expenses_page": {
+        "new_expense": "New expense",
+        "new_category": "New category",
+        "landed_cost_checkbox": "Landed cost (adds to a draft purchase's stock cost)",
+        "draft_purchase": "Draft purchase",
+        "save_failed": "Could not save expense — check a draft purchase is selected for landed costs.",
+        "landed_cost_column": "Landed cost"
+    },
+    "employees_page": {
+        "new_employee": "New employee",
+        "give_advance": "Give advance",
+        "advance_title": "Advance — {{name}}",
+        "advance_failed": "Could not record advance."
+    },
+    "payroll_page": {
+        "new_run": "New payroll run",
+        "pay_run": "Pay run",
+        "run_exists": "A payroll run for that period may already exist."
+    },
+    "period_closing_page": {
+        "close_a_period": "Close a period",
+        "daily": "Daily",
+        "monthly": "Monthly",
+        "custom": "Custom",
+        "close_failed": "Could not close period — check the dates do not overlap an already closed period.",
+        "reopen": "Reopen",
+        "reference": "Reference"
+    },
+    "reports_page": {
+        "report_label": "Report",
+        "profit_loss": "Profit & Loss",
+        "inventory_valuation": "Inventory Valuation"
+    },
+    "dashboard_page": {
+        "today_sales": "Today's sales",
+        "today_profit": "Today's profit",
+        "cash_position": "Cash position",
+        "low_stock_items": "Low stock items",
+        "receivables": "Receivables",
+        "payables": "Payables",
+        "today_sale_count": "Today's sale count",
+        "sales_trend": "Sales trend (last 14 days)",
+        "expenses_by_category": "Expenses by category (this month)",
+        "top_products": "Top products (last 30 days)",
+        "recent_sales": "Recent sales",
+        "qty_sold": "Qty sold",
+        "invoice": "Invoice"
+    },
+    "payments_dialog": {
+        "receive_payment": "Receive payment",
+        "save_failed": "Could not record payment."
     }
 }

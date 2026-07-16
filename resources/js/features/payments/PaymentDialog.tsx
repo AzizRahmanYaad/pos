@@ -48,7 +48,7 @@ export function PaymentDialog({ open, onClose, partyType, partyId, partyName, in
             setError(null);
             onClose();
         },
-        onError: () => setError('Could not record payment.'),
+        onError: () => setError(t('payments_dialog.save_failed')),
     });
 
     const submit = () => {
@@ -67,13 +67,13 @@ export function PaymentDialog({ open, onClose, partyType, partyId, partyName, in
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
             <DialogTitle>
-                {direction === 'in' ? 'Receive payment' : 'Pay'} — {partyName}
+                {direction === 'in' ? t('payments_dialog.receive_payment') : t('actions.pay')} — {partyName}
             </DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ mt: 1 }}>
                     {error && <Alert severity="error">{error}</Alert>}
                     <TextField
-                        label="Amount"
+                        label={t('fields.amount')}
                         type="number"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
@@ -82,7 +82,7 @@ export function PaymentDialog({ open, onClose, partyType, partyId, partyName, in
                     />
                     <TextField
                         select
-                        label="Cash account"
+                        label={t('fields.cash_account')}
                         value={cashAccountId}
                         onChange={(e) => setCashAccountId(Number(e.target.value))}
                         fullWidth
@@ -95,19 +95,19 @@ export function PaymentDialog({ open, onClose, partyType, partyId, partyName, in
                     </TextField>
                     <TextField
                         select
-                        label="Method"
+                        label={t('fields.method')}
                         value={method}
                         onChange={(e) => setMethod(e.target.value as RecordPaymentPayload['method'])}
                         fullWidth
                     >
                         {METHODS.map((m) => (
                             <MenuItem key={m} value={m}>
-                                {m}
+                                {t(`payment_methods.${m}`)}
                             </MenuItem>
                         ))}
                     </TextField>
                     <TextField
-                        label="Description"
+                        label={t('fields.description')}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         fullWidth

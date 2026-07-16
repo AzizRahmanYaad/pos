@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { fetchDashboardSummary } from '@/features/reports/api';
 import { fetchSalesSummary, fetchExpensesByCategory } from '@/features/reports/api';
+import { formatDate } from '@/lib/calendar';
 
 const CHART_COLORS = ['#1976d2', '#9c27b0', '#2e7d32', '#ed6c02', '#d32f2f', '#0288d1'];
 
@@ -47,7 +48,7 @@ function KpiTile({ label, value }: { label: string; value: string }) {
 }
 
 export function DashboardPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const { data: summary } = useQuery({ queryKey: ['dashboard-summary'], queryFn: fetchDashboardSummary });
 
@@ -75,28 +76,28 @@ export function DashboardPage() {
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
-                <KpiTile label="Today's sales" value={(summary?.today_sales ?? 0).toFixed(2)} />
-                <KpiTile label="Today's profit" value={(summary?.today_profit ?? 0).toFixed(2)} />
-                <KpiTile label="Cash position" value={(summary?.cash_position ?? 0).toFixed(2)} />
-                <KpiTile label="Low stock items" value={String(summary?.low_stock_count ?? 0)} />
-                <KpiTile label="Receivables" value={(summary?.receivables ?? 0).toFixed(2)} />
-                <KpiTile label="Payables" value={(summary?.payables ?? 0).toFixed(2)} />
-                <KpiTile label="Today's sale count" value={String(summary?.today_sales_count ?? 0)} />
+                <KpiTile label={t('dashboard_page.today_sales')} value={(summary?.today_sales ?? 0).toFixed(2)} />
+                <KpiTile label={t('dashboard_page.today_profit')} value={(summary?.today_profit ?? 0).toFixed(2)} />
+                <KpiTile label={t('dashboard_page.cash_position')} value={(summary?.cash_position ?? 0).toFixed(2)} />
+                <KpiTile label={t('dashboard_page.low_stock_items')} value={String(summary?.low_stock_count ?? 0)} />
+                <KpiTile label={t('dashboard_page.receivables')} value={(summary?.receivables ?? 0).toFixed(2)} />
+                <KpiTile label={t('dashboard_page.payables')} value={(summary?.payables ?? 0).toFixed(2)} />
+                <KpiTile label={t('dashboard_page.today_sale_count')} value={String(summary?.today_sales_count ?? 0)} />
             </Grid>
 
             <Grid container spacing={2}>
                 <Grid item xs={12} md={7}>
                     <Paper sx={{ p: 2, height: 340 }}>
                         <Typography variant="subtitle1" gutterBottom>
-                            Sales trend (last 14 days)
+                            {t('dashboard_page.sales_trend')}
                         </Typography>
                         <ResponsiveContainer width="100%" height="90%">
                             <BarChart data={salesTrend ?? []}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="period" />
+                                <XAxis dataKey="period" tickFormatter={(value) => formatDate(value, i18n.language)} />
                                 <YAxis />
-                                <Tooltip />
-                                <Bar dataKey="total" fill="#1976d2" name="Sales" />
+                                <Tooltip labelFormatter={(value) => formatDate(value as string, i18n.language)} />
+                                <Bar dataKey="total" fill="#1976d2" name={t('fields.total')} />
                             </BarChart>
                         </ResponsiveContainer>
                     </Paper>
@@ -104,7 +105,7 @@ export function DashboardPage() {
                 <Grid item xs={12} md={5}>
                     <Paper sx={{ p: 2, height: 340 }}>
                         <Typography variant="subtitle1" gutterBottom>
-                            Expenses by category (this month)
+                            {t('dashboard_page.expenses_by_category')}
                         </Typography>
                         <ResponsiveContainer width="100%" height="90%">
                             <PieChart>
@@ -129,14 +130,14 @@ export function DashboardPage() {
                 <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 2 }}>
                         <Typography variant="subtitle1" gutterBottom>
-                            Top products (last 30 days)
+                            {t('dashboard_page.top_products')}
                         </Typography>
                         <Table size="small">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Product</TableCell>
-                                    <TableCell align="right">Qty sold</TableCell>
-                                    <TableCell align="right">Revenue</TableCell>
+                                    <TableCell>{t('fields.product')}</TableCell>
+                                    <TableCell align="right">{t('dashboard_page.qty_sold')}</TableCell>
+                                    <TableCell align="right">{t('fields.revenue')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -155,14 +156,14 @@ export function DashboardPage() {
                 <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 2 }}>
                         <Typography variant="subtitle1" gutterBottom>
-                            Recent sales
+                            {t('dashboard_page.recent_sales')}
                         </Typography>
                         <Table size="small">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Invoice</TableCell>
-                                    <TableCell>Customer</TableCell>
-                                    <TableCell align="right">Total</TableCell>
+                                    <TableCell>{t('dashboard_page.invoice')}</TableCell>
+                                    <TableCell>{t('fields.customer')}</TableCell>
+                                    <TableCell align="right">{t('fields.total')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>

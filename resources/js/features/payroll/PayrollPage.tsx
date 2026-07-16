@@ -25,13 +25,9 @@ import { useTranslation } from 'react-i18next';
 import { fetchPayrollRuns, createPayrollRun, payPayrollRun, type PayrollRunDto } from '@/features/payroll/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 
-const MONTHS = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-];
-
 export function PayrollPage() {
     const { t } = useTranslation();
+    const months = t('months', { returnObjects: true }) as string[];
     const queryClient = useQueryClient();
     const { data: runs } = useQuery({ queryKey: ['payroll-runs'], queryFn: fetchPayrollRuns });
     const { data: cashAccounts } = useQuery({ queryKey: ['cash-accounts'], queryFn: fetchCashAccounts });
@@ -52,7 +48,7 @@ export function PayrollPage() {
             setExpanded(run);
             setError(null);
         },
-        onError: () => setError('A payroll run for that period may already exist.'),
+        onError: () => setError(t('payroll_page.run_exists')),
     });
 
     const payMutation = useMutation({
@@ -68,7 +64,7 @@ export function PayrollPage() {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">{t('nav.payroll')}</Typography>
                 <Button variant="contained" onClick={() => setNewOpen(true)}>
-                    New payroll run
+                    {t('payroll_page.new_run')}
                 </Button>
             </Box>
 
@@ -77,9 +73,9 @@ export function PayrollPage() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>Period</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell align="right">Total net pay</TableCell>
+                                <TableCell>{t('fields.period')}</TableCell>
+                                <TableCell>{t('fields.status')}</TableCell>
+                                <TableCell align="right">{t('fields.total_net_pay')}</TableCell>
                                 <TableCell align="right"> </TableCell>
                             </TableRow>
                         </TableHead>
@@ -87,19 +83,19 @@ export function PayrollPage() {
                             {runs.map((run) => (
                                 <TableRow key={run.id}>
                                     <TableCell>
-                                        {MONTHS[run.period_month - 1]} {run.period_year}
+                                        {months[run.period_month - 1]} {run.period_year}
                                     </TableCell>
                                     <TableCell>
                                         <Chip
                                             size="small"
                                             color={run.status === 'paid' ? 'success' : 'default'}
-                                            label={run.status}
+                                            label={t(`status.${run.status}`)}
                                         />
                                     </TableCell>
                                     <TableCell align="right">{run.total_net_pay.toFixed(2)}</TableCell>
                                     <TableCell align="right">
                                         <Button size="small" onClick={() => setExpanded(run)}>
-                                            View
+                                            {t('actions.view')}
                                         </Button>
                                     </TableCell>
                                 </TableRow>
@@ -112,15 +108,15 @@ export function PayrollPage() {
             {expanded && (
                 <Paper sx={{ p: 2 }}>
                     <Typography variant="h6" gutterBottom>
-                        {MONTHS[expanded.period_month - 1]} {expanded.period_year} — {expanded.status}
+                        {months[expanded.period_month - 1]} {expanded.period_year} — {t(`status.${expanded.status}`)}
                     </Typography>
                     <Table size="small">
                         <TableHead>
                             <TableRow>
                                 <TableCell>{t('nav.employees')}</TableCell>
-                                <TableCell align="right">Base</TableCell>
-                                <TableCell align="right">Advances</TableCell>
-                                <TableCell align="right">Net pay</TableCell>
+                                <TableCell align="right">{t('fields.base_salary')}</TableCell>
+                                <TableCell align="right">{t('fields.advances_deducted')}</TableCell>
+                                <TableCell align="right">{t('fields.net_pay')}</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -140,7 +136,7 @@ export function PayrollPage() {
                             <TextField
                                 select
                                 size="small"
-                                label="Pay from"
+                                label={t('fields.pay_from')}
                                 value={payingCashAccountId}
                                 onChange={(e) => setPayingCashAccountId(Number(e.target.value))}
                                 sx={{ minWidth: 200 }}
@@ -156,7 +152,7 @@ export function PayrollPage() {
                                 disabled={!payingCashAccountId || payMutation.isPending}
                                 onClick={() => payMutation.mutate()}
                             >
-                                Pay run
+                                {t('payroll_page.pay_run')}
                             </Button>
                         </Stack>
                     )}
@@ -164,25 +160,25 @@ export function PayrollPage() {
             )}
 
             <Dialog open={newOpen} onClose={() => setNewOpen(false)} fullWidth maxWidth="xs">
-                <DialogTitle>New payroll run</DialogTitle>
+                <DialogTitle>{t('payroll_page.new_run')}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         {error && <Alert severity="error">{error}</Alert>}
                         <TextField
                             select
-                            label="Month"
+                            label={t('fields.month')}
                             value={month}
                             onChange={(e) => setMonth(Number(e.target.value))}
                             fullWidth
                         >
-                            {MONTHS.map((m, i) => (
+                            {months.map((m, i) => (
                                 <MenuItem key={m} value={i + 1}>
                                     {m}
                                 </MenuItem>
                             ))}
                         </TextField>
                         <TextField
-                            label="Year"
+                            label={t('fields.year')}
                             type="number"
                             value={year}
                             onChange={(e) => setYear(Number(e.target.value))}

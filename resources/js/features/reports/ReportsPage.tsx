@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { fetchProfitLoss, fetchInventoryValuation } from '@/features/reports/api';
+import { formatDate } from '@/lib/calendar';
 
 function startOfMonth(): string {
     const d = new Date();
@@ -29,7 +30,7 @@ function today(): string {
 }
 
 export function ReportsPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [from, setFrom] = useState(startOfMonth());
     const [to, setTo] = useState(today());
     const [tab, setTab] = useState<'profit-loss' | 'inventory'>('profit-loss');
@@ -53,21 +54,27 @@ export function ReportsPage() {
             </Typography>
 
             <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-                <TextField select label="Report" value={tab} onChange={(e) => setTab(e.target.value as typeof tab)} sx={{ minWidth: 220 }}>
-                    <MenuItem value="profit-loss">Profit &amp; Loss</MenuItem>
-                    <MenuItem value="inventory">Inventory Valuation</MenuItem>
+                <TextField
+                    select
+                    label={t('reports_page.report_label')}
+                    value={tab}
+                    onChange={(e) => setTab(e.target.value as typeof tab)}
+                    sx={{ minWidth: 220 }}
+                >
+                    <MenuItem value="profit-loss">{t('reports_page.profit_loss')}</MenuItem>
+                    <MenuItem value="inventory">{t('reports_page.inventory_valuation')}</MenuItem>
                 </TextField>
                 {tab === 'profit-loss' && (
                     <>
                         <TextField
-                            label="From"
+                            label={t('fields.from')}
                             type="date"
                             value={from}
                             onChange={(e) => setFrom(e.target.value)}
                             InputLabelProps={{ shrink: true }}
                         />
                         <TextField
-                            label="To"
+                            label={t('fields.to')}
                             type="date"
                             value={to}
                             onChange={(e) => setTo(e.target.value)}
@@ -81,33 +88,33 @@ export function ReportsPage() {
                 <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
                         <Paper sx={{ p: 2 }}>
-                            <Typography variant="subtitle1" gutterBottom>
-                                {pnl.from} — {pnl.to}
+                            <Typography variant="subtitle1" gutterBottom component="div" dir="ltr">
+                                {formatDate(pnl.from, i18n.language)} — {formatDate(pnl.to, i18n.language)}
                             </Typography>
                             <Table size="small">
                                 <TableBody>
                                     <TableRow>
-                                        <TableCell>Revenue</TableCell>
+                                        <TableCell>{t('fields.revenue')}</TableCell>
                                         <TableCell align="right">{pnl.revenue.toFixed(2)}</TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell>Cost of goods sold</TableCell>
+                                        <TableCell>{t('fields.cogs')}</TableCell>
                                         <TableCell align="right">-{pnl.cogs.toFixed(2)}</TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell><strong>Gross profit</strong></TableCell>
+                                        <TableCell><strong>{t('fields.gross_profit')}</strong></TableCell>
                                         <TableCell align="right"><strong>{pnl.gross_profit.toFixed(2)}</strong></TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell>Operating expenses</TableCell>
+                                        <TableCell>{t('fields.operating_expenses')}</TableCell>
                                         <TableCell align="right">-{pnl.operating_expenses.toFixed(2)}</TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell>Payroll cost</TableCell>
+                                        <TableCell>{t('fields.payroll_cost')}</TableCell>
                                         <TableCell align="right">-{pnl.payroll_cost.toFixed(2)}</TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell><strong>Net profit</strong></TableCell>
+                                        <TableCell><strong>{t('fields.net_profit')}</strong></TableCell>
                                         <TableCell align="right">
                                             <strong>{pnl.net_profit.toFixed(2)}</strong>
                                         </TableCell>
@@ -125,12 +132,12 @@ export function ReportsPage() {
                         <Table size="small">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>SKU</TableCell>
-                                    <TableCell>Product</TableCell>
-                                    <TableCell>Warehouse</TableCell>
-                                    <TableCell align="right">Qty</TableCell>
-                                    <TableCell align="right">Avg Cost</TableCell>
-                                    <TableCell align="right">Value</TableCell>
+                                    <TableCell>{t('fields.sku')}</TableCell>
+                                    <TableCell>{t('fields.product')}</TableCell>
+                                    <TableCell>{t('fields.warehouse')}</TableCell>
+                                    <TableCell align="right">{t('fields.quantity')}</TableCell>
+                                    <TableCell align="right">{t('fields.avg_cost')}</TableCell>
+                                    <TableCell align="right">{t('fields.value')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -148,7 +155,7 @@ export function ReportsPage() {
                         </Table>
                     </TableContainer>
                     <Typography variant="h6" sx={{ mt: 2 }} align="right">
-                        Total: {valuation.total_value.toFixed(2)}
+                        {t('fields.total')}: {valuation.total_value.toFixed(2)}
                     </Typography>
                 </Paper>
             )}

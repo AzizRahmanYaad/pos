@@ -16,7 +16,7 @@ class SaleResource extends JsonResource
             'id' => $this->id,
             'invoice_number' => $this->invoice_number,
             'customer_id' => $this->customer_id,
-            'customer_name' => $this->customer?->name ?? 'Walk-in',
+            'customer_name' => $this->customer?->name ?? __('messages.walk_in'),
             'warehouse_id' => $this->warehouse_id,
             'warehouse_name' => $this->whenLoaded('warehouse', fn () => $this->warehouse->name),
             'cashier_name' => $this->whenLoaded('cashier', fn () => $this->cashier->name),

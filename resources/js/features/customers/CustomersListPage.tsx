@@ -43,8 +43,8 @@ export function CustomersListPage() {
                         <TableHead>
                             <TableRow>
                                 <TableCell>{t('nav.customers')}</TableCell>
-                                <TableCell>Phone</TableCell>
-                                <TableCell align="right">Balance</TableCell>
+                                <TableCell>{t('fields.phone')}</TableCell>
+                                <TableCell align="right">{t('fields.balance')}</TableCell>
                                 <Can permission="payments.manage">
                                     <TableCell align="right"> </TableCell>
                                 </Can>
@@ -65,7 +65,7 @@ export function CustomersListPage() {
                                     <Can permission="payments.manage">
                                         <TableCell align="right">
                                             <Button size="small" onClick={() => setPaying(customer)}>
-                                                Receive payment
+                                                {t('payments_dialog.receive_payment')}
                                             </Button>
                                         </TableCell>
                                     </Can>

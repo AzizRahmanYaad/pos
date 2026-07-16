@@ -60,9 +60,9 @@ export function PurchasesListPage() {
                             <TableRow>
                                 <TableCell>#</TableCell>
                                 <TableCell>{t('nav.suppliers')}</TableCell>
-                                <TableCell>{t('nav.inventory')}</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell align="right">Grand Total</TableCell>
+                                <TableCell>{t('fields.warehouse')}</TableCell>
+                                <TableCell>{t('fields.status')}</TableCell>
+                                <TableCell align="right">{t('fields.grand_total')}</TableCell>
                                 <TableCell align="right"> </TableCell>
                             </TableRow>
                         </TableHead>
@@ -73,7 +73,11 @@ export function PurchasesListPage() {
                                     <TableCell>{purchase.supplier_name}</TableCell>
                                     <TableCell>{purchase.warehouse_name}</TableCell>
                                     <TableCell>
-                                        <Chip size="small" color={STATUS_COLOR[purchase.status]} label={purchase.status} />
+                                        <Chip
+                                            size="small"
+                                            color={STATUS_COLOR[purchase.status]}
+                                            label={t(`status.${purchase.status}`)}
+                                        />
                                     </TableCell>
                                     <TableCell align="right">{purchase.grand_total.toFixed(2)}</TableCell>
                                     <TableCell align="right">
@@ -84,7 +88,7 @@ export function PurchasesListPage() {
                                                     disabled={receiveMutation.isPending}
                                                     onClick={() => receiveMutation.mutate(purchase.id)}
                                                 >
-                                                    Receive
+                                                    {t('actions.receive')}
                                                 </Button>
                                                 <Button
                                                     size="small"

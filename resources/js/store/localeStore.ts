@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import i18n, { isRtl, type SupportedLocale } from '@/i18n/i18n';
+import { queryClient } from '@/lib/queryClient';
 
 interface LocaleState {
     locale: SupportedLocale;
@@ -23,5 +24,6 @@ export const useLocaleStore = create<LocaleState>((set) => ({
         i18n.changeLanguage(locale);
         const direction = applyDocumentDirection(locale);
         set({ locale, direction });
+        queryClient.invalidateQueries();
     },
 }));

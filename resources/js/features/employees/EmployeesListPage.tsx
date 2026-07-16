@@ -72,7 +72,7 @@ export function EmployeesListPage() {
             setAdvanceReason('');
             setError(null);
         },
-        onError: () => setError('Could not record advance.'),
+        onError: () => setError(t('employees_page.advance_failed')),
     });
 
     return (
@@ -90,9 +90,9 @@ export function EmployeesListPage() {
                         <TableHead>
                             <TableRow>
                                 <TableCell>{t('nav.employees')}</TableCell>
-                                <TableCell>Designation</TableCell>
-                                <TableCell align="right">Salary</TableCell>
-                                <TableCell align="right">Outstanding advances</TableCell>
+                                <TableCell>{t('fields.designation')}</TableCell>
+                                <TableCell align="right">{t('fields.salary')}</TableCell>
+                                <TableCell align="right">{t('fields.outstanding_advances')}</TableCell>
                                 <TableCell align="right"> </TableCell>
                             </TableRow>
                         </TableHead>
@@ -102,7 +102,8 @@ export function EmployeesListPage() {
                                     <TableCell>{employee.name}</TableCell>
                                     <TableCell>{employee.designation ?? '—'}</TableCell>
                                     <TableCell align="right">
-                                        {employee.salary_amount.toFixed(2)} / {employee.salary_type}
+                                        {employee.salary_amount.toFixed(2)} /{' '}
+                                        {t(`fields.salary_type_${employee.salary_type}`)}
                                     </TableCell>
                                     <TableCell align="right">
                                         {employee.outstanding_advances > 0 ? (
@@ -113,7 +114,7 @@ export function EmployeesListPage() {
                                     </TableCell>
                                     <TableCell align="right">
                                         <Button size="small" onClick={() => setAdvancing(employee)}>
-                                            Give advance
+                                            {t('employees_page.give_advance')}
                                         </Button>
                                     </TableCell>
                                 </TableRow>
@@ -124,18 +125,18 @@ export function EmployeesListPage() {
             )}
 
             <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="xs">
-                <DialogTitle>New employee</DialogTitle>
+                <DialogTitle>{t('employees_page.new_employee')}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
-                        <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} fullWidth />
+                        <TextField label={t('fields.name')} value={name} onChange={(e) => setName(e.target.value)} fullWidth />
                         <TextField
-                            label="Designation"
+                            label={t('fields.designation')}
                             value={designation}
                             onChange={(e) => setDesignation(e.target.value)}
                             fullWidth
                         />
                         <TextField
-                            label="Monthly salary"
+                            label={t('fields.monthly_salary')}
                             type="number"
                             value={salaryAmount}
                             onChange={(e) => setSalaryAmount(e.target.value)}
@@ -163,12 +164,12 @@ export function EmployeesListPage() {
             </Dialog>
 
             <Dialog open={advancing !== null} onClose={() => setAdvancing(null)} fullWidth maxWidth="xs">
-                <DialogTitle>Advance — {advancing?.name}</DialogTitle>
+                <DialogTitle>{t('employees_page.advance_title', { name: advancing?.name })}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         {error && <Alert severity="error">{error}</Alert>}
                         <TextField
-                            label="Amount"
+                            label={t('fields.amount')}
                             type="number"
                             value={advanceAmount}
                             onChange={(e) => setAdvanceAmount(e.target.value)}
@@ -176,7 +177,7 @@ export function EmployeesListPage() {
                         />
                         <TextField
                             select
-                            label="Cash account"
+                            label={t('fields.cash_account')}
                             value={advanceCashAccountId}
                             onChange={(e) => setAdvanceCashAccountId(Number(e.target.value))}
                             fullWidth
@@ -188,7 +189,7 @@ export function EmployeesListPage() {
                             ))}
                         </TextField>
                         <TextField
-                            label="Reason"
+                            label={t('fields.reason')}
                             value={advanceReason}
                             onChange={(e) => setAdvanceReason(e.target.value)}
                             fullWidth

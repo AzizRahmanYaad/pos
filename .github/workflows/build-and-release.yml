@@ -64,15 +64,15 @@ jobs:
           path: dist/
           retention-days: 14
 
-      - name: Deploy to Hostinger via rsync over SSH
-        uses: burnett01/rsync-deployments@7.0.2
+      - name: Upload files to Hostinger
+        uses: appleboy/scp-action@master
         with:
-          switches: -avz --delete
-          path: dist/
-          remote_path: ${{ secrets.HOSTINGER_APP_PATH }}
-          remote_host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          remote_user: ${{ secrets.HOSTINGER_SSH_USER }}
-          remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          source: "dist/*"
+          target: "${{ secrets.HOSTINGER_APP_PATH }}"
+          strip_components: 1
 
       - name: Run migrations and clear cache on Hostinger
         uses: appleboy/ssh-action@master
@@ -82,8 +82,7 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
             cd ${{ secrets.HOSTINGER_APP_PATH }}
-            alias php=/opt/alt/php84/usr/bin/php
-            php artisan migrate --force
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            /opt/alt/php84/usr/bin/php artisan migrate --force
+            /opt/alt/php84/usr/bin/php artisan config:cache
+            /opt/alt/php84/usr/bin/php artisan route:cache
+            /opt/alt/php84/usr/bin/php artisan view:cache

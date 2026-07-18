@@ -1,8 +1,10 @@
-name: Build Release Artifact
+name: Build and Deploy
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - claude/pos-web-app-c6tkv9
     tags:
       - 'v*'
 
@@ -62,17 +64,26 @@ jobs:
           path: dist/
           retention-days: 14
 
-      # Optional: uncomment and configure repository secrets (HOSTINGER_SSH_HOST,
-      # HOSTINGER_SSH_USER, HOSTINGER_SSH_KEY, HOSTINGER_APP_PATH) to deploy
-      # straight to Hostinger via SSH/rsync after the artifact is built. See
-      # deploy/HOSTINGER_DEPLOY.md for the manual equivalent of these steps.
-      #
-      # - name: Deploy to Hostinger via rsync over SSH
-      #   uses: burnett01/rsync-deployments@7.0.2
-      #   with:
-      #     switches: -avz --delete
-      #     path: dist/
-      #     remote_path: ${{ secrets.HOSTINGER_APP_PATH }}
-      #     remote_host: ${{ secrets.HOSTINGER_SSH_HOST }}
-      #     remote_user: ${{ secrets.HOSTINGER_SSH_USER }}
-      #     remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
+      - name: Deploy to Hostinger via rsync over SSH
+        uses: burnett01/rsync-deployments@7.0.2
+        with:
+          switches: -avz --delete
+          path: dist/
+          remote_path: ${{ secrets.HOSTINGER_APP_PATH }}
+          remote_host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          remote_user: ${{ secrets.HOSTINGER_SSH_USER }}
+          remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
+      - name: Run migrations and clear cache on Hostinger
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            cd ${{ secrets.HOSTINGER_APP_PATH }}
+            alias php=/opt/alt/php84/usr/bin/php
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache

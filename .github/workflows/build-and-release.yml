@@ -96,10 +96,10 @@ jobs:
       - name: Deploy to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USERNAME }}
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_PORT }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
           source: "deploy/*"
           target: "/home/u884969733/domains/soft-afghan.com/pos-app"
           overwrite: true

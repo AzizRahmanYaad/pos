@@ -11,19 +11,26 @@ on:
 permissions:
   contents: read
 
+
 jobs:
+
   build:
+
     runs-on: ubuntu-latest
-    name: Build Laravel React Deploy
+
+    name: Laravel React Build and Deploy
+
 
     steps:
 
-      # Checkout Code
+
+      # Checkout Repository
       - name: Checkout Code
         uses: actions/checkout@v5
 
 
-      # PHP 8.4 Required Laravel 13
+
+      # PHP 8.4 (Laravel 13 requirement)
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
@@ -32,7 +39,8 @@ jobs:
           coverage: none
 
 
-      # Node
+
+      # Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -40,23 +48,18 @@ jobs:
           cache: npm
 
 
+
       # Check Environment
-      - name: Environment Check
+      - name: Check Versions
         run: |
-          echo "PHP Version"
           php -v
-
-          echo "Composer Version"
           composer -V
-
-          echo "Node Version"
           node -v
-
-          echo "NPM Version"
           npm -v
 
 
-      # Composer Install
+
+      # Install Laravel Dependencies
       - name: Install Composer Dependencies
         run: |
           composer install \
@@ -67,80 +70,76 @@ jobs:
           --optimize-autoloader
 
 
-      # NPM Install
+
+      # Install Frontend Dependencies
       - name: Install NPM Dependencies
         run: npm ci
 
 
-      # Vite Check
-      - name: Check Vite
-        run: |
-          npx vite --version
 
-
-      # Frontend Build
+      # Build React/Vite
       - name: Build Frontend
         run: npm run build
 
 
-      # Check Manifest
-      - name: Check Vite Manifest
-        run: |
-          if [ ! -f public/build/manifest.json ]; then
-            echo "ERROR: Vite manifest missing"
-            exit 1
-          fi
 
-          echo "Vite manifest exists"
+      # Verify Vite
+      - name: Verify Vite Build
+        run: |
+          echo "Checking Vite manifest..."
+          test -f public/build/manifest.json
           ls -la public/build
 
 
-      # Create Deployment Folder
-      - name: Prepare Deployment Package
-        run: |
-          rm -rf deploy
 
-          mkdir deploy
-
-          rsync -av ./ deploy/ \
-          --exclude=node_modules \
-          --exclude=.git \
-          --exclude=.env \
-          --exclude=storage/logs
-
-
-          echo "Deployment content:"
-          ls -la deploy
-          ls -la deploy/public/build
-
-
-      # Deploy
+      # Deploy Directly To Hostinger
       - name: Deploy to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
+
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
+
           username: ${{ secrets.HOSTINGER_SSH_USER }}
+
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "deploy/*"
+
+          source: "./"
+
           target: "/home/u884969733/domains/soft-afghan.com/pos-app"
+
           overwrite: true
 
+          rm: false
 
-      # Run Laravel Commands on Server
-      - name: Laravel Cache Clear
+
+
+      # Run Laravel Commands On Server
+      - name: Laravel Post Deployment
         uses: appleboy/ssh-action@v1.2.0
         with:
+
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
+
           username: ${{ secrets.HOSTINGER_SSH_USER }}
+
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
+
           script: |
+
             cd /home/u884969733/domains/soft-afghan.com/pos-app
 
+            echo "Clearing Laravel cache..."
+
             php artisan optimize:clear
+
             php artisan config:cache
+
             php artisan route:cache
+
             php artisan view:cache
 
             echo "Deployment completed successfully"

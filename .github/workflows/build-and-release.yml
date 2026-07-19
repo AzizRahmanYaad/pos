@@ -5,16 +5,19 @@ on:
   push:
     branches:
       - claude/pos-web-app-c6tkv9
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
+    name: Build and Deploy
 
     steps:
-      - name: Checkout Source
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup PHP
@@ -27,29 +30,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
 
-      - name: Install Composer Packages
+      - name: Install Composer Dependencies
         run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
-      - name: Install Node Packages
+      - name: Install NPM Dependencies
         run: npm ci
 
-      - name: Build Assets
+      - name: Build Frontend
         run: npm run build
 
-      - name: Prepare Deployment
+      - name: Prepare Deployment Files
         run: |
-          mkdir deploy
+          rm -rf deploy
+          mkdir -p deploy
 
-          rsync -av \
+          rsync -av --delete \
             --exclude=".git" \
             --exclude=".github" \
             --exclude="node_modules" \
             --exclude="tests" \
             --exclude=".env" \
+            --exclude="deploy" \
             ./ deploy/
 
-      - name: Upload Files
+      - name: Upload Files to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -61,7 +67,7 @@ jobs:
           strip_components: 1
           overwrite: true
 
-      - name: Deploy on Server
+      - name: Deploy Laravel
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -69,58 +75,38 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
           script: |
-
-            echo "=============================="
-            echo "Server Information"
-            echo "=============================="
-
-            whoami
-            pwd
-
-            echo ""
-            echo "Application Path:"
-            echo "${{ secrets.HOSTINGER_APP_PATH }}"
+            set -e
 
             cd ${{ secrets.HOSTINGER_APP_PATH }}
 
-            echo ""
-            echo "Current Directory:"
+            echo "=============================="
+            echo "Current Directory"
             pwd
 
-            echo ""
-            echo "Files:"
-            ls -la
-
-            echo ""
-            echo "PHP Version:"
+            echo "=============================="
+            echo "PHP Version"
             /opt/alt/php84/usr/bin/php -v
 
-            echo ""
-            echo "Composer Version:"
+            echo "=============================="
+            echo "Composer Version"
             /opt/alt/php84/usr/bin/php /usr/local/bin/composer --version
 
-            echo ""
-            echo "Installing Composer Dependencies..."
+            echo "=============================="
+            echo "Installing Composer"
+            /opt/alt/php84/usr/bin/php /usr/local/bin/composer install \
+              --no-dev \
+              --prefer-dist \
+              --optimize-autoloader \
+              --no-interaction
 
-            /opt/alt/php84/usr/bin/php \
-            /usr/local/bin/composer install \
-            --no-dev \
-            --prefer-dist \
-            --optimize-autoloader \
-            --no-interaction
-
-            echo ""
-            echo "Running Laravel Commands..."
+            echo "=============================="
+            echo "Laravel Commands"
 
             /opt/alt/php84/usr/bin/php artisan optimize:clear
-
             /opt/alt/php84/usr/bin/php artisan migrate --force
-
             /opt/alt/php84/usr/bin/php artisan config:cache
-
             /opt/alt/php84/usr/bin/php artisan route:cache
-
             /opt/alt/php84/usr/bin/php artisan view:cache
 
-            echo ""
-            echo "Deployment Finished Successfully!"
+            echo "=============================="
+            echo "Deployment Completed Successfully"

@@ -14,16 +14,16 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Build and Deploy
+    name: Build Laravel React Deploy
 
     steps:
 
-      # Checkout repository
+      # Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v5
 
 
-      # Setup PHP 8.4
+      # PHP 8.4 Required Laravel 13
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
@@ -32,7 +32,7 @@ jobs:
           coverage: none
 
 
-      # Setup Node.js
+      # Node
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -40,72 +40,81 @@ jobs:
           cache: npm
 
 
-      # Install Laravel dependencies
+      # Check Environment
+      - name: Environment Check
+        run: |
+          echo "PHP Version"
+          php -v
+
+          echo "Composer Version"
+          composer -V
+
+          echo "Node Version"
+          node -v
+
+          echo "NPM Version"
+          npm -v
+
+
+      # Composer Install
       - name: Install Composer Dependencies
         run: |
           composer install \
           --no-dev \
-          --optimize-autoloader \
           --prefer-dist \
           --no-interaction \
-          --no-progress
+          --no-progress \
+          --optimize-autoloader
 
 
-      # Install React/Vite dependencies
+      # NPM Install
       - name: Install NPM Dependencies
         run: npm ci
 
 
-      # Check environment
-      - name: Check Versions
+      # Vite Check
+      - name: Check Vite
         run: |
-          php -v
-          node -v
-          npm -v
           npx vite --version
 
 
-      # Build frontend
+      # Frontend Build
       - name: Build Frontend
         run: npm run build
 
 
-      # Verify Vite output
-      - name: Verify Vite Build
+      # Check Manifest
+      - name: Check Vite Manifest
         run: |
-          echo "Checking Vite build files..."
+          if [ ! -f public/build/manifest.json ]; then
+            echo "ERROR: Vite manifest missing"
+            exit 1
+          fi
+
+          echo "Vite manifest exists"
           ls -la public/build
-          test -f public/build/manifest.json
 
 
-      # Prepare deployment package
+      # Create Deployment Folder
       - name: Prepare Deployment Package
         run: |
           rm -rf deploy
-          mkdir -p deploy
 
-          rsync -av \
+          mkdir deploy
+
+          rsync -av ./ deploy/ \
           --exclude=node_modules \
           --exclude=.git \
           --exclude=.env \
-          --exclude=deploy \
-          --exclude=storage/logs \
-          ./ deploy/
+          --exclude=storage/logs
 
-          echo "Deployment package created"
-          echo "Checking deploy/public/build..."
+
+          echo "Deployment content:"
+          ls -la deploy
           ls -la deploy/public/build
 
 
-      # Upload artifact (optional)
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: laravel-build
-          path: deploy
-
-
-      # Deploy to Hostinger
+      # Deploy
       - name: Deploy to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -113,6 +122,25 @@ jobs:
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "deploy/"
+          source: "deploy/*"
           target: "/home/u884969733/domains/soft-afghan.com/pos-app"
           overwrite: true
+
+
+      # Run Laravel Commands on Server
+      - name: Laravel Cache Clear
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          script: |
+            cd /home/u884969733/domains/soft-afghan.com/pos-app
+
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo "Deployment completed successfully"

@@ -14,7 +14,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Build and Deploy
 
     steps:
       - name: Checkout Code
@@ -41,10 +40,11 @@ jobs:
       - name: Build Frontend
         run: npm run build
 
-      - name: Package Release Artifact
+      - name: Package Release
         run: |
           mkdir -p dist
-          rsync -a \
+          rsync -av \
+            --delete \
             --exclude='.git' \
             --exclude='.github' \
             --exclude='node_modules' \
@@ -57,9 +57,30 @@ jobs:
             --exclude='dist' \
             ./ dist/
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - name: Deploy to Hostinger
+        uses: appleboy/scp-action@v0.1.7
         with:
-          name: pos-release
-          path: dist/
-          retention-days: 14
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          port: ${{ secrets.PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "dist/*"
+          target: "/home/u884969733/domains/soft-afghan.com/pos-app"
+
+      - name: Run Laravel Commands
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          port: ${{ secrets.PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/u884969733/domains/soft-afghan.com/pos-app
+
+            php artisan migrate --force
+
+            php artisan optimize:clear
+
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache

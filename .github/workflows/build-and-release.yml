@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - claude/pos-web-app-c6tkv9
+      - claude/pos-app-web-c6tkv9
     tags:
       - 'v*'
 
@@ -32,7 +32,7 @@ jobs:
           coverage: none
 
 
-      # Setup Node.js 20
+      # Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -56,8 +56,8 @@ jobs:
         run: npm ci
 
 
-      # Check versions
-      - name: Check Environment Versions
+      # Check environment
+      - name: Check Versions
         run: |
           php -v
           node -v
@@ -68,6 +68,14 @@ jobs:
       # Build frontend
       - name: Build Frontend
         run: npm run build
+
+
+      # Verify Vite output
+      - name: Verify Vite Build
+        run: |
+          echo "Checking Vite build files..."
+          ls -la public/build
+          test -f public/build/manifest.json
 
 
       # Prepare deployment package
@@ -81,10 +89,15 @@ jobs:
           --exclude=.git \
           --exclude=.env \
           --exclude=deploy \
+          --exclude=storage/logs \
           ./ deploy/
 
+          echo "Deployment package created"
+          echo "Checking deploy/public/build..."
+          ls -la deploy/public/build
 
-      # Upload artifact
+
+      # Upload artifact (optional)
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -100,6 +113,6 @@ jobs:
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "deploy/*"
+          source: "deploy/"
           target: "/home/u884969733/domains/soft-afghan.com/pos-app"
           overwrite: true

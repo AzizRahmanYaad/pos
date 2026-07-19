@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v5
 
 
-      # Setup PHP
+      # Setup PHP 8.4
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
@@ -32,7 +32,7 @@ jobs:
           coverage: none
 
 
-      # Setup Node
+      # Setup Node.js 20
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -40,7 +40,7 @@ jobs:
           cache: npm
 
 
-      # Install PHP dependencies
+      # Install Laravel dependencies
       - name: Install Composer Dependencies
         run: |
           composer install \
@@ -51,36 +51,40 @@ jobs:
           --no-progress
 
 
-      # Install JS dependencies
+      # Install React/Vite dependencies
       - name: Install NPM Dependencies
         run: npm ci
 
 
-      # Verify installed versions
-      - name: Check Node and Vite Versions
+      # Check versions
+      - name: Check Environment Versions
         run: |
+          php -v
           node -v
           npm -v
           npx vite --version
 
 
-      # Build React/Vite frontend
+      # Build frontend
       - name: Build Frontend
         run: npm run build
 
 
-      # Create deployment package
+      # Prepare deployment package
       - name: Prepare Deployment Package
         run: |
-          mkdir deploy
+          rm -rf deploy
+          mkdir -p deploy
+
           rsync -av \
           --exclude=node_modules \
           --exclude=.git \
           --exclude=.env \
+          --exclude=deploy \
           ./ deploy/
 
 
-      # Upload artifact (optional)
+      # Upload artifact
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:

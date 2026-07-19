@@ -12,88 +12,88 @@ permissions:
   contents: read
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    name: Build and Deploy to Hostinger
+    name: Build and Deploy
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
+      # Checkout source code
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+
+      # Setup PHP 8.4
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo, mysql
           coverage: none
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: '20'
           cache: npm
 
-      - name: Install Composer Dependencies
-        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
+      # Install Laravel dependencies
+      - name: Install Composer Dependencies
+        run: |
+          composer install \
+          --no-dev \
+          --optimize-autoloader \
+          --prefer-dist \
+          --no-interaction \
+          --no-progress
+
+
+      # Install frontend packages
       - name: Install NPM Dependencies
         run: npm ci
 
-      - name: Build Frontend Assets
+
+      # Fix Vite/Rolldown build issue
+      - name: Use Stable Vite Version
+        run: |
+          npm install vite@7 laravel-vite-plugin@latest --save-dev
+
+
+      # Build frontend assets
+      - name: Build Frontend
         run: npm run build
 
+
+      # Prepare deployment files
       - name: Prepare Deployment Package
         run: |
-          mkdir -p deploy
-          rsync -a \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='node_modules' \
-            --exclude='tests' \
-            --exclude='storage/framework/cache/data' \
-            --exclude='storage/framework/sessions' \
-            --exclude='storage/framework/views' \
-            --exclude='storage/logs' \
-            --exclude='.env' \
-            --exclude='deploy' \
-            ./ deploy/
+          mkdir deploy
+          rsync -av \
+          --exclude=node_modules \
+          --exclude=.git \
+          --exclude=.env \
+          ./ deploy/
 
-      - name: Upload Release Artifact
+
+      # Upload build artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pos-release
-          path: deploy/
-          retention-days: 7
+          name: laravel-build
+          path: deploy
 
-      - name: Deploy to Hostinger via SFTP
-        uses: appleboy/scp-action@master
+
+      # Deploy to Hostinger
+      - name: Deploy to Hostinger
+        uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: 22
+          port: ${{ secrets.HOSTINGER_PORT }}
           source: "deploy/*"
-          target: "${{ secrets.HOSTINGER_APP_PATH }}"
-          strip_components: 1
+          target: "/home/u884969733/domains/soft-afghan.com/pos-app"
           overwrite: true
-
-      - name: Run Migrations and Clear Caches
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: 22
-          command_timeout: 180s
-          script: |
-            cd ${{ secrets.HOSTINGER_APP_PATH }}
-
-            # Run Laravel commands
-            /opt/alt/php84/usr/bin/php artisan config:clear
-            /opt/alt/php84/usr/bin/php artisan cache:clear
-            /opt/alt/php84/usr/bin/php artisan view:clear
-            /opt/alt/php84/usr/bin/php artisan migrate --force
-            /opt/alt/php84/usr/bin/php artisan config:cache
-            /opt/alt/php84/usr/bin/php artisan route:cache
-            /opt/alt/php84/usr/bin/php artisan view:cache
-
-            echo "✅ Deployment Completed Successfully"

@@ -65,7 +65,7 @@ jobs:
           retention-days: 7
 
       - name: Deploy to Hostinger via SFTP
-        uses: appleboy/scp-action@v1.0.2
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
@@ -75,11 +75,9 @@ jobs:
           target: "${{ secrets.HOSTINGER_APP_PATH }}"
           strip_components: 1
           overwrite: true
-          timeout: 60s
-          command_timeout: 120s
 
       - name: Run Migrations and Clear Caches
-        uses: appleboy/ssh-action@v1.0.2
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}

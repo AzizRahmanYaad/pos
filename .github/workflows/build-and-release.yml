@@ -1,24 +1,126 @@
-- name: Run Laravel Commands
-  uses: appleboy/ssh-action@v1.2.0
-  with:
-    host: ${{ secrets.HOSTINGER_SSH_HOST }}
-    username: ${{ secrets.HOSTINGER_SSH_USER }}
-    key: ${{ secrets.HOSTINGER_SSH_KEY }}
-    port: ${{ secrets.HOSTINGER_SSH_PORT }}
-    script: |
-      cd ${{ secrets.HOSTINGER_APP_PATH }}
+name: Build and Deploy
 
-      echo "Using PHP:"
-      /opt/alt/php84/usr/bin/php -v
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/pos-web-app-c6tkv9
 
-      /opt/alt/php84/usr/bin/php /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction
+permissions:
+  contents: read
 
-      /opt/alt/php84/usr/bin/php artisan migrate --force
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-      /opt/alt/php84/usr/bin/php artisan optimize:clear
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
 
-      /opt/alt/php84/usr/bin/php artisan config:cache
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
 
-      /opt/alt/php84/usr/bin/php artisan route:cache
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-      /opt/alt/php84/usr/bin/php artisan view:cache
+      - name: Install Composer Packages
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
+      - name: Install Node Packages
+        run: npm ci
+
+      - name: Build Assets
+        run: npm run build
+
+      - name: Prepare Deployment
+        run: |
+          mkdir deploy
+
+          rsync -av \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="node_modules" \
+            --exclude="tests" \
+            --exclude=".env" \
+            ./ deploy/
+
+      - name: Upload Files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          source: "deploy/*"
+          target: ${{ secrets.HOSTINGER_APP_PATH }}
+          strip_components: 1
+          overwrite: true
+
+      - name: Deploy on Server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          script: |
+
+            echo "=============================="
+            echo "Server Information"
+            echo "=============================="
+
+            whoami
+            pwd
+
+            echo ""
+            echo "Application Path:"
+            echo "${{ secrets.HOSTINGER_APP_PATH }}"
+
+            cd ${{ secrets.HOSTINGER_APP_PATH }}
+
+            echo ""
+            echo "Current Directory:"
+            pwd
+
+            echo ""
+            echo "Files:"
+            ls -la
+
+            echo ""
+            echo "PHP Version:"
+            /opt/alt/php84/usr/bin/php -v
+
+            echo ""
+            echo "Composer Version:"
+            /opt/alt/php84/usr/bin/php /usr/local/bin/composer --version
+
+            echo ""
+            echo "Installing Composer Dependencies..."
+
+            /opt/alt/php84/usr/bin/php \
+            /usr/local/bin/composer install \
+            --no-dev \
+            --prefer-dist \
+            --optimize-autoloader \
+            --no-interaction
+
+            echo ""
+            echo "Running Laravel Commands..."
+
+            /opt/alt/php84/usr/bin/php artisan optimize:clear
+
+            /opt/alt/php84/usr/bin/php artisan migrate --force
+
+            /opt/alt/php84/usr/bin/php artisan config:cache
+
+            /opt/alt/php84/usr/bin/php artisan route:cache
+
+            /opt/alt/php84/usr/bin/php artisan view:cache
+
+            echo ""
+            echo "Deployment Finished Successfully!"

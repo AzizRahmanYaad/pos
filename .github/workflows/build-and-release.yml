@@ -41,72 +41,25 @@ jobs:
       - name: Build Frontend
         run: npm run build
 
-      - name: Prepare Deployment Files
+      - name: Package Release Artifact
         run: |
-          rm -rf deploy
-          mkdir -p deploy
+          mkdir -p dist
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='storage/framework/cache/data' \
+            --exclude='storage/framework/sessions' \
+            --exclude='storage/framework/views' \
+            --exclude='storage/logs' \
+            --exclude='.env' \
+            --exclude='dist' \
+            ./ dist/
 
-          rsync -av --delete \
-            --exclude=".git" \
-            --exclude=".github" \
-            --exclude="node_modules" \
-            --exclude="tests" \
-            --exclude=".env" \
-            --exclude="deploy" \
-            ./ deploy/
-
-      - name: Upload Files to Hostinger
-        uses: appleboy/scp-action@v0.1.7
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "deploy/*"
-          target: ${{ secrets.HOSTINGER_APP_PATH }}
-          strip_components: 1
-          overwrite: true
-
-      - name: Deploy Laravel
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          script: |
-            set -e
-
-            cd ${{ secrets.HOSTINGER_APP_PATH }}
-
-            echo "=============================="
-            echo "Current Directory"
-            pwd
-
-            echo "=============================="
-            echo "PHP Version"
-            /opt/alt/php84/usr/bin/php -v
-
-            echo "=============================="
-            echo "Composer Version"
-            /opt/alt/php84/usr/bin/php /usr/local/bin/composer --version
-
-            echo "=============================="
-            echo "Installing Composer"
-            /opt/alt/php84/usr/bin/php /usr/local/bin/composer install \
-              --no-dev \
-              --prefer-dist \
-              --optimize-autoloader \
-              --no-interaction
-
-            echo "=============================="
-            echo "Laravel Commands"
-
-            /opt/alt/php84/usr/bin/php artisan optimize:clear
-            /opt/alt/php84/usr/bin/php artisan migrate --force
-            /opt/alt/php84/usr/bin/php artisan config:cache
-            /opt/alt/php84/usr/bin/php artisan route:cache
-            /opt/alt/php84/usr/bin/php artisan view:cache
-
-            echo "=============================="
-            echo "Deployment Completed Successfully"
+          name: pos-release
+          path: dist/
+          retention-days: 14

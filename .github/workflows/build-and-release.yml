@@ -18,13 +18,13 @@ jobs:
 
     steps:
 
-      # Checkout source code
+      # Checkout repository
       - name: Checkout Code
         uses: actions/checkout@v5
 
 
-      # Setup PHP 8.4
-      - name: Setup PHP
+      # Setup PHP
+      - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
@@ -32,7 +32,7 @@ jobs:
           coverage: none
 
 
-      # Setup Node.js
+      # Setup Node
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -40,7 +40,7 @@ jobs:
           cache: npm
 
 
-      # Install Laravel dependencies
+      # Install PHP dependencies
       - name: Install Composer Dependencies
         run: |
           composer install \
@@ -51,23 +51,25 @@ jobs:
           --no-progress
 
 
-      # Install frontend packages
+      # Install JS dependencies
       - name: Install NPM Dependencies
         run: npm ci
 
 
-      # Fix Vite/Rolldown build issue
-      - name: Use Stable Vite Version
+      # Verify installed versions
+      - name: Check Node and Vite Versions
         run: |
-          npm install vite@7 laravel-vite-plugin@latest --save-dev
+          node -v
+          npm -v
+          npx vite --version
 
 
-      # Build frontend assets
+      # Build React/Vite frontend
       - name: Build Frontend
         run: npm run build
 
 
-      # Prepare deployment files
+      # Create deployment package
       - name: Prepare Deployment Package
         run: |
           mkdir deploy
@@ -78,8 +80,8 @@ jobs:
           ./ deploy/
 
 
-      # Upload build artifact
-      - name: Upload Artifact
+      # Upload artifact (optional)
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: laravel-build

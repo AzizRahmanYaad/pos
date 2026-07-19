@@ -1,99 +1,24 @@
-name: Build and Deploy
+- name: Run Laravel Commands
+  uses: appleboy/ssh-action@v1.2.0
+  with:
+    host: ${{ secrets.HOSTINGER_SSH_HOST }}
+    username: ${{ secrets.HOSTINGER_SSH_USER }}
+    key: ${{ secrets.HOSTINGER_SSH_KEY }}
+    port: ${{ secrets.HOSTINGER_SSH_PORT }}
+    script: |
+      cd ${{ secrets.HOSTINGER_APP_PATH }}
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - claude/pos-web-app-c6tkv9
-    tags:
-      - 'v*'
+      echo "Using PHP:"
+      /opt/alt/php84/usr/bin/php -v
 
-permissions:
-  contents: read
+      /opt/alt/php84/usr/bin/php /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    name: Build deployable artifact
+      /opt/alt/php84/usr/bin/php artisan migrate --force
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      /opt/alt/php84/usr/bin/php artisan optimize:clear
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.4"
-          coverage: none
+      /opt/alt/php84/usr/bin/php artisan config:cache
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+      /opt/alt/php84/usr/bin/php artisan route:cache
 
-      - name: Install Composer dependencies
-        run: composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction --no-progress
-
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Build frontend assets
-        run: npm run build
-
-      - name: Package application
-        run: |
-          mkdir -p dist
-          rsync -av \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='node_modules' \
-            --exclude='tests' \
-            --exclude='storage/framework/cache/data' \
-            --exclude='storage/framework/sessions' \
-            --exclude='storage/framework/views' \
-            --exclude='storage/logs' \
-            --exclude='.env' \
-            --exclude='dist' \
-            ./ dist/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pos-release
-          path: dist/
-          retention-days: 14
-
-      - name: Upload files to Hostinger
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          source: "dist/*"
-          target: ${{ secrets.HOSTINGER_APP_PATH }}
-          strip_components: 1
-          overwrite: true
-
-      - name: Run Laravel Commands
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          script: |
-            cd ${{ secrets.HOSTINGER_APP_PATH }}
-
-            composer install --no-dev --optimize-autoloader
-
-            php artisan migrate --force
-
-            php artisan optimize:clear
-
-            php artisan config:cache
-
-            php artisan route:cache
-
-            php artisan view:cache
+      /opt/alt/php84/usr/bin/php artisan view:cache

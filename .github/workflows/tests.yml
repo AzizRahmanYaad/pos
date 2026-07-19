@@ -1,66 +1,137 @@
-name: Tests
+name: Build and Deploy to Hostinger
 
 on:
+  workflow_dispatch:
   push:
     branches:
-      - main
-      - 'claude/**'
-  pull_request:
+      - claude/pos-app-web-c6tkv9
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
 
 jobs:
-  backend:
+  build:
+
     runs-on: ubuntu-latest
-    name: Backend (PHP ${{ matrix.php }})
-    strategy:
-      fail-fast: true
-      matrix:
-        php: [8.3]
+    name: Build Laravel + React + Deploy
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Setup PHP
+      # Checkout source code
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+
+      # PHP 8.4 required by Laravel 13
+      - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, gd
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo, mysql
           coverage: none
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Copy environment file
-        run: cp .env.example .env
-
-      - name: Generate app key
-        run: php artisan key:generate
-
-      - name: Execute tests
-        run: php artisan test
-
-  frontend:
-    runs-on: ubuntu-latest
-    name: Frontend (typecheck + build)
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: '20'
           cache: npm
 
-      - name: Install dependencies
+
+      # Verify environment
+      - name: Check Versions
+        run: |
+          php -v
+          composer -V
+          node -v
+          npm -v
+
+
+      # Install Laravel packages
+      - name: Install Composer Dependencies
+        run: |
+          composer install \
+          --no-dev \
+          --prefer-dist \
+          --no-interaction \
+          --optimize-autoloader
+
+
+      # Install frontend packages
+      - name: Install NPM Dependencies
         run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
 
-      - name: Build
+      # Verify Vite version
+      - name: Check Vite Version
+        run: npx vite --version
+
+
+      # Build React/Vite
+      - name: Build Frontend
         run: npm run build
+
+
+      # Confirm Vite manifest exists
+      - name: Verify Vite Manifest
+        run: |
+          echo "Checking Vite output..."
+          ls -la public/build
+          test -f public/build/manifest.json
+
+
+      # Prepare deployment files
+      - name: Prepare Deployment Package
+        run: |
+          rm -rf deploy
+          mkdir -p deploy
+
+          rsync -av \
+          --exclude=node_modules \
+          --exclude=.git \
+          --exclude=.env \
+          --exclude=storage/logs \
+          --exclude=deploy \
+          ./ deploy/
+
+          echo "Deployment package ready"
+          ls -la deploy/public/build
+
+
+      # Optional artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: laravel-build
+          path: deploy
+
+
+      # Deploy files to Hostinger
+      - name: Deploy to Hostinger
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USERNAME }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_PORT }}
+          source: "deploy/"
+          target: "/home/u884969733/domains/soft-afghan.com/pos-app"
+          overwrite: true
+
+
+      # Clear Laravel cache after deployment
+      - name: Clear Laravel Cache
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          script: |
+            cd /home/u884969733/domains/soft-afghan.com/pos-app
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan view:cache

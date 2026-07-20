@@ -18,6 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { fetchSuppliers, type SupplierListItem } from '@/features/suppliers/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
+import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
 
 export function SuppliersListPage() {
@@ -26,13 +27,19 @@ export function SuppliersListPage() {
         queryKey: ['suppliers'],
         queryFn: fetchSuppliers,
     });
+    const [addOpen, setAddOpen] = useState(false);
     const [paying, setPaying] = useState<SupplierListItem | null>(null);
 
     return (
         <Box>
-            <Typography variant="h4" gutterBottom>
-                {t('nav.suppliers')}
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h4">{t('nav.suppliers')}</Typography>
+                <Can permission="purchases.manage">
+                    <Button variant="contained" onClick={() => setAddOpen(true)}>
+                        {t('actions.add')}
+                    </Button>
+                </Can>
+            </Box>
 
             {isLoading && <CircularProgress />}
             {isError && <Alert severity="error">{t('common.loading')}</Alert>}
@@ -75,6 +82,8 @@ export function SuppliersListPage() {
                     </Table>
                 </TableContainer>
             )}
+
+            <AddPartyDialog kind="supplier" open={addOpen} onClose={() => setAddOpen(false)} />
 
             {paying && (
                 <PaymentDialog

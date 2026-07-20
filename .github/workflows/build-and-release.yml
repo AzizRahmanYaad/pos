@@ -95,6 +95,8 @@ jobs:
           path: dist/
           remote_path: ${{ secrets.HOSTINGER_APP_PATH }}
           remote_host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          # Hostinger shared/Business SSH listens on 65002, not 22.
+          remote_port: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
           remote_user: ${{ secrets.HOSTINGER_SSH_USER }}
           remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
 
@@ -103,6 +105,7 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |

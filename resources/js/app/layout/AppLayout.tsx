@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     AppBar,
     Box,
@@ -28,7 +28,7 @@ import LockClockIcon from '@mui/icons-material/LockClock';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
+import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Can } from '@/components/Can';
@@ -62,10 +62,18 @@ export function AppLayout() {
     const { t } = useTranslation();
     const theme = useTheme();
     const location = useLocation();
+    const navigate = useNavigate();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileOpen, setMobileOpen] = useState(false);
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
+
+    // Redirect superadmin to /superadmin
+    useEffect(() => {
+        if (user && user.roles.includes('superadmin')) {
+            navigate('/superadmin', { replace: true });
+        }
+    }, [user, navigate]);
 
     const drawerContent = (
         <Box>

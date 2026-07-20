@@ -9,6 +9,7 @@ use App\Models\PayrollRun;
 use App\Models\ProductStock;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -116,6 +117,7 @@ class ReportController extends Controller
     {
         return SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->when(TenantContext::id(), fn ($query, $tenantId) => $query->where('sales.tenant_id', $tenantId))
             ->where('sales.status', Sale::STATUS_COMPLETED)
             ->whereBetween('sales.sale_date', [$from, $to]);
     }

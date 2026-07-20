@@ -19,6 +19,8 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'address' => $this->address,
+            'tenant_id' => $this->tenant_id,
+            'tenant_name' => $this->whenLoaded('tenant', fn () => $this->tenant?->name),
             'logo_url' => $this->logo_path ? Storage::disk('public')->url($this->logo_path) : null,
             'locale' => $this->locale,
             'is_active' => $this->is_active,

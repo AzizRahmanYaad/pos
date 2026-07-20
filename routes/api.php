@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\StockAdjustmentController;
 use App\Http\Controllers\Api\V1\StockMovementController;
 use App\Http\Controllers\Api\V1\SupplierController;
+use App\Http\Controllers\Api\V1\TenantController;
 use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\WarehouseController;
@@ -37,6 +38,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/settings', [BusinessSettingController::class, 'update']);
 
         Route::get('/roles', [RoleController::class, 'index']);
+        Route::get('/tenants', [TenantController::class, 'index']);
         Route::post('/users/{user}/extend', [UserController::class, 'extend']);
         Route::apiResource('users', UserController::class);
 

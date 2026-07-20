@@ -30,6 +30,7 @@ class StoreUserRequest extends FormRequest
             'is_active' => ['boolean'],
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => ['string', Rule::exists('roles', 'name')],
+            'tenant_id' => ['nullable', 'integer', Rule::exists('tenants', 'id')],
         ];
     }
 }

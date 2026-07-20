@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Supplier;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -23,8 +24,11 @@ class DashboardController extends Controller
         $todaySalesTotal = (float) (clone $todaySales)->sum('grand_total');
         $todaySalesCount = (clone $todaySales)->count();
 
+        $tenantId = TenantContext::id();
+
         $todayCogs = (float) SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->when($tenantId, fn ($query) => $query->where('sales.tenant_id', $tenantId))
             ->where('sales.status', Sale::STATUS_COMPLETED)
             ->whereDate('sales.sale_date', $today)
             ->selectRaw('COALESCE(SUM(sale_items.quantity * sale_items.cost_price_snapshot), 0) as total')
@@ -34,6 +38,7 @@ class DashboardController extends Controller
 
         $lowStock = DB::table('product_stocks')
             ->join('products', 'products.id', '=', 'product_stocks.product_id')
+            ->when($tenantId, fn ($query) => $query->where('products.tenant_id', $tenantId))
             ->where('products.track_inventory', true)
             ->where('products.is_active', true)
             ->groupBy('products.id', 'products.reorder_level')
@@ -44,6 +49,7 @@ class DashboardController extends Controller
         $topProducts = DB::table('sale_items')
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->join('products', 'products.id', '=', 'sale_items.product_id')
+            ->when($tenantId, fn ($query) => $query->where('sales.tenant_id', $tenantId))
             ->where('sales.status', Sale::STATUS_COMPLETED)
             ->where('sales.sale_date', '>=', now()->subDays(30))
             ->groupBy('products.id', 'products.name')

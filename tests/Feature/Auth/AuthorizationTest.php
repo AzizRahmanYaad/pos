@@ -45,16 +45,17 @@ class AuthorizationTest extends TestCase
 
         $this->actingAs($superadmin)
             ->postJson('/api/v1/users', [
-                'name' => 'New Cashier',
-                'email' => 'cashier@example.com',
+                'name' => 'New Business',
+                'email' => 'owner@example.com',
                 'password' => 'Secret123!',
                 'password_confirmation' => 'Secret123!',
                 'locale' => 'en',
                 'is_active' => true,
-                'roles' => ['cashier'],
+                'roles' => ['admin'],
             ])
             ->assertCreated()
-            ->assertJsonPath('data.roles.0', 'cashier');
+            ->assertJsonPath('data.roles.0', 'admin')
+            ->assertJsonPath('data.tenant_name', 'New Business');
     }
 
     public function test_superadmin_cannot_deactivate_own_account(): void

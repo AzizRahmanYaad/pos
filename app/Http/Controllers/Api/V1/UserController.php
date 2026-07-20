@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\StoreUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Support\TenantProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -19,27 +22,52 @@ class UserController extends Controller
         $this->authorize('viewAny', User::class);
 
         return UserResource::collection(
-            User::query()->with('roles')->orderBy('name')->paginate(20)
+            User::query()->with(['roles', 'tenant'])->orderBy('name')->paginate(20)
         );
     }
 
-    public function store(StoreUserRequest $request): UserResource
+    public function store(StoreUserRequest $request, TenantProvisioner $provisioner): UserResource
     {
-        $user = User::create([
-            ...$request->safe()->except(['password', 'roles', 'logo']),
-            'password' => Hash::make($request->validated('password')),
-            'logo_path' => $request->file('logo')?->store('logos', 'public'),
-            // Every POS account starts with one year of access; the
-            // superadmin later extends it year by year against a cash
-            // payment. Superadmin accounts themselves never expire.
-            'access_expires_at' => in_array('superadmin', $request->validated('roles'), true)
-                ? null
-                : now()->addYear(),
-        ]);
+        $roles = $request->validated('roles');
+        $isSuperadmin = in_array('superadmin', $roles, true);
+        $foundsBusiness = in_array('admin', $roles, true);
 
-        $user->syncRoles($request->validated('roles'));
+        // Staff accounts (manager/cashier) must join an existing business;
+        // an admin account founds a new business of its own.
+        abort_if(
+            ! $isSuperadmin && ! $foundsBusiness && ! $request->filled('tenant_id'),
+            422,
+            __('Select the business this staff account belongs to.'),
+        );
 
-        return new UserResource($user->load('roles'));
+        $user = DB::transaction(function () use ($request, $provisioner, $roles, $isSuperadmin, $foundsBusiness) {
+            $tenantId = null;
+
+            if ($foundsBusiness) {
+                $tenant = Tenant::create(['name' => $request->validated('name')]);
+                $provisioner->provision($tenant);
+                $tenantId = $tenant->id;
+            } elseif (! $isSuperadmin) {
+                $tenantId = (int) $request->validated('tenant_id');
+            }
+
+            $user = User::create([
+                ...$request->safe()->except(['password', 'roles', 'logo', 'tenant_id']),
+                'tenant_id' => $tenantId,
+                'password' => Hash::make($request->validated('password')),
+                'logo_path' => $request->file('logo')?->store('logos', 'public'),
+                // Every POS account starts with one year of access; the
+                // superadmin later extends it year by year against a cash
+                // payment. Superadmin accounts themselves never expire.
+                'access_expires_at' => $isSuperadmin ? null : now()->addYear(),
+            ]);
+
+            $user->syncRoles($roles);
+
+            return $user;
+        });
+
+        return new UserResource($user->load(['roles', 'tenant']));
     }
 
     public function show(User $user): UserResource

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Products;
 
 use App\Models\Product;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,8 +20,8 @@ class StoreProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'sku' => ['required', 'string', 'max:64', 'unique:products,sku'],
-            'barcode' => ['nullable', 'string', 'max:64', 'unique:products,barcode'],
+            'sku' => ['required', 'string', 'max:64', Rule::unique('products', 'sku')->where('tenant_id', TenantContext::id())],
+            'barcode' => ['nullable', 'string', 'max:64', Rule::unique('products', 'barcode')->where('tenant_id', TenantContext::id())],
             'name' => ['required', 'string', 'max:255'],
             'category_id' => ['nullable', Rule::exists('categories', 'id')],
             'unit_id' => ['required', Rule::exists('units', 'id')],

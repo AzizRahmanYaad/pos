@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\SupplierController;
 use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\WarehouseController;
+use App\Http\Controllers\Api\V1\SuperAdminController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -32,6 +33,17 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::put('/auth/password', [AuthController::class, 'updatePassword']);
+
+        Route::middleware('role:superadmin')->prefix('superadmin')->group(function () {
+            Route::get('/organizations', [SuperAdminController::class, 'listOrganizations']);
+            Route::post('/organizations', [SuperAdminController::class, 'createOrganization']);
+            Route::get('/organizations/{organization}', [SuperAdminController::class, 'getOrganization']);
+            Route::put('/organizations/{organization}', [SuperAdminController::class, 'updateOrganization']);
+            Route::patch('/organizations/{organization}/toggle', [SuperAdminController::class, 'toggleOrganization']);
+            Route::post('/organizations/{organization}/extend-subscription', [SuperAdminController::class, 'extendSubscription']);
+            Route::post('/organizations/{organization}/reset-password', [SuperAdminController::class, 'resetAdminPassword']);
+            Route::get('/stats/subscriptions', [SuperAdminController::class, 'getSubscriptionStats']);
+        });
 
         Route::get('/settings', [BusinessSettingController::class, 'show']);
         Route::put('/settings', [BusinessSettingController::class, 'update']);

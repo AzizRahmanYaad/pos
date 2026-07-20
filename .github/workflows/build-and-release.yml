@@ -11,45 +11,32 @@ on:
 permissions:
   contents: read
 
-
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     name: Laravel React Build and Deploy
 
-
     steps:
-
-
       # Checkout Repository
       - name: Checkout Code
         uses: actions/checkout@v5
 
-
-
-      # PHP 8.4 (Laravel 13 requirement)
+      # Setup PHP
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
-          extensions: mbstring, intl, pdo, mysql
+          php-version: "8.4"
+          extensions: mbstring,intl,pdo,mysql
           coverage: none
 
-
-
-      # Node.js
+      # Setup Node
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: "20"
           cache: npm
 
-
-
-      # Check Environment
+      # Check Versions
       - name: Check Versions
         run: |
           php -v
@@ -57,89 +44,71 @@ jobs:
           node -v
           npm -v
 
-
-
-      # Install Laravel Dependencies
+      # Install PHP Dependencies
       - name: Install Composer Dependencies
         run: |
           composer install \
-          --no-dev \
-          --prefer-dist \
-          --no-interaction \
-          --no-progress \
-          --optimize-autoloader
+            --no-dev \
+            --prefer-dist \
+            --no-interaction \
+            --no-progress \
+            --optimize-autoloader
 
-
-
-      # Install Frontend Dependencies
+      # Install Node Dependencies
       - name: Install NPM Dependencies
         run: npm ci
 
-
-
-      # Build React/Vite
+      # Build Frontend
       - name: Build Frontend
         run: npm run build
 
-
-
-      # Verify Vite
+      # Verify Build
       - name: Verify Vite Build
         run: |
-          echo "Checking Vite manifest..."
           test -f public/build/manifest.json
           ls -la public/build
 
+      # Remove files that should never be deployed
+      - name: Remove unnecessary files
+        run: |
+          rm -rf .git
+          rm -rf .github
+          rm -rf node_modules
+          rm -rf tests
+          rm -rf storage/logs/*
+          find . -name ".DS_Store" -delete
 
-
-      # Deploy Directly To Hostinger
+      # Deploy
       - name: Deploy to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
-
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
-
           username: ${{ secrets.HOSTINGER_SSH_USER }}
-
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
-
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
 
-          source: "./"
+          source: "."
 
           target: "/home/u884969733/domains/soft-afghan.com/pos-app"
 
           overwrite: true
-
           rm: false
+          strip_components: 0
 
-
-
-      # Run Laravel Commands On Server
+      # Laravel Commands
       - name: Laravel Post Deployment
         uses: appleboy/ssh-action@v1.2.0
         with:
-
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
-
           username: ${{ secrets.HOSTINGER_SSH_USER }}
-
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
-
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
-
           script: |
-
             cd /home/u884969733/domains/soft-afghan.com/pos-app
 
-            echo "Clearing Laravel cache..."
-
             php artisan optimize:clear
-
             php artisan config:cache
-
             php artisan route:cache
-
             php artisan view:cache
 
-            echo "Deployment completed successfully"
+            echo "Deployment completed successfully."

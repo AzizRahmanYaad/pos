@@ -72,6 +72,7 @@ class Permissions
     public static function rolePermissions(): array
     {
         return [
+            'superadmin' => self::all(),
             'admin' => self::all(),
             'manager' => [
                 self::POS_ACCESS,

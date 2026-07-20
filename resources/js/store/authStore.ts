@@ -12,6 +12,7 @@ interface AuthState {
     logout: () => Promise<void>;
     bootstrap: () => Promise<void>;
     can: (permission: string) => boolean;
+    hasRole: (role: string) => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -50,6 +51,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     can(permission) {
         return get().user?.permissions.includes(permission) ?? false;
+    },
+
+    hasRole(role) {
+        return get().user?.roles.includes(role) ?? false;
     },
 }));
 

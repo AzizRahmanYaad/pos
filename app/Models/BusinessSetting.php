@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Model;
 ])]
 class BusinessSetting extends Model
 {
+    use BelongsToTenant;
+
     protected function casts(): array
     {
         return [
@@ -22,11 +25,13 @@ class BusinessSetting extends Model
     }
 
     /**
-     * The app has exactly one settings row; get it, creating the default
-     * row on first access.
+     * Each tenant (business) has exactly one settings row; get the current
+     * tenant's row, creating the default row on first access. The tenant
+     * scope on this model narrows the lookup, and the creating hook stamps
+     * the tenant on the new row.
      */
     public static function current(): self
     {
-        return static::query()->firstOrCreate(['id' => 1]);
+        return static::query()->firstOrCreate([]);
     }
 }

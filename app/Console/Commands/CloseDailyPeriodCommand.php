@@ -6,6 +6,8 @@ use App\Domain\PeriodClosing\Actions\ClosePeriodAction;
 use App\Domain\PeriodClosing\Exceptions\InvalidPeriodClosingException;
 use App\Models\BusinessSetting;
 use App\Models\PeriodClosing;
+use App\Models\Tenant;
+use App\Support\TenantContext;
 use Illuminate\Console\Command;
 
 class CloseDailyPeriodCommand extends Command
@@ -16,26 +18,31 @@ class CloseDailyPeriodCommand extends Command
 
     public function handle(ClosePeriodAction $closePeriod): int
     {
-        if (! BusinessSetting::current()->auto_close_daily) {
-            $this->info('Auto daily close is disabled in business settings — skipping.');
-
-            return self::SUCCESS;
-        }
-
         $yesterday = now()->subDay();
 
-        try {
-            $closePeriod->execute(
-                periodType: PeriodClosing::TYPE_DAILY,
-                periodStart: $yesterday->copy()->startOfDay(),
-                periodEnd: $yesterday->copy()->endOfDay(),
-                closedBy: null,
-                notes: 'Auto-closed by scheduler',
-            );
+        // Each tenant (business) closes its own books independently.
+        foreach (Tenant::query()->pluck('id', 'name') as $name => $tenantId) {
+            TenantContext::run($tenantId, function () use ($closePeriod, $yesterday, $name) {
+                if (! BusinessSetting::current()->auto_close_daily) {
+                    $this->info("[{$name}] auto daily close disabled — skipping.");
 
-            $this->info("Closed period for {$yesterday->toDateString()}.");
-        } catch (InvalidPeriodClosingException $e) {
-            $this->warn($e->getMessage());
+                    return;
+                }
+
+                try {
+                    $closePeriod->execute(
+                        periodType: PeriodClosing::TYPE_DAILY,
+                        periodStart: $yesterday->copy()->startOfDay(),
+                        periodEnd: $yesterday->copy()->endOfDay(),
+                        closedBy: null,
+                        notes: 'Auto-closed by scheduler',
+                    );
+
+                    $this->info("[{$name}] closed period for {$yesterday->toDateString()}.");
+                } catch (InvalidPeriodClosingException $e) {
+                    $this->warn("[{$name}] {$e->getMessage()}");
+                }
+            });
         }
 
         return self::SUCCESS;

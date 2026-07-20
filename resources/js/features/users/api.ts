@@ -6,12 +6,24 @@ export interface UserListItem {
     email: string;
     phone: string | null;
     address: string | null;
+    tenant_id: number | null;
+    tenant_name: string | null;
     logo_url: string | null;
     locale: string;
     is_active: boolean;
     access_expires_at: string | null;
     roles: string[];
     created_at: string;
+}
+
+export interface TenantItem {
+    id: number;
+    name: string;
+}
+
+export async function fetchTenants(): Promise<TenantItem[]> {
+    const { data } = await apiClient.get<TenantItem[]>('/tenants');
+    return data;
 }
 
 export interface RoleItem {
@@ -46,6 +58,8 @@ export interface UserPayload {
     // changing your own roles or deactivating yourself.
     is_active?: boolean;
     roles?: string[];
+    // Which business a staff (manager/cashier) account belongs to.
+    tenant_id?: number;
 }
 
 function toFormData(payload: UserPayload): FormData {
@@ -61,6 +75,7 @@ function toFormData(payload: UserPayload): FormData {
     }
     form.append('locale', payload.locale);
     if (payload.is_active !== undefined) form.append('is_active', payload.is_active ? '1' : '0');
+    if (payload.tenant_id !== undefined) form.append('tenant_id', String(payload.tenant_id));
     payload.roles?.forEach((role) => form.append('roles[]', role));
     return form;
 }

@@ -45,6 +45,7 @@ import {
     deleteUser,
     extendUserAccess,
     fetchRoles,
+    fetchTenants,
     fetchUsers,
     updateUser,
     type UserListItem,
@@ -64,6 +65,8 @@ const ROLE_CHIP_COLOR: Record<string, 'secondary' | 'primary' | 'info' | 'defaul
 
 const SOON_THRESHOLD_DAYS = 30;
 
+const STAFF_ROLES = ['manager', 'cashier'];
+
 interface UserFormState {
     name: string;
     email: string;
@@ -75,6 +78,7 @@ interface UserFormState {
     locale: string;
     isActive: boolean;
     role: string;
+    tenantId: number | '';
 }
 
 const EMPTY_FORM: UserFormState = {
@@ -88,6 +92,7 @@ const EMPTY_FORM: UserFormState = {
     locale: 'en',
     isActive: true,
     role: '',
+    tenantId: '',
 };
 
 function initials(name: string): string {
@@ -157,6 +162,7 @@ export function UsersPage() {
 
     const { data: users } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
     const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles });
+    const { data: tenants } = useQuery({ queryKey: ['tenants'], queryFn: fetchTenants });
 
     const [search, setSearch] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -215,6 +221,7 @@ export function UsersPage() {
             locale: user.locale,
             isActive: user.is_active,
             role: user.roles[0] ?? '',
+            tenantId: user.tenant_id ?? '',
         });
         setLogoPreview(user.logo_url);
         setError(null);
@@ -238,6 +245,9 @@ export function UsersPage() {
                 locale: form.locale,
                 // Own roles/status cannot be changed — the backend rejects it.
                 ...(editingSelf ? {} : { is_active: form.isActive, roles: [form.role] }),
+                ...(STAFF_ROLES.includes(form.role) && form.tenantId !== ''
+                    ? { tenant_id: form.tenantId }
+                    : {}),
                 ...(form.password
                     ? { password: form.password, password_confirmation: form.passwordConfirmation }
                     : {}),
@@ -279,6 +289,7 @@ export function UsersPage() {
         form.name !== '' &&
         form.email !== '' &&
         form.role !== '' &&
+        (STAFF_ROLES.includes(form.role) ? form.tenantId !== '' : true) &&
         (editing ? true : form.password !== '') &&
         !passwordsMismatch;
 
@@ -459,6 +470,16 @@ export function UsersPage() {
                                                 sx={{ mr: 0.5 }}
                                             />
                                         ))}
+                                        {user.tenant_name && (
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                                display="block"
+                                                sx={{ mt: 0.25 }}
+                                            >
+                                                {user.tenant_name}
+                                            </Typography>
+                                        )}
                                     </TableCell>
                                     <TableCell>{renderExpiry(user)}</TableCell>
                                     <TableCell>
@@ -617,6 +638,9 @@ export function UsersPage() {
                                     value={form.role}
                                     onChange={(e) => set('role', e.target.value)}
                                     disabled={editing !== null && isSelf(editing)}
+                                    helperText={
+                                        form.role === 'admin' ? t('users_page.admin_founds_business') : undefined
+                                    }
                                     fullWidth
                                 >
                                     {roles?.map((role) => (
@@ -628,6 +652,26 @@ export function UsersPage() {
                                     ))}
                                 </TextField>
                             </Grid>
+                            {STAFF_ROLES.includes(form.role) && (
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        select
+                                        label={t('users_page.business')}
+                                        value={form.tenantId}
+                                        onChange={(e) =>
+                                            set('tenantId', e.target.value === '' ? '' : Number(e.target.value))
+                                        }
+                                        helperText={t('users_page.business_hint')}
+                                        fullWidth
+                                    >
+                                        {tenants?.map((tenant) => (
+                                            <MenuItem key={tenant.id} value={tenant.id}>
+                                                {tenant.name}
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                </Grid>
+                            )}
                             <Grid item xs={12} sm={6}>
                                 <TextField
                                     label={

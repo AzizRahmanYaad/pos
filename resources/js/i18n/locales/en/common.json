@@ -293,7 +293,10 @@
         "extend": "Extend 1 year",
         "extend_title": "Extend access",
         "extend_confirm": "Extend access for {{name}} by one more year? The yearly fee is collected in cash.",
-        "one_year_note": "The new account will have access for one year from today. It can be extended later against a cash payment."
+        "one_year_note": "The new account will have access for one year from today. It can be extended later against a cash payment.",
+        "business": "Business",
+        "business_hint": "The staff account works inside this business",
+        "admin_founds_business": "An Admin account creates its own new business with separate data"
     },
     "parties": {
         "new_customer": "New customer",

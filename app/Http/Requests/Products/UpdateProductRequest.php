@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Products;
 
 use App\Models\Product;
+use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,8 +22,8 @@ class UpdateProductRequest extends FormRequest
         $productId = $this->route('product')?->id;
 
         return [
-            'sku' => ['sometimes', 'required', 'string', 'max:64', Rule::unique('products', 'sku')->ignore($productId)],
-            'barcode' => ['nullable', 'string', 'max:64', Rule::unique('products', 'barcode')->ignore($productId)],
+            'sku' => ['sometimes', 'required', 'string', 'max:64', Rule::unique('products', 'sku')->where('tenant_id', TenantContext::id())->ignore($productId)],
+            'barcode' => ['nullable', 'string', 'max:64', Rule::unique('products', 'barcode')->where('tenant_id', TenantContext::id())->ignore($productId)],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'category_id' => ['nullable', Rule::exists('categories', 'id')],
             'unit_id' => ['sometimes', 'required', Rule::exists('units', 'id')],

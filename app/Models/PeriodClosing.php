@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,8 @@ use Spatie\Activitylog\Support\LogOptions;
 #[Fillable(['period_type', 'period_start', 'period_end', 'closed_at', 'closed_by', 'status', 'notes'])]
 class PeriodClosing extends Model
 {
+    use BelongsToTenant;
+
     use LogsActivity;
 
     public const TYPE_DAILY = 'daily';

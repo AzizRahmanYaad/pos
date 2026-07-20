@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 #[Fillable(['name', 'type', 'opening_balance', 'is_active'])]
 class CashAccount extends Model
 {
+    use BelongsToTenant;
+
     use HasFactory;
 
     public const TYPE_CASH = 'cash';

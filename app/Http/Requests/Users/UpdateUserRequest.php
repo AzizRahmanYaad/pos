@@ -23,6 +23,8 @@ class UpdateUserRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('user'))],
             'phone' => ['nullable', 'string', 'max:32'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'logo' => ['nullable', 'image', 'max:2048'],
             'password' => ['sometimes', 'confirmed', Password::defaults()],
             'locale' => ['sometimes', 'required', Rule::in(SetLocale::SUPPORTED_LOCALES)],
             'is_active' => ['sometimes', 'boolean'],

@@ -21,6 +21,7 @@ class AdminUserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'locale' => 'en',
                 'is_active' => true,
+                'access_expires_at' => now()->addYear(),
                 'email_verified_at' => now(),
             ],
         );

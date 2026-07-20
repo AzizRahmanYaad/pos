@@ -37,6 +37,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/settings', [BusinessSettingController::class, 'update']);
 
         Route::get('/roles', [RoleController::class, 'index']);
+        Route::post('/users/{user}/extend', [UserController::class, 'extend']);
         Route::apiResource('users', UserController::class);
 
         Route::apiResource('categories', CategoryController::class);

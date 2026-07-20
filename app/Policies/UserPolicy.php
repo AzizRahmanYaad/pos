@@ -25,4 +25,9 @@ class UserPolicy
     {
         return $user->can('users.manage') && ! $user->is($target);
     }
+
+    public function extend(User $user, User $target): bool
+    {
+        return $user->can('users.manage');
+    }
 }

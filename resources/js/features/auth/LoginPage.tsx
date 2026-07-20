@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
+import { LogoMark } from '@/components/AppLogo';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
@@ -131,18 +132,15 @@ export function LoginPage() {
                 />
 
                 <Stack direction="row" spacing={1.5} alignItems="center" sx={{ position: 'relative' }}>
-                    <Avatar
-                        variant="rounded"
+                    <Box
                         sx={{
-                            bgcolor: alpha('#ffffff', 0.15),
-                            color: '#fff',
-                            width: 48,
-                            height: 48,
-                            backdropFilter: 'blur(4px)',
+                            display: 'flex',
+                            borderRadius: '14px',
+                            boxShadow: `0 0 0 2px ${alpha('#ffffff', 0.25)}`,
                         }}
                     >
-                        <PointOfSaleIcon />
-                    </Avatar>
+                        <LogoMark size={52} />
+                    </Box>
                     <Typography variant="h5" fontWeight={800} letterSpacing={0.5}>
                         {t('app_name')}
                     </Typography>
@@ -231,9 +229,7 @@ export function LoginPage() {
                             justifyContent="center"
                             sx={{ display: { xs: 'flex', md: 'none' }, mb: 3 }}
                         >
-                            <Avatar variant="rounded" sx={{ bgcolor: 'primary.main' }}>
-                                <PointOfSaleIcon />
-                            </Avatar>
+                            <LogoMark size={44} />
                             <Typography variant="h5" fontWeight={800}>
                                 {t('app_name')}
                             </Typography>

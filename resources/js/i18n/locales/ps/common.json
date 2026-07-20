@@ -117,7 +117,9 @@
         "closed": "تړل شوی",
         "reopened": "بیا پرانستل شوی",
         "completed": "بشپړ شوی",
-        "refunded": "بېرته شوی"
+        "refunded": "بېرته شوی",
+        "active": "فعال",
+        "inactive": "غیر فعال"
     },
     "payment_methods": {
         "cash": "نغدي",
@@ -156,7 +158,11 @@
         "type_standard": "عادي محصول",
         "type_service": "خدمت",
         "type_raw_material": "خام مواد",
-        "create_failed": "محصول خوندي نشو. ډاډ ترلاسه کړئ چې SKU تکراري نه دی او معلومات سم دي."
+        "create_failed": "محصول خوندي نشو. ډاډ ترلاسه کړئ چې SKU تکراري نه دی او معلومات سم دي.",
+        "subtitle": "ستاسو کتلاک په ټولو ګدامونو کې د ژوندي موجودۍ سره.",
+        "search_placeholder": "د نوم، کوډ یا بارکوډ له مخې ولټوئ…",
+        "count": "{{count}} محصولات",
+        "no_products": "هیڅ محصول ونه موندل شو."
     },
     "purchases_page": {
         "title": "نوې پیرودنه",

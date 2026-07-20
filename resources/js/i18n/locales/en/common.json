@@ -117,7 +117,9 @@
         "closed": "Closed",
         "reopened": "Reopened",
         "completed": "Completed",
-        "refunded": "Refunded"
+        "refunded": "Refunded",
+        "active": "Active",
+        "inactive": "Inactive"
     },
     "payment_methods": {
         "cash": "Cash",
@@ -156,7 +158,11 @@
         "type_standard": "Standard product",
         "type_service": "Service",
         "type_raw_material": "Raw material",
-        "create_failed": "Could not save the product. Check the SKU is unique and the details are valid."
+        "create_failed": "Could not save the product. Check the SKU is unique and the details are valid.",
+        "subtitle": "Your catalog with live stock levels across warehouses.",
+        "search_placeholder": "Search by name, SKU, or barcode…",
+        "count": "{{count}} products",
+        "no_products": "No products found."
     },
     "purchases_page": {
         "title": "New Purchase",

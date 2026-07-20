@@ -24,6 +24,13 @@ class ProductController extends Controller
                 AllowedFilter::exact('barcode'),
                 AllowedFilter::exact('category_id'),
                 AllowedFilter::exact('is_active'),
+                AllowedFilter::callback('search', function ($query, $value) {
+                    $query->where(function ($query) use ($value) {
+                        $query->where('name', 'like', "%{$value}%")
+                            ->orWhere('sku', 'like', "%{$value}%")
+                            ->orWhere('barcode', $value);
+                    });
+                }),
             )
             ->allowedSorts('name', 'sku', 'sale_price', 'created_at')
             ->with(['category', 'unit', 'stocks.warehouse'])

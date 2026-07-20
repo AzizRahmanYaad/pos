@@ -9,7 +9,6 @@ import { createAppTheme } from '@/theme/theme';
 import { useLocaleStore } from '@/store/localeStore';
 import { useAuthStore } from '@/store/authStore';
 import { queryClient } from '@/lib/queryClient';
-import { RoleBasedRedirect } from '@/components/RoleBasedRedirect';
 
 export function App() {
     const direction = useLocaleStore((state) => state.direction);
@@ -36,9 +35,7 @@ export function App() {
             <ThemeProvider theme={theme}>
                 <CssBaseline />
                 <QueryClientProvider client={queryClient}>
-                    <RoleBasedRedirect>
-                        <RouterProvider router={router} />
-                    </RoleBasedRedirect>
+                    <RouterProvider router={router} />
                     <Snackbar
                         open={periodClosedMessage !== null}
                         autoHideDuration={6000}

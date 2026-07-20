@@ -110,9 +110,27 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
             cd "${{ secrets.HOSTINGER_APP_PATH }}"
-            php artisan migrate --force
-            php artisan db:seed --force
-            php artisan storage:link || true
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            # Hostinger's default CLI php is ancient (7.4); find a PHP >= 8.4
+            # binary among the versioned/alt-php paths, or use the
+            # HOSTINGER_PHP_BIN secret when set.
+            PHP_BIN="${{ secrets.HOSTINGER_PHP_BIN }}"
+            if [ -z "$PHP_BIN" ]; then
+              for c in php8.4 php84 /opt/alt/php84/usr/bin/php /usr/bin/php8.4 /usr/local/bin/php8.4 php8.5 /opt/alt/php85/usr/bin/php php; do
+                if command -v "$c" >/dev/null 2>&1 && "$c" -r 'exit(PHP_VERSION_ID >= 80401 ? 0 : 1);' >/dev/null 2>&1; then
+                  PHP_BIN="$c"
+                  break
+                fi
+              done
+            fi
+            if [ -z "$PHP_BIN" ]; then
+              echo "ERROR: no PHP >= 8.4 CLI found on the server. Set the HOSTINGER_PHP_BIN secret to the full path of a PHP 8.4 binary."
+              exit 1
+            fi
+            echo "Using PHP binary: $PHP_BIN"
+            "$PHP_BIN" -v | head -1
+            "$PHP_BIN" artisan migrate --force
+            "$PHP_BIN" artisan db:seed --force
+            "$PHP_BIN" artisan storage:link || true
+            "$PHP_BIN" artisan config:cache
+            "$PHP_BIN" artisan route:cache
+            "$PHP_BIN" artisan view:cache

@@ -31,6 +31,7 @@ import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { LogoMark } from '@/components/AppLogo';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Can } from '@/components/Can';
 import { useAuthStore } from '@/store/authStore';
@@ -71,8 +72,9 @@ export function AppLayout() {
 
     const drawerContent = (
         <Box>
-            <Toolbar>
-                <Typography variant="h6" noWrap>
+            <Toolbar sx={{ gap: 1.25 }}>
+                <LogoMark size={34} />
+                <Typography variant="h6" noWrap fontWeight={800}>
                     {t('app_name')}
                 </Typography>
             </Toolbar>
@@ -131,9 +133,18 @@ export function AppLayout() {
                     >
                         <MenuIcon />
                     </IconButton>
-                    <Typography variant="h6" noWrap sx={{ display: { xs: 'none', md: 'block' } }}>
-                        {t('app_name')}
-                    </Typography>
+                    <Box
+                        sx={{
+                            display: { xs: 'none', md: 'flex' },
+                            alignItems: 'center',
+                            gap: 1.25,
+                        }}
+                    >
+                        <LogoMark size={32} />
+                        <Typography variant="h6" noWrap fontWeight={700}>
+                            {t('app_name')}
+                        </Typography>
+                    </Box>
                     <Box sx={{ flexGrow: 1 }} />
                     {user && (
                         <Typography variant="body2" sx={{ opacity: 0.9 }}>

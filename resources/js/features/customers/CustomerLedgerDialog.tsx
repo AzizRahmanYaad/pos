@@ -1,16 +1,21 @@
-import { useState } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Avatar,
     Box,
+    Button,
     Chip,
     CircularProgress,
     Dialog,
+    DialogActions,
     DialogContent,
     DialogTitle,
+    FormControlLabel,
     IconButton,
+    InputAdornment,
     Paper,
     Stack,
+    Switch,
     Table,
     TableBody,
     TableCell,
@@ -18,16 +23,24 @@ import {
     TableHead,
     TablePagination,
     TableRow,
+    TextField,
     Tooltip,
     Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOutlined';
 import { useTranslation } from 'react-i18next';
-import { fetchCustomerLedger, type CustomerListItem } from '@/features/customers/api';
+import {
+    clearCustomerLedger,
+    fetchCustomerLedger,
+    type CustomerListItem,
+} from '@/features/customers/api';
+import { Can } from '@/components/Can';
 import { formatDate } from '@/lib/calendar';
 
 interface CustomerLedgerDialogProps {
@@ -45,16 +58,48 @@ function sourceKey(sourceType: string | null): string {
 export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedgerDialogProps) {
     const { t, i18n } = useTranslation();
     const theme = useTheme();
+    const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
+    const [searchInput, setSearchInput] = useState('');
+    const [search, setSearch] = useState('');
+    const [from, setFrom] = useState('');
+    const [to, setTo] = useState('');
+    const [includeArchived, setIncludeArchived] = useState(false);
+    const [confirmClear, setConfirmClear] = useState(false);
+
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            setSearch(searchInput.trim());
+            setPage(0);
+        }, 300);
+        return () => clearTimeout(handle);
+    }, [searchInput]);
 
     const { data, isLoading } = useQuery({
-        queryKey: ['customer-ledger', customer.id, page],
-        queryFn: () => fetchCustomerLedger(customer.id, page + 1),
+        queryKey: ['customer-ledger', customer.id, page, search, from, to, includeArchived],
+        queryFn: () =>
+            fetchCustomerLedger(customer.id, {
+                page: page + 1,
+                search: search || undefined,
+                from: from || undefined,
+                to: to || undefined,
+                includeArchived,
+            }),
         enabled: open,
         placeholderData: keepPreviousData,
     });
 
+    const clearMutation = useMutation({
+        mutationFn: () => clearCustomerLedger(customer.id),
+        onSuccess: () => {
+            setConfirmClear(false);
+            queryClient.invalidateQueries({ queryKey: ['customer-ledger', customer.id] });
+            queryClient.invalidateQueries({ queryKey: ['customers-page'] });
+        },
+    });
+
     const balance = data?.current_balance ?? customer.current_balance;
+    const canClear = Math.abs(balance) < 0.005;
 
     const balanceChip =
         balance > 0 ? (
@@ -98,6 +143,69 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
             </DialogTitle>
 
             <DialogContent sx={{ pt: 0 }}>
+                {/* Filters */}
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1.5}
+                    sx={{ mb: 1.5 }}
+                    alignItems={{ sm: 'center' }}
+                >
+                    <TextField
+                        size="small"
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        placeholder={t('ledger.search_placeholder')}
+                        sx={{ flex: 1, minWidth: 160 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+                    <TextField
+                        size="small"
+                        type="date"
+                        label={t('fields.from')}
+                        value={from}
+                        onChange={(e) => {
+                            setFrom(e.target.value);
+                            setPage(0);
+                        }}
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ width: 160 }}
+                    />
+                    <TextField
+                        size="small"
+                        type="date"
+                        label={t('fields.to')}
+                        value={to}
+                        onChange={(e) => {
+                            setTo(e.target.value);
+                            setPage(0);
+                        }}
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ width: 160 }}
+                    />
+                    <Can permission="payments.manage">
+                        <Tooltip title={canClear ? '' : t('ledger.clear_blocked')}>
+                            <span>
+                                <Button
+                                    size="small"
+                                    color="error"
+                                    variant="outlined"
+                                    startIcon={<CleaningServicesOutlinedIcon />}
+                                    disabled={!canClear}
+                                    onClick={() => setConfirmClear(true)}
+                                >
+                                    {t('ledger.clear')}
+                                </Button>
+                            </span>
+                        </Tooltip>
+                    </Can>
+                </Stack>
+
                 {/* Legend so anyone can read the ledger at a glance */}
                 <Stack direction="row" spacing={2} sx={{ mb: 1.5 }} flexWrap="wrap">
                     <Stack direction="row" spacing={0.5} alignItems="center">
@@ -112,6 +220,24 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                             {t('ledger.credit_hint')}
                         </Typography>
                     </Stack>
+                    <Box sx={{ flex: 1 }} />
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                size="small"
+                                checked={includeArchived}
+                                onChange={(e) => {
+                                    setIncludeArchived(e.target.checked);
+                                    setPage(0);
+                                }}
+                            />
+                        }
+                        label={
+                            <Typography variant="caption" color="text.secondary">
+                                {t('ledger.show_cleared')}
+                            </Typography>
+                        }
+                    />
                 </Stack>
 
                 <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
@@ -137,9 +263,21 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                                     </TableRow>
                                 )}
                                 {data?.data.map((entry) => (
-                                    <TableRow key={entry.id} hover>
+                                    <TableRow
+                                        key={entry.id}
+                                        hover
+                                        sx={entry.archived_at ? { opacity: 0.55 } : undefined}
+                                    >
                                         <TableCell sx={{ whiteSpace: 'nowrap' }}>
                                             {formatDate(entry.transaction_date, i18n.language)}
+                                            {entry.archived_at && (
+                                                <Chip
+                                                    size="small"
+                                                    variant="outlined"
+                                                    label={t('ledger.cleared_chip')}
+                                                    sx={{ ml: 0.75, height: 18, fontSize: 10 }}
+                                                />
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             <Stack
@@ -253,6 +391,29 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                     />
                 </Paper>
             </DialogContent>
+
+            {/* Clear-ledger confirmation */}
+            <Dialog open={confirmClear} onClose={() => setConfirmClear(false)} maxWidth="xs" fullWidth>
+                <DialogTitle>{t('ledger.clear_title')}</DialogTitle>
+                <DialogContent>
+                    <Typography>{t('ledger.clear_confirm', { name: customer.name })}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {t('ledger.clear_note')}
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmClear(false)}>{t('actions.cancel')}</Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        startIcon={<CleaningServicesOutlinedIcon />}
+                        disabled={clearMutation.isPending}
+                        onClick={() => clearMutation.mutate()}
+                    >
+                        {t('ledger.clear')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Dialog>
     );
 }

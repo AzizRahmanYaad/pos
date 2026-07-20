@@ -57,6 +57,7 @@ export interface LedgerEntry {
     description: string | null;
     source_type: string | null;
     transaction_date: string;
+    archived_at: string | null;
     created_by: string | null;
 }
 
@@ -66,14 +67,34 @@ export interface LedgerPage {
     current_balance: number;
 }
 
+export interface LedgerFilters {
+    page: number;
+    search?: string;
+    from?: string;
+    to?: string;
+    includeArchived?: boolean;
+}
+
 export async function fetchCustomerLedger(
     customerId: number,
-    page: number,
+    filters: LedgerFilters,
 ): Promise<LedgerPage> {
     const { data } = await apiClient.get<LedgerPage>(`/customers/${customerId}/ledger`, {
-        params: { page, per_page: 15 },
+        params: {
+            page: filters.page,
+            per_page: 15,
+            ...(filters.search ? { search: filters.search } : {}),
+            ...(filters.from ? { from: filters.from } : {}),
+            ...(filters.to ? { to: filters.to } : {}),
+            ...(filters.includeArchived ? { include_archived: 1 } : {}),
+        },
     });
     return data;
+}
+
+/** Archive a settled ledger — history moves to the system log. */
+export async function clearCustomerLedger(customerId: number): Promise<void> {
+    await apiClient.post(`/customers/${customerId}/ledger/clear`);
 }
 
 export interface CreateCustomerPayload {

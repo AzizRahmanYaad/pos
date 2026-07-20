@@ -5,8 +5,11 @@ export interface AuthUser {
     name: string;
     email: string;
     phone: string | null;
+    address: string | null;
+    logo_url: string | null;
     locale: string;
     is_active: boolean;
+    access_expires_at: string | null;
     roles: string[];
     permissions: string[];
     created_at: string;

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { isAxiosError } from 'axios';
 import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 import { Navigate, useLocation, useNavigate, type Location } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -29,8 +30,9 @@ export function LoginPage() {
         try {
             await loginAction(email, password);
             navigate('/', { replace: true });
-        } catch {
-            setError(t('auth.login_error'));
+        } catch (err) {
+            const code = isAxiosError(err) ? err.response?.data?.code : undefined;
+            setError(code === 'access_expired' ? t('auth.access_expired') : t('auth.login_error'));
         } finally {
             setSubmitting(false);
         }

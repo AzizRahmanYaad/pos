@@ -23,6 +23,8 @@ class StoreUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:32'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'logo' => ['nullable', 'image', 'max:2048'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'locale' => ['required', Rule::in(SetLocale::SUPPORTED_LOCALES)],
             'is_active' => ['boolean'],

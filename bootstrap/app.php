@@ -8,6 +8,7 @@ use App\Domain\PeriodClosing\Exceptions\PeriodClosedException;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
 use App\Domain\Sales\Exceptions\InvalidSalePaymentException;
 use App\Domain\Sales\Exceptions\SaleAlreadyProcessedException;
+use App\Http\Middleware\EnsureAccessNotExpired;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         $middleware->throttleApi();
-        $middleware->api(append: [SetLocale::class]);
+        $middleware->api(append: [SetLocale::class, EnsureAccessNotExpired::class]);
         $middleware->web(append: [SetLocale::class]);
         $middleware->alias([
             'role' => RoleMiddleware::class,

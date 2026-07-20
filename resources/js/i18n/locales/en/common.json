@@ -46,7 +46,8 @@
         "sign_in": "Sign in",
         "signing_in": "Signing in...",
         "login_error": "Invalid email or password",
-        "signed_in_as": "Signed in as {{name}}"
+        "signed_in_as": "Signed in as {{name}}",
+        "access_expired": "Your access period has expired. Please contact the administrator to renew your subscription."
     },
     "fields": {
         "sku": "SKU",
@@ -259,6 +260,16 @@
         "total_users": "Total users",
         "active_users": "Active users",
         "inactive_users": "Inactive users",
-        "no_users_found": "No users found."
+        "no_users_found": "No users found.",
+        "address": "Address",
+        "upload_logo": "Upload logo",
+        "expires": "Expires",
+        "no_expiry": "Unlimited",
+        "expired": "Expired",
+        "expired_users": "Expired access",
+        "extend": "Extend 1 year",
+        "extend_title": "Extend access",
+        "extend_confirm": "Extend access for {{name}} by one more year? The yearly fee is collected in cash.",
+        "one_year_note": "The new account will have access for one year from today. It can be extended later against a cash payment."
     }
 }

@@ -12,7 +12,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'phone', 'locale', 'is_active', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'address', 'logo_path', 'locale', 'is_active', 'access_expires_at', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -30,6 +30,16 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'access_expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether this account's paid access period has lapsed. A null expiry
+     * means unlimited access (e.g. the superadmin).
+     */
+    public function hasExpiredAccess(): bool
+    {
+        return $this->access_expires_at !== null && $this->access_expires_at->isPast();
     }
 }

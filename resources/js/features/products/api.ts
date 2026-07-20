@@ -31,9 +31,40 @@ interface PaginatedResponse<T> {
     data: T[];
 }
 
+export interface PageMeta {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
+export interface ProductPage {
+    data: ProductListItem[];
+    meta: PageMeta;
+}
+
+/** Full catalog in one call — used by the POS screen. */
 export async function fetchProducts(): Promise<ProductListItem[]> {
-    const { data } = await apiClient.get<PaginatedResponse<ProductListItem>>('/products');
+    const { data } = await apiClient.get<PaginatedResponse<ProductListItem>>('/products', {
+        params: { per_page: 500 },
+    });
     return data.data;
+}
+
+/** Paginated, searchable catalog — used by the Products page. */
+export async function fetchProductsPage(params: {
+    page: number;
+    perPage: number;
+    search?: string;
+}): Promise<ProductPage> {
+    const { data } = await apiClient.get<ProductPage>('/products', {
+        params: {
+            page: params.page,
+            per_page: params.perPage,
+            ...(params.search ? { 'filter[search]': params.search } : {}),
+        },
+    });
+    return data;
 }
 
 export interface CategoryItem {

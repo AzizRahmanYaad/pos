@@ -117,7 +117,9 @@
         "closed": "تصفیه شده",
         "reopened": "دوباره باز شده",
         "completed": "تکمیل شده",
-        "refunded": "عودت داده شده"
+        "refunded": "عودت داده شده",
+        "active": "فعال",
+        "inactive": "غیرفعال"
     },
     "payment_methods": {
         "cash": "نقد",
@@ -156,7 +158,11 @@
         "type_standard": "محصول عادی",
         "type_service": "خدمات",
         "type_raw_material": "مواد خام",
-        "create_failed": "محصول ذخیره نشد. مطمئن شوید SKU تکراری نیست و معلومات درست است."
+        "create_failed": "محصول ذخیره نشد. مطمئن شوید SKU تکراری نیست و معلومات درست است.",
+        "subtitle": "کتلاک شما با موجودی زنده در تمام گدام‌ها.",
+        "search_placeholder": "جستجو بر اساس نام، کد یا بارکد…",
+        "count": "{{count}} محصول",
+        "no_products": "محصولی یافت نشد."
     },
     "purchases_page": {
         "title": "خریداری جدید",

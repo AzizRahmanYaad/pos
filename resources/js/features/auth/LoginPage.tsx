@@ -12,6 +12,7 @@ export function LoginPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const status = useAuthStore((state) => state.status);
+    const user = useAuthStore((state) => state.user);
     const loginAction = useAuthStore((state) => state.login);
 
     const [email, setEmail] = useState('');
@@ -19,9 +20,11 @@ export function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && user) {
+        const isSuperAdmin = user.roles.includes('superadmin');
         const from = (location.state as { from?: Location })?.from?.pathname ?? '/';
-        return <Navigate to={from} replace />;
+        const defaultPath = isSuperAdmin ? '/superadmin' : '/';
+        return <Navigate to={from === '/' ? defaultPath : from} replace />;
     }
 
     const handleSubmit = async (event: FormEvent) => {

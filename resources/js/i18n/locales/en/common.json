@@ -351,6 +351,14 @@
         "source_expense": "Expense",
         "source_employee_advance": "Advance",
         "source_payroll_run": "Payroll",
-        "source_manual": "Opening"
+        "source_manual": "Opening",
+        "search_placeholder": "Search transactions…",
+        "show_cleared": "Show cleared history",
+        "cleared_chip": "Cleared",
+        "clear": "Clear ledger",
+        "clear_title": "Clear this ledger?",
+        "clear_confirm": "All current entries for {{name}} will be moved out of the ledger view. Nothing is deleted — the history stays in the system log and can be shown again with \"Show cleared history\".",
+        "clear_note": "This is only possible because the balance is exactly zero. The action is recorded in the system activity log with your name.",
+        "clear_blocked": "The ledger can only be cleared when the balance is zero."
     }
 }

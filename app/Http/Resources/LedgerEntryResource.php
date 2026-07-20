@@ -20,6 +20,7 @@ class LedgerEntryResource extends JsonResource
             'description' => $this->description,
             'source_type' => $this->source_type,
             'transaction_date' => $this->transaction_date,
+            'archived_at' => $this->archived_at,
             'created_by' => $this->whenLoaded('creator', fn () => $this->creator?->name),
         ];
     }

@@ -63,6 +63,10 @@ class CustomerController extends Controller
 
         $entries = $customer->ledgerEntries()
             ->with('creator')
+            ->when(! request()->boolean('include_archived'), fn ($query) => $query->whereNull('archived_at'))
+            ->when(request('search'), fn ($query, $search) => $query->where('description', 'like', "%{$search}%"))
+            ->when(request('from'), fn ($query, $from) => $query->whereDate('transaction_date', '>=', $from))
+            ->when(request('to'), fn ($query, $to) => $query->whereDate('transaction_date', '<=', $to))
             ->orderByDesc('transaction_date')
             ->orderByDesc('id')
             ->paginate(request()->integer('per_page', 25));
@@ -70,5 +74,35 @@ class CustomerController extends Controller
         return LedgerEntryResource::collection($entries)->additional([
             'current_balance' => $customer->currentBalance(),
         ]);
+    }
+
+    /**
+     * Clear a fully-settled ledger: archive every visible entry so the
+     * ledger starts fresh. Nothing is deleted — the rows stay in the
+     * database as cleared history and the action itself is written to
+     * the activity log.
+     */
+    public function clearLedger(Customer $customer)
+    {
+        abort_unless(request()->user()->can('payments.manage'), 403);
+
+        $balance = round($customer->currentBalance(), 2);
+        abort_if(
+            $balance !== 0.0,
+            422,
+            __('The ledger can only be cleared when the balance is exactly zero.'),
+        );
+
+        $archived = $customer->ledgerEntries()
+            ->whereNull('archived_at')
+            ->update(['archived_at' => now()]);
+
+        activity()
+            ->causedBy(request()->user())
+            ->performedOn($customer)
+            ->withProperties(['entries_archived' => $archived, 'balance_at_clear' => $balance])
+            ->log('Cleared customer ledger');
+
+        return response()->noContent();
     }
 }

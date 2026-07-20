@@ -15,14 +15,14 @@ class DashboardController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:reports.view');
+        $this->middleware('permission:pos.access');
     }
 
     public function summary()
     {
         $user = auth()->user();
         if (!$user || !$user->organization_id) {
-            return response()->json(['message' => 'Only POS users can access this dashboard'], 403);
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $today = now()->startOfDay();

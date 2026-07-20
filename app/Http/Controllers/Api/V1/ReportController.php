@@ -16,14 +16,14 @@ class ReportController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:reports.view');
+        $this->middleware('permission:pos.access');
     }
 
     private function ensurePosUser()
     {
         $user = auth()->user();
         if (!$user || !$user->organization_id) {
-            return response()->json(['message' => 'Only POS users can access reports'], 403);
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
     }
 

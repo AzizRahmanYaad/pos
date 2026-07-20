@@ -55,7 +55,7 @@ class Organization extends Model
             'locale' => 'en',
         ]);
 
-        $user->assignRole('admin');
+        $user->assignRole('pos_admin');
 
         $org = self::create([
             'name' => $data['name'],

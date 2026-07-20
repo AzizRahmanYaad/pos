@@ -15,7 +15,13 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     public function run(): void
     {
-        foreach (Permissions::all() as $permission) {
+        $allPermissions = [];
+        foreach (Permissions::rolePermissions() as $permissions) {
+            $allPermissions = array_merge($allPermissions, $permissions);
+        }
+        $allPermissions = array_unique($allPermissions);
+
+        foreach ($allPermissions as $permission) {
             Permission::findOrCreate($permission, 'web');
         }
 

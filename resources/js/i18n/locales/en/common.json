@@ -175,7 +175,21 @@
         "fully_paid": "Fully paid",
         "remaining": "Remaining: {{amount}}",
         "complete_sale": "Complete sale",
-        "checkout_failed": "Could not complete sale — check stock levels and tender amounts."
+        "checkout_failed": "Could not complete sale — check stock levels and tender amounts.",
+        "mode_search": "Search",
+        "mode_barcode": "Barcode",
+        "search_placeholder": "Search by name or SKU…",
+        "scan_placeholder": "Scan or type the barcode, then press Enter",
+        "scan_hint": "Point the barcode scanner here — each scan adds the product to the sale.",
+        "barcode_not_found": "No product found for barcode \"{{code}}\".",
+        "current_sale": "Current sale",
+        "clear_sale": "Clear sale",
+        "empty_cart": "Tap products or scan a barcode to start the sale.",
+        "discount": "Discount",
+        "price_adjusted": "Price adjusted (list price {{original}})",
+        "change_due": "Change to return: {{amount}}",
+        "walk_in_must_pay": "A walk-in sale must be fully paid before completing.",
+        "out_of_stock": "\"{{name}}\" is out of stock."
     },
     "receipt": {
         "customer": "Customer",

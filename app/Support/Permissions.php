@@ -9,6 +9,10 @@ namespace App\Support;
  */
 class Permissions
 {
+    // Superadmin permissions
+    public const SUPERADMIN_ACCESS = 'superadmin.access';
+
+    // POS permissions
     public const POS_ACCESS = 'pos.access';
 
     public const PRODUCTS_MANAGE = 'products.manage';
@@ -42,9 +46,9 @@ class Permissions
     public const USERS_MANAGE = 'users.manage';
 
     /**
-     * @return string[]
+     * Get all POS permissions (for admin/manager/cashier roles)
      */
-    public static function all(): array
+    public static function posPermissions(): array
     {
         return [
             self::POS_ACCESS,
@@ -67,13 +71,21 @@ class Permissions
     }
 
     /**
+     * @return string[]
+     */
+    public static function all(): array
+    {
+        return array_merge([self::SUPERADMIN_ACCESS], self::posPermissions());
+    }
+
+    /**
      * @return array<string, string[]>
      */
     public static function rolePermissions(): array
     {
         return [
-            'superadmin' => self::all(),
-            'admin' => self::all(),
+            'superadmin' => [self::SUPERADMIN_ACCESS],
+            'admin' => self::posPermissions(),
             'manager' => [
                 self::POS_ACCESS,
                 self::PRODUCTS_MANAGE,

@@ -14,8 +14,24 @@ use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:reports.view');
+    }
+
+    private function ensurePosUser()
+    {
+        $user = auth()->user();
+        if (!$user || !$user->organization_id) {
+            return response()->json(['message' => 'Only POS users can access reports'], 403);
+        }
+    }
+
     public function profitLoss(Request $request)
     {
+        $check = $this->ensurePosUser();
+        if ($check) return $check;
+
         [$from, $to] = $this->resolveRange($request);
 
         $revenue = (float) $this->completedSaleItems($from, $to)->sum('sale_items.line_total');

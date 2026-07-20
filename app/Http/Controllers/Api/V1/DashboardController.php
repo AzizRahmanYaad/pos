@@ -13,8 +13,18 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:reports.view');
+    }
+
     public function summary()
     {
+        $user = auth()->user();
+        if (!$user || !$user->organization_id) {
+            return response()->json(['message' => 'Only POS users can access this dashboard'], 403);
+        }
+
         $today = now()->startOfDay();
         $todaySales = Sale::query()
             ->where('status', Sale::STATUS_COMPLETED)

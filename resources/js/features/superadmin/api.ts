@@ -1,45 +1,92 @@
-import axios from 'axios';
+import { apiClient } from '@/lib/apiClient';
 
-const API = axios.create({
-    baseURL: '/api/v1/superadmin',
-    withCredentials: true,
-});
+export interface OrganizationAdmin {
+    id: number;
+    name: string;
+    email: string;
+}
 
-export const superAdminAPI = {
-    listOrganizations: (page = 1, search = '', active = null) => {
-        let params = { page, per_page: 10 };
-        if (search) params.search = search;
-        if (active !== null) params.active = active;
-        return API.get('/organizations', { params });
-    },
+export interface Organization {
+    id: number;
+    name: string;
+    slug: string;
+    address: string | null;
+    phone: string | null;
+    logo_path: string | null;
+    is_active: boolean;
+    subscription_expires_at: string;
+    created_at: string;
+    admin_user?: OrganizationAdmin | null;
+}
 
-    createOrganization: (data: {
-        name: string;
-        address?: string;
-        phone?: string;
-        admin_name: string;
-        admin_email: string;
-        admin_password: string;
-        logo_path?: string;
-    }) => API.post('/organizations', data),
+export interface SubscriptionStats {
+    total_pos: number;
+    active_pos: number;
+    expired_subscriptions: number;
+    expiring_soon: number;
+    active_subscriptions: number;
+}
 
-    getOrganization: (id: number) => API.get(`/organizations/${id}`),
+export interface OrganizationListResponse {
+    data: Organization[];
+    pagination: {
+        current_page: number;
+        total: number;
+        per_page: number;
+    };
+}
 
-    updateOrganization: (id: number, data: any) =>
-        API.put(`/organizations/${id}`, data),
+export interface CreateOrganizationPayload {
+    name: string;
+    address?: string;
+    phone?: string;
+    admin_name: string;
+    admin_email: string;
+    admin_password: string;
+}
 
-    toggleOrganization: (id: number) =>
-        API.patch(`/organizations/${id}/toggle`),
+export interface AdminCredentials {
+    email: string;
+    password: string;
+    note: string;
+}
 
-    extendSubscription: (id: number, years: number) =>
-        API.post(`/organizations/${id}/extend-subscription`, { years }),
+export interface CreateOrganizationResponse {
+    message: string;
+    organization: Organization;
+    admin_credentials: AdminCredentials;
+}
 
-    resetAdminPassword: (id: number, newPassword: string) =>
-        API.post(`/organizations/${id}/reset-password`, {
-            new_password: newPassword,
-        }),
+export async function listOrganizations(page = 1, search = ''): Promise<OrganizationListResponse> {
+    const { data } = await apiClient.get<OrganizationListResponse>('/superadmin/organizations', {
+        params: { page, per_page: 10, ...(search ? { search } : {}) },
+    });
+    return data;
+}
 
-    getSubscriptionStats: () => API.get('/stats/subscriptions'),
-};
+export async function createOrganization(payload: CreateOrganizationPayload): Promise<CreateOrganizationResponse> {
+    const { data } = await apiClient.post<CreateOrganizationResponse>('/superadmin/organizations', payload);
+    return data;
+}
 
-export default superAdminAPI;
+export async function toggleOrganization(id: number): Promise<{ message: string; organization: Organization }> {
+    const { data } = await apiClient.patch(`/superadmin/organizations/${id}/toggle`);
+    return data;
+}
+
+export async function extendSubscription(id: number, years: number): Promise<{ message: string; organization: Organization }> {
+    const { data } = await apiClient.post(`/superadmin/organizations/${id}/extend-subscription`, { years });
+    return data;
+}
+
+export async function resetAdminPassword(id: number, newPassword: string): Promise<{ message: string }> {
+    const { data } = await apiClient.post(`/superadmin/organizations/${id}/reset-password`, {
+        new_password: newPassword,
+    });
+    return data;
+}
+
+export async function getSubscriptionStats(): Promise<SubscriptionStats> {
+    const { data } = await apiClient.get<SubscriptionStats>('/superadmin/stats/subscriptions');
+    return data;
+}

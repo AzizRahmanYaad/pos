@@ -1,442 +1,555 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
+    Alert,
+    AppBar,
     Box,
+    Button,
     Card,
     CardContent,
-    Typography,
-    Button,
-    TextField,
+    Chip,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    Grid,
+    IconButton,
+    Pagination,
+    Paper,
+    Stack,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
     TableRow,
-    Paper,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Stack,
-    Chip,
-    CircularProgress,
-    Alert,
-    Grid,
+    TextField,
+    Toolbar,
+    Tooltip,
+    Typography,
 } from '@mui/material';
-import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
+import LogoutIcon from '@mui/icons-material/Logout';
 import LockResetIcon from '@mui/icons-material/LockReset';
-import ExtensionIcon from '@mui/icons-material/Extension';
-import superAdminAPI from './api';
+import EventRepeatIcon from '@mui/icons-material/EventRepeat';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { useAuthStore } from '@/store/authStore';
+import {
+    createOrganization,
+    extendSubscription,
+    getSubscriptionStats,
+    listOrganizations,
+    resetAdminPassword,
+    toggleOrganization,
+    type AdminCredentials,
+    type Organization,
+    type SubscriptionStats,
+} from './api';
+
+const EMPTY_FORM = {
+    name: '',
+    address: '',
+    phone: '',
+    admin_name: '',
+    admin_email: '',
+    admin_password: '',
+};
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+    const response = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response;
+    if (response?.data?.errors) {
+        return Object.values(response.data.errors).flat().join(' ');
+    }
+    return response?.data?.message ?? fallback;
+}
 
 export function SuperAdminDashboard() {
-    const { t } = useTranslation();
-    const [organizations, setOrganizations] = useState([]);
-    const [stats, setStats] = useState(null);
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
+
+    const [organizations, setOrganizations] = useState<Organization[]>([]);
+    const [stats, setStats] = useState<SubscriptionStats | null>(null);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
-    // Modals
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [extendDialogOpen, setExtendDialogOpen] = useState(false);
-    const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
-    const [selectedOrg, setSelectedOrg] = useState(null);
+    const [resetDialogOpen, setResetDialogOpen] = useState(false);
+    const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+    const [credentials, setCredentials] = useState<AdminCredentials | null>(null);
 
-    // Form states
-    const [createFormData, setCreateFormData] = useState({
-        name: '',
-        address: '',
-        phone: '',
-        admin_name: '',
-        admin_email: '',
-        admin_password: '',
-    });
+    const [form, setForm] = useState(EMPTY_FORM);
     const [extendYears, setExtendYears] = useState(1);
     const [newPassword, setNewPassword] = useState('');
 
-    useEffect(() => {
-        loadOrganizations();
-        loadStats();
+    const loadOrganizations = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await listOrganizations(page, search);
+            setOrganizations(response.data);
+            setTotalPages(Math.max(1, Math.ceil(response.pagination.total / response.pagination.per_page)));
+            setError('');
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to load POS list'));
+        } finally {
+            setLoading(false);
+        }
     }, [page, search]);
 
-    const loadOrganizations = async () => {
-        setLoading(true);
+    const loadStats = useCallback(async () => {
         try {
-            const response = await superAdminAPI.listOrganizations(page, search);
-            setOrganizations(response.data.data || []);
-            setError('');
-        } catch (err) {
-            setError('Failed to load organizations');
-        } finally {
-            setLoading(false);
+            setStats(await getSubscriptionStats());
+        } catch {
+            // stats are non-critical; table remains usable without them
         }
+    }, []);
+
+    useEffect(() => {
+        loadOrganizations();
+    }, [loadOrganizations]);
+
+    useEffect(() => {
+        loadStats();
+    }, [loadStats]);
+
+    const refresh = () => {
+        loadOrganizations();
+        loadStats();
     };
 
-    const loadStats = async () => {
-        try {
-            const response = await superAdminAPI.getSubscriptionStats();
-            setStats(response.data);
-        } catch (err) {
-            console.error('Failed to load stats');
-        }
-    };
-
-    const handleCreatePOS = async () => {
-        if (!createFormData.name || !createFormData.admin_email || !createFormData.admin_password) {
-            setError('Please fill in required fields');
+    const handleCreate = async () => {
+        if (!form.name || !form.admin_name || !form.admin_email || !form.admin_password) {
+            setError('Please fill in POS name, admin name, admin email and admin password');
             return;
         }
-
-        setLoading(true);
+        setSubmitting(true);
         try {
-            await superAdminAPI.createOrganization(createFormData);
-            setSuccess('POS created successfully!');
-            setCreateDialogOpen(false);
-            setCreateFormData({
-                name: '',
-                address: '',
-                phone: '',
-                admin_name: '',
-                admin_email: '',
-                admin_password: '',
+            const response = await createOrganization({
+                name: form.name,
+                address: form.address || undefined,
+                phone: form.phone || undefined,
+                admin_name: form.admin_name,
+                admin_email: form.admin_email,
+                admin_password: form.admin_password,
             });
-            loadOrganizations();
+            setCreateDialogOpen(false);
+            setForm(EMPTY_FORM);
+            setCredentials(response.admin_credentials);
+            setSuccess(`POS "${response.organization.name}" created successfully`);
             setError('');
+            refresh();
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to create POS');
+            setError(extractErrorMessage(err, 'Failed to create POS'));
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
-    const handleExtendSubscription = async () => {
-        if (!selectedOrg || extendYears < 1) return;
-
-        setLoading(true);
+    const handleToggle = async (org: Organization) => {
+        setSubmitting(true);
         try {
-            await superAdminAPI.extendSubscription(selectedOrg.id, extendYears);
-            setSuccess(`Subscription extended by ${extendYears} year(s)`);
-            setExtendDialogOpen(false);
-            loadOrganizations();
+            const response = await toggleOrganization(org.id);
+            setSuccess(response.message);
             setError('');
+            refresh();
         } catch (err) {
-            setError('Failed to extend subscription');
+            setError(extractErrorMessage(err, 'Failed to update POS status'));
         } finally {
-            setLoading(false);
+            setSubmitting(false);
+        }
+    };
+
+    const handleExtend = async () => {
+        if (!selectedOrg) return;
+        setSubmitting(true);
+        try {
+            const response = await extendSubscription(selectedOrg.id, extendYears);
+            setExtendDialogOpen(false);
+            setSuccess(response.message);
+            setError('');
+            refresh();
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to extend subscription'));
+        } finally {
+            setSubmitting(false);
         }
     };
 
     const handleResetPassword = async () => {
-        if (!selectedOrg || !newPassword) return;
-
-        setLoading(true);
+        if (!selectedOrg || newPassword.length < 8) {
+            setError('Password must be at least 8 characters');
+            return;
+        }
+        setSubmitting(true);
         try {
-            const response = await superAdminAPI.resetAdminPassword(selectedOrg.id, newPassword);
-            setSuccess('Password reset successfully!');
-            setResetPasswordDialogOpen(false);
+            await resetAdminPassword(selectedOrg.id, newPassword);
+            setResetDialogOpen(false);
+            setCredentials({
+                email: selectedOrg.admin_user?.email ?? '',
+                password: newPassword,
+                note: 'Password has been reset. Share it with the POS admin securely.',
+            });
             setNewPassword('');
-            loadOrganizations();
+            setSuccess(`Password reset for ${selectedOrg.name}`);
             setError('');
         } catch (err) {
-            setError('Failed to reset password');
+            setError(extractErrorMessage(err, 'Failed to reset password'));
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
-    const getSubscriptionStatus = (expiresAt) => {
-        const expirationDate = new Date(expiresAt);
-        const now = new Date();
-        const daysLeft = Math.floor((expirationDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (daysLeft < 0) {
-            return { label: 'Expired', color: 'error' };
-        } else if (daysLeft <= 30) {
-            return { label: `Expiring Soon (${daysLeft} days)`, color: 'warning' };
-        } else {
-            return { label: `Active (${daysLeft} days)`, color: 'success' };
-        }
+    const subscriptionStatus = (expiresAt: string) => {
+        const daysLeft = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 86_400_000);
+        if (daysLeft < 0) return { label: 'Expired', color: 'error' as const };
+        if (daysLeft <= 30) return { label: `${daysLeft} days left`, color: 'warning' as const };
+        return { label: `Active · ${daysLeft} days`, color: 'success' as const };
     };
+
+    const statCards: { label: string; value: number | undefined }[] = [
+        { label: 'Total POS', value: stats?.total_pos },
+        { label: 'Active POS', value: stats?.active_pos },
+        { label: 'Active Subscriptions', value: stats?.active_subscriptions },
+        { label: 'Expiring Soon', value: stats?.expiring_soon },
+        { label: 'Expired', value: stats?.expired_subscriptions },
+    ];
 
     return (
-        <Box sx={{ p: 3 }}>
-            {/* Header */}
-            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                    📊 Superadmin Dashboard
-                </Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setCreateDialogOpen(true)}
-                    sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
-                >
-                    Create POS
-                </Button>
+        <Box sx={{ minHeight: '100vh', bgcolor: '#f4f5fa' }}>
+            <AppBar position="static" sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+                <Toolbar sx={{ gap: 2 }}>
+                    <StorefrontIcon />
+                    <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                        Super Admin — POS Management
+                    </Typography>
+                    {user && (
+                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                            {user.name}
+                        </Typography>
+                    )}
+                    <Tooltip title="Logout">
+                        <IconButton color="inherit" onClick={() => logout()}>
+                            <LogoutIcon />
+                        </IconButton>
+                    </Tooltip>
+                </Toolbar>
+            </AppBar>
+
+            <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                    {statCards.map((card) => (
+                        <Grid item xs={6} sm={4} md={2.4} key={card.label}>
+                            <Card sx={{ textAlign: 'center', height: '100%' }}>
+                                <CardContent>
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        {card.label}
+                                    </Typography>
+                                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                                        {card.value ?? '—'}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
+
+                {error && (
+                    <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+                        {error}
+                    </Alert>
+                )}
+                {success && (
+                    <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+                        {success}
+                    </Alert>
+                )}
+
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                    <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Search POS by name..."
+                        value={search}
+                        onChange={(e) => {
+                            setSearch(e.target.value);
+                            setPage(1);
+                        }}
+                    />
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => setCreateDialogOpen(true)}
+                        sx={{ whiteSpace: 'nowrap', px: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                    >
+                        Create POS
+                    </Button>
+                </Stack>
+
+                <TableContainer component={Paper}>
+                    {loading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                            <CircularProgress />
+                        </Box>
+                    ) : (
+                        <Table>
+                            <TableHead sx={{ bgcolor: '#fafafa' }}>
+                                <TableRow>
+                                    <TableCell sx={{ fontWeight: 700 }}>POS Name</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Admin</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Subscription</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {organizations.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                                            No POS instances yet. Click "Create POS" to add the first one.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    organizations.map((org) => {
+                                        const sub = subscriptionStatus(org.subscription_expires_at);
+                                        return (
+                                            <TableRow key={org.id} hover>
+                                                <TableCell>
+                                                    <Typography sx={{ fontWeight: 600 }}>{org.name}</Typography>
+                                                    {org.phone && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {org.phone}
+                                                        </Typography>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Typography variant="body2">{org.admin_user?.name}</Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {org.admin_user?.email}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip label={sub.label} color={sub.color} size="small" sx={{ mb: 0.5 }} />
+                                                    <Typography variant="caption" display="block" color="text.secondary">
+                                                        until {new Date(org.subscription_expires_at).toLocaleDateString()}
+                                                    </Typography>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        label={org.is_active ? 'Enabled' : 'Disabled'}
+                                                        color={org.is_active ? 'success' : 'default'}
+                                                        size="small"
+                                                        variant={org.is_active ? 'filled' : 'outlined'}
+                                                    />
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <Tooltip title="Extend subscription">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => {
+                                                                setSelectedOrg(org);
+                                                                setExtendYears(1);
+                                                                setExtendDialogOpen(true);
+                                                            }}
+                                                        >
+                                                            <EventRepeatIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title="Reset admin password">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => {
+                                                                setSelectedOrg(org);
+                                                                setNewPassword('');
+                                                                setResetDialogOpen(true);
+                                                            }}
+                                                        >
+                                                            <LockResetIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title={org.is_active ? 'Disable POS' : 'Enable POS'}>
+                                                        <IconButton
+                                                            size="small"
+                                                            color={org.is_active ? 'error' : 'success'}
+                                                            disabled={submitting}
+                                                            onClick={() => handleToggle(org)}
+                                                        >
+                                                            <PowerSettingsNewIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
+                            </TableBody>
+                        </Table>
+                    )}
+                </TableContainer>
+
+                {totalPages > 1 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                        <Pagination count={totalPages} page={page} onChange={(_, value) => setPage(value)} />
+                    </Box>
+                )}
             </Box>
 
-            {/* Statistics */}
-            {stats && (
-                <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={12} sm={6} md={2.4}>
-                        <Card sx={{ textAlign: 'center' }}>
-                            <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
-                                    Total POS
-                                </Typography>
-                                <Typography variant="h4">{stats.total_pos}</Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={2.4}>
-                        <Card sx={{ textAlign: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                            <CardContent>
-                                <Typography gutterBottom>Active</Typography>
-                                <Typography variant="h4">{stats.active_pos}</Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={2.4}>
-                        <Card sx={{ textAlign: 'center' }}>
-                            <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
-                                    Active Subscriptions
-                                </Typography>
-                                <Typography variant="h4">{stats.active_subscriptions}</Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={2.4}>
-                        <Card sx={{ textAlign: 'center', background: '#fff3cd' }}>
-                            <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
-                                    Expiring Soon
-                                </Typography>
-                                <Typography variant="h4" sx={{ color: '#ff9800' }}>{stats.expiring_soon}</Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={2.4}>
-                        <Card sx={{ textAlign: 'center', background: '#ffebee' }}>
-                            <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
-                                    Expired
-                                </Typography>
-                                <Typography variant="h4" sx={{ color: '#f44336' }}>{stats.expired_subscriptions}</Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                </Grid>
-            )}
-
-            {/* Alerts */}
-            {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-            {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
-
-            {/* Search */}
-            <TextField
-                fullWidth
-                placeholder="Search POS by name or slug..."
-                value={search}
-                onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                }}
-                sx={{ mb: 3 }}
-            />
-
-            {/* Organizations Table */}
-            <TableContainer component={Paper}>
-                {loading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                        <CircularProgress />
-                    </Box>
-                ) : (
-                    <Table>
-                        <TableHead sx={{ background: '#f5f5f5' }}>
-                            <TableRow>
-                                <TableCell><strong>POS Name</strong></TableCell>
-                                <TableCell><strong>Admin Email</strong></TableCell>
-                                <TableCell><strong>Subscription</strong></TableCell>
-                                <TableCell><strong>Status</strong></TableCell>
-                                <TableCell><strong>Actions</strong></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {organizations.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                                        No POS found
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                organizations.map((org) => {
-                                    const subscriptionStatus = getSubscriptionStatus(org.subscription_expires_at);
-                                    return (
-                                        <TableRow key={org.id} hover>
-                                            <TableCell>{org.name}</TableCell>
-                                            <TableCell>{org.admin_user?.email}</TableCell>
-                                            <TableCell>
-                                                {new Date(org.subscription_expires_at).toLocaleDateString()}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={subscriptionStatus.label}
-                                                    color={subscriptionStatus.color}
-                                                    size="small"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Stack direction="row" spacing={1}>
-                                                    <Button
-                                                        size="small"
-                                                        startIcon={<ExtensionIcon />}
-                                                        onClick={() => {
-                                                            setSelectedOrg(org);
-                                                            setExtendDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        Extend
-                                                    </Button>
-                                                    <Button
-                                                        size="small"
-                                                        startIcon={<LockResetIcon />}
-                                                        onClick={() => {
-                                                            setSelectedOrg(org);
-                                                            setResetPasswordDialogOpen(true);
-                                                        }}
-                                                    >
-                                                        Reset
-                                                    </Button>
-                                                </Stack>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
-                )}
-            </TableContainer>
-
-            {/* Create POS Dialog */}
+            {/* Create POS dialog */}
             <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>Create New POS</DialogTitle>
-                <DialogContent sx={{ pt: 2 }}>
-                    <Stack spacing={2}>
+                <DialogContent>
+                    <Stack spacing={2} sx={{ mt: 1 }}>
                         <TextField
-                            fullWidth
                             label="POS Name"
-                            value={createFormData.name}
-                            onChange={(e) =>
-                                setCreateFormData({ ...createFormData, name: e.target.value })
-                            }
+                            required
+                            fullWidth
+                            value={form.name}
+                            onChange={(e) => setForm({ ...form, name: e.target.value })}
                         />
                         <TextField
-                            fullWidth
                             label="Address"
+                            fullWidth
                             multiline
                             rows={2}
-                            value={createFormData.address}
-                            onChange={(e) =>
-                                setCreateFormData({ ...createFormData, address: e.target.value })
-                            }
+                            value={form.address}
+                            onChange={(e) => setForm({ ...form, address: e.target.value })}
                         />
                         <TextField
-                            fullWidth
                             label="Phone"
-                            value={createFormData.phone}
-                            onChange={(e) =>
-                                setCreateFormData({ ...createFormData, phone: e.target.value })
-                            }
+                            fullWidth
+                            value={form.phone}
+                            onChange={(e) => setForm({ ...form, phone: e.target.value })}
                         />
                         <TextField
-                            fullWidth
                             label="Admin Name"
-                            value={createFormData.admin_name}
-                            onChange={(e) =>
-                                setCreateFormData({ ...createFormData, admin_name: e.target.value })
-                            }
+                            required
+                            fullWidth
+                            value={form.admin_name}
+                            onChange={(e) => setForm({ ...form, admin_name: e.target.value })}
                         />
                         <TextField
-                            fullWidth
                             label="Admin Email"
+                            required
                             type="email"
-                            value={createFormData.admin_email}
-                            onChange={(e) =>
-                                setCreateFormData({ ...createFormData, admin_email: e.target.value })
-                            }
+                            fullWidth
+                            value={form.admin_email}
+                            onChange={(e) => setForm({ ...form, admin_email: e.target.value })}
                         />
                         <TextField
-                            fullWidth
                             label="Admin Password"
+                            required
                             type="password"
-                            value={createFormData.admin_password}
-                            onChange={(e) =>
-                                setCreateFormData({ ...createFormData, admin_password: e.target.value })
-                            }
+                            fullWidth
+                            helperText="Minimum 8 characters"
+                            value={form.admin_password}
+                            onChange={(e) => setForm({ ...form, admin_password: e.target.value })}
                         />
                     </Stack>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
                     <Button
-                        onClick={handleCreatePOS}
                         variant="contained"
-                        sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                        onClick={handleCreate}
+                        disabled={submitting}
+                        startIcon={submitting ? <CircularProgress size={16} /> : <AddIcon />}
                     >
                         Create
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Extend Subscription Dialog */}
-            <Dialog open={extendDialogOpen} onClose={() => setExtendDialogOpen(false)}>
+            {/* Extend subscription dialog */}
+            <Dialog open={extendDialogOpen} onClose={() => setExtendDialogOpen(false)} maxWidth="xs" fullWidth>
                 <DialogTitle>Extend Subscription</DialogTitle>
-                <DialogContent sx={{ pt: 2 }}>
-                    <Stack spacing={2}>
-                        <Typography>Extend subscription for {selectedOrg?.name}</Typography>
-                        <TextField
-                            fullWidth
-                            type="number"
-                            label="Years"
-                            value={extendYears}
-                            onChange={(e) => setExtendYears(Math.max(1, parseInt(e.target.value) || 1))}
-                            inputProps={{ min: 1, max: 10 }}
-                        />
-                    </Stack>
+                <DialogContent>
+                    <DialogContentText sx={{ mb: 2 }}>
+                        Extend the subscription for <strong>{selectedOrg?.name}</strong>.
+                    </DialogContentText>
+                    <TextField
+                        label="Years"
+                        type="number"
+                        fullWidth
+                        value={extendYears}
+                        onChange={(e) => setExtendYears(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
+                        inputProps={{ min: 1, max: 10 }}
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setExtendDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleExtendSubscription} variant="contained">
+                    <Button variant="contained" onClick={handleExtend} disabled={submitting}>
                         Extend
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Reset Password Dialog */}
-            <Dialog open={resetPasswordDialogOpen} onClose={() => setResetPasswordDialogOpen(false)}>
+            {/* Reset password dialog */}
+            <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)} maxWidth="xs" fullWidth>
                 <DialogTitle>Reset Admin Password</DialogTitle>
-                <DialogContent sx={{ pt: 2 }}>
-                    <Stack spacing={2}>
-                        <Typography>Reset password for {selectedOrg?.name} admin</Typography>
-                        <TextField
-                            fullWidth
-                            type="password"
-                            label="New Password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                        />
+                <DialogContent>
+                    <DialogContentText sx={{ mb: 2 }}>
+                        Set a new password for the admin of <strong>{selectedOrg?.name}</strong> (
+                        {selectedOrg?.admin_user?.email}).
+                    </DialogContentText>
+                    <TextField
+                        label="New Password"
+                        type="password"
+                        fullWidth
+                        helperText="Minimum 8 characters"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+                    <Button variant="contained" onClick={handleResetPassword} disabled={submitting}>
+                        Reset
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Credentials dialog — shown after create / password reset */}
+            <Dialog open={credentials !== null} onClose={() => setCredentials(null)} maxWidth="xs" fullWidth>
+                <DialogTitle>POS Admin Credentials</DialogTitle>
+                <DialogContent>
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        Save these credentials now — the password will not be shown again.
+                    </Alert>
+                    <Stack spacing={1}>
+                        <Paper variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ flexGrow: 1 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                    Email
+                                </Typography>
+                                <Typography sx={{ fontFamily: 'monospace' }}>{credentials?.email}</Typography>
+                            </Box>
+                            <IconButton size="small" onClick={() => navigator.clipboard.writeText(credentials?.email ?? '')}>
+                                <ContentCopyIcon fontSize="small" />
+                            </IconButton>
+                        </Paper>
+                        <Paper variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ flexGrow: 1 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                    Password
+                                </Typography>
+                                <Typography sx={{ fontFamily: 'monospace' }}>{credentials?.password}</Typography>
+                            </Box>
+                            <IconButton size="small" onClick={() => navigator.clipboard.writeText(credentials?.password ?? '')}>
+                                <ContentCopyIcon fontSize="small" />
+                            </IconButton>
+                        </Paper>
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setResetPasswordDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleResetPassword} variant="contained">
-                        Reset
+                    <Button variant="contained" onClick={() => setCredentials(null)}>
+                        Done
                     </Button>
                 </DialogActions>
             </Dialog>

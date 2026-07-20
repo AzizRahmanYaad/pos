@@ -18,6 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { fetchCustomers, type CustomerListItem } from '@/features/customers/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
+import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
 
 export function CustomersListPage() {
@@ -26,13 +27,19 @@ export function CustomersListPage() {
         queryKey: ['customers'],
         queryFn: fetchCustomers,
     });
+    const [addOpen, setAddOpen] = useState(false);
     const [paying, setPaying] = useState<CustomerListItem | null>(null);
 
     return (
         <Box>
-            <Typography variant="h4" gutterBottom>
-                {t('nav.customers')}
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h4">{t('nav.customers')}</Typography>
+                <Can permission="sales.manage">
+                    <Button variant="contained" onClick={() => setAddOpen(true)}>
+                        {t('actions.add')}
+                    </Button>
+                </Can>
+            </Box>
 
             {isLoading && <CircularProgress />}
             {isError && <Alert severity="error">{t('common.loading')}</Alert>}
@@ -75,6 +82,8 @@ export function CustomersListPage() {
                     </Table>
                 </TableContainer>
             )}
+
+            <AddPartyDialog kind="customer" open={addOpen} onClose={() => setAddOpen(false)} />
 
             {paying && (
                 <PaymentDialog

@@ -143,7 +143,20 @@
         "adjust_stock_title": "Adjust stock — {{name}}",
         "quantity_placeholder": "Quantity (+/-)",
         "quantity_hint": "Positive to add stock, negative to remove it",
-        "adjustment_failed": "Adjustment failed — check the quantity does not exceed available stock."
+        "adjustment_failed": "Adjustment failed — check the quantity does not exceed available stock.",
+        "new_product": "New product",
+        "barcode": "Barcode",
+        "unit": "Unit",
+        "unit_short_name": "Short name (e.g. pc, kg)",
+        "new_category": "New category",
+        "new_unit": "New unit",
+        "tax_rate": "Tax rate %",
+        "reorder_level": "Reorder level",
+        "track_inventory": "Track inventory",
+        "type_standard": "Standard product",
+        "type_service": "Service",
+        "type_raw_material": "Raw material",
+        "create_failed": "Could not save the product. Check the SKU is unique and the details are valid."
     },
     "purchases_page": {
         "title": "New Purchase",
@@ -281,5 +294,15 @@
         "extend_title": "Extend access",
         "extend_confirm": "Extend access for {{name}} by one more year? The yearly fee is collected in cash.",
         "one_year_note": "The new account will have access for one year from today. It can be extended later against a cash payment."
+    },
+    "parties": {
+        "new_customer": "New customer",
+        "new_supplier": "New supplier",
+        "address": "Address",
+        "opening_balance": "Opening balance",
+        "opening_balance_hint_customer": "Amount this customer already owes you (optional)",
+        "opening_balance_hint_supplier": "Amount you already owe this supplier (optional)",
+        "credit_limit": "Credit limit",
+        "create_failed": "Could not save. Check the details and try again."
     }
 }

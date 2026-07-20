@@ -24,6 +24,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { fetchProducts, type ProductListItem } from '@/features/products/api';
 import { createStockAdjustment } from '@/features/inventory/api';
+import { AddProductDialog } from '@/features/products/AddProductDialog';
 import { Can } from '@/components/Can';
 
 export function ProductsListPage() {
@@ -34,6 +35,7 @@ export function ProductsListPage() {
         queryFn: fetchProducts,
     });
 
+    const [addOpen, setAddOpen] = useState(false);
     const [adjusting, setAdjusting] = useState<ProductListItem | null>(null);
     const [warehouseId, setWarehouseId] = useState<number | ''>('');
     const [quantity, setQuantity] = useState('');
@@ -71,9 +73,14 @@ export function ProductsListPage() {
 
     return (
         <Box>
-            <Typography variant="h4" gutterBottom>
-                {t('nav.products')}
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h4">{t('nav.products')}</Typography>
+                <Can permission="products.manage">
+                    <Button variant="contained" onClick={() => setAddOpen(true)}>
+                        {t('actions.add')}
+                    </Button>
+                </Can>
+            </Box>
 
             {isLoading && <CircularProgress />}
             {isError && <Alert severity="error">{t('common.loading')}</Alert>}
@@ -116,6 +123,8 @@ export function ProductsListPage() {
                     </Table>
                 </TableContainer>
             )}
+
+            <AddProductDialog open={addOpen} onClose={() => setAddOpen(false)} />
 
             <Dialog open={adjusting !== null} onClose={closeDialog} fullWidth maxWidth="xs">
                 <DialogTitle>{t('products_page.adjust_stock_title', { name: adjusting?.name })}</DialogTitle>

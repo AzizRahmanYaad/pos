@@ -3,6 +3,8 @@ name: Deploy اسان حساب (main)
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 

@@ -1,4 +1,4 @@
-name: Build Release Artifact
+name: Deploy اسان حساب (main)
 
 on:
   workflow_dispatch:

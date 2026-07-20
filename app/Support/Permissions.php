@@ -72,7 +72,15 @@ class Permissions
     public static function rolePermissions(): array
     {
         return [
-            'admin' => self::all(),
+            // The superadmin owns the administration dashboard: creating POS
+            // users, assigning their roles, and managing business settings.
+            // It deliberately has no POS/operations permissions, so it never
+            // lands in (or operates) the POS side of the app.
+            'superadmin' => [
+                self::USERS_MANAGE,
+                self::SETTINGS_MANAGE,
+            ],
+            'admin' => array_values(array_diff(self::all(), [self::USERS_MANAGE])),
             'manager' => [
                 self::POS_ACCESS,
                 self::PRODUCTS_MANAGE,

@@ -14,7 +14,8 @@
         "payroll": "Payroll",
         "period_closing": "Clearance",
         "reports": "Reports",
-        "settings": "Settings"
+        "settings": "Settings",
+        "users": "User Management"
     },
     "actions": {
         "save": "Save",
@@ -229,5 +230,35 @@
         "confirm_password": "Confirm new password",
         "password_updated": "Password updated.",
         "password_update_failed": "Could not update password — check your current password is correct."
+    },
+    "users_page": {
+        "title": "User Management",
+        "subtitle": "Create POS users and manage their roles, status and access.",
+        "new_user": "New user",
+        "edit_user": "Edit user",
+        "delete_user": "Delete user",
+        "delete_confirm": "Are you sure you want to delete {{name}}? This cannot be undone.",
+        "save_failed": "Could not save the user. Check the details and try again.",
+        "role": "Role",
+        "active": "Active",
+        "inactive": "Inactive",
+        "you": "You",
+        "new_password_optional": "New password (optional)",
+        "confirm_password": "Confirm password",
+        "roles": {
+            "superadmin": "Super Admin",
+            "admin": "Admin",
+            "manager": "Manager",
+            "cashier": "Cashier"
+        },
+        "locales": {
+            "en": "English",
+            "prs": "دری",
+            "ps": "پښتو"
+        },
+        "total_users": "Total users",
+        "active_users": "Active users",
+        "inactive_users": "Inactive users",
+        "no_users_found": "No users found."
     }
 }

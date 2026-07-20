@@ -27,6 +27,7 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import LockClockIcon from '@mui/icons-material/LockClock';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -44,7 +45,8 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-    { to: '/', labelKey: 'nav.dashboard', icon: <DashboardIcon /> },
+    { to: '/', labelKey: 'nav.dashboard', icon: <DashboardIcon />, permission: 'reports.view' },
+    { to: '/users', labelKey: 'nav.users', icon: <ManageAccountsIcon />, permission: 'users.manage' },
     { to: '/pos', labelKey: 'nav.pos', icon: <PointOfSaleIcon />, permission: 'pos.access' },
     { to: '/products', labelKey: 'nav.products', icon: <Inventory2Icon />, permission: 'products.manage' },
     { to: '/customers', labelKey: 'nav.customers', icon: <PeopleIcon />, permission: 'sales.manage' },

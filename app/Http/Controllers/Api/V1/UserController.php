@@ -42,6 +42,15 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): UserResource
     {
+        // A user must not be able to lock themselves out by deactivating
+        // their own account or dropping their own roles.
+        abort_if(
+            $user->is($request->user())
+                && ($request->has('roles') || ($request->has('is_active') && ! $request->boolean('is_active'))),
+            422,
+            __('You cannot change your own roles or deactivate your own account.'),
+        );
+
         $data = $request->safe()->except(['password', 'roles']);
 
         if ($request->filled('password')) {

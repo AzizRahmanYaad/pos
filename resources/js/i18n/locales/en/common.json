@@ -47,7 +47,17 @@
         "signing_in": "Signing in...",
         "login_error": "Invalid email or password",
         "signed_in_as": "Signed in as {{name}}",
-        "access_expired": "Your access period has expired. Please contact the administrator to renew your subscription."
+        "access_expired": "Your access period has expired. Please contact the administrator to renew your subscription.",
+        "welcome_back": "Welcome back",
+        "sign_in_subtitle": "Sign in to your account to continue",
+        "brand_headline": "Run your business with confidence",
+        "brand_tagline": "Sales, inventory, and accounting — everything your shop needs in one place.",
+        "feature_pos": "Fast, reliable point of sale",
+        "feature_inventory": "Live inventory across warehouses",
+        "feature_reports": "Clear profit and sales reports",
+        "brand_secure": "Secured with role-based access control",
+        "contact_admin": "Need an account? Contact your administrator.",
+        "toggle_password": "Show or hide password"
     },
     "fields": {
         "sku": "SKU",

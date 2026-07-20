@@ -90,12 +90,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/period-closings/{periodClosing}/reopen', [PeriodClosingController::class, 'reopen']);
         Route::apiResource('period-closings', PeriodClosingController::class)->only(['index', 'store', 'show']);
 
-        Route::middleware('permission:reports.view')->group(function () {
-            Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
-            Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
-            Route::get('/reports/inventory-valuation', [ReportController::class, 'inventoryValuation']);
-            Route::get('/reports/sales-summary', [ReportController::class, 'salesSummary']);
-            Route::get('/reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
-        });
+        Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
+        Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
+        Route::get('/reports/inventory-valuation', [ReportController::class, 'inventoryValuation']);
+        Route::get('/reports/sales-summary', [ReportController::class, 'salesSummary']);
+        Route::get('/reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
     });
 });

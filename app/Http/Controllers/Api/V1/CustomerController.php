@@ -16,7 +16,17 @@ class CustomerController extends Controller
     {
         $this->authorize('viewAny', Customer::class);
 
-        return CustomerResource::collection(Customer::query()->orderBy('name')->paginate(request()->integer('per_page', 20)));
+        return CustomerResource::collection(
+            Customer::query()
+                ->when(request('search'), function ($query, $search) {
+                    $query->where(function ($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
+                })
+                ->orderBy('name')
+                ->paginate(request()->integer('per_page', 20))
+        );
     }
 
     public function store(StoreCustomerRequest $request): CustomerResource

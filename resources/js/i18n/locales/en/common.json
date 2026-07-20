@@ -327,5 +327,30 @@
         "opening_balance_hint_supplier": "Amount you already owe this supplier (optional)",
         "credit_limit": "Credit limit",
         "create_failed": "Could not save. Check the details and try again."
+    },
+    "customers_page": {
+        "subtitle": "Your customers with live balances and full transaction ledgers.",
+        "search_placeholder": "Search by name or phone…",
+        "count": "{{count}} customers",
+        "no_customers": "No customers found."
+    },
+    "ledger": {
+        "title": "Ledger — {{name}}",
+        "view_ledger": "View ledger",
+        "debit": "Took (debit)",
+        "credit": "Paid (credit)",
+        "debit_hint": "Red = amount the customer took on credit (balance goes up)",
+        "credit_hint": "Green = payment received from the customer (balance goes down)",
+        "owes_you": "Owes you {{amount}}",
+        "advance_from": "Advance {{amount}}",
+        "settled": "Settled",
+        "no_entries": "No transactions yet.",
+        "source_sale": "Sale",
+        "source_payment": "Payment",
+        "source_purchase": "Purchase",
+        "source_expense": "Expense",
+        "source_employee_advance": "Advance",
+        "source_payroll_run": "Payroll",
+        "source_manual": "Opening"
     }
 }

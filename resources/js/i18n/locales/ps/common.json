@@ -327,5 +327,30 @@
         "opening_balance_hint_supplier": "هغه مبلغ چې تاسو له مخکې دې عرضه کوونکي ته پوروړي یاست (اختیاري)",
         "credit_limit": "د کریډیټ حد",
         "create_failed": "خوندي نشو. معلومات وګورئ او بیا هڅه وکړئ."
+    },
+    "customers_page": {
+        "subtitle": "ستاسو پیرودونکي د ژوندي بیلانس او بشپړ د معاملو کتابچې سره.",
+        "search_placeholder": "د نوم یا تلیفون له مخې ولټوئ…",
+        "count": "{{count}} پیرودونکي",
+        "no_customers": "هیڅ پیرودونکی ونه موندل شو."
+    },
+    "ledger": {
+        "title": "د حساب کتابچه — {{name}}",
+        "view_ledger": "د حساب کتابچه وګورئ",
+        "debit": "اخیستي (پور)",
+        "credit": "ورکړي",
+        "debit_hint": "سور = هغه مبلغ چې پیرودونکي په پور اخیستی (بیلانس پورته ځي)",
+        "credit_hint": "شین = هغه تادیه چې له پیرودونکي ترلاسه شوې (بیلانس ښکته ځي)",
+        "owes_you": "پوروړی {{amount}}",
+        "advance_from": "مخکې تادیه {{amount}}",
+        "settled": "تصفیه شوی",
+        "no_entries": "تر اوسه هیڅ معامله نشته.",
+        "source_sale": "پلور",
+        "source_payment": "تادیه",
+        "source_purchase": "پیرود",
+        "source_expense": "لګښت",
+        "source_employee_advance": "پیشکي",
+        "source_payroll_run": "معاش",
+        "source_manual": "پرانیستونکی"
     }
 }

@@ -327,5 +327,30 @@
         "opening_balance_hint_supplier": "مبلغی که شما از قبل به این تهیه کننده بدهکار هستید (اختیاری)",
         "credit_limit": "حد اعتبار",
         "create_failed": "ذخیره نشد. معلومات را بررسی کرده و دوباره تلاش کنید."
+    },
+    "customers_page": {
+        "subtitle": "مشتریان شما با بیلانس زنده و کتابچه کامل معاملات.",
+        "search_placeholder": "جستجو بر اساس نام یا تلفن…",
+        "count": "{{count}} مشتری",
+        "no_customers": "مشتری یافت نشد."
+    },
+    "ledger": {
+        "title": "کتابچه حساب — {{name}}",
+        "view_ledger": "دیدن کتابچه حساب",
+        "debit": "گرفته (قرض)",
+        "credit": "پرداخته",
+        "debit_hint": "سرخ = مبلغی که مشتری قرض گرفته (بیلانس بالا می‌رود)",
+        "credit_hint": "سبز = پرداختی که از مشتری دریافت شده (بیلانس پایین می‌آید)",
+        "owes_you": "بدهکار {{amount}}",
+        "advance_from": "پیش‌پرداخت {{amount}}",
+        "settled": "تصفیه شده",
+        "no_entries": "هنوز معامله‌ای نیست.",
+        "source_sale": "فروش",
+        "source_payment": "پرداخت",
+        "source_purchase": "خرید",
+        "source_expense": "مصرف",
+        "source_employee_advance": "پیشکی",
+        "source_payroll_run": "معاش",
+        "source_manual": "افتتاحیه"
     }
 }

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - claude/pos-app-web-c6tkv9
+      - claude/pos-web-app-c6tkv9
     tags:
       - 'v*'
 

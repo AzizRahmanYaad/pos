@@ -30,7 +30,9 @@ export function LoginPage() {
         setError(null);
         try {
             await loginAction(email, password);
-            navigate('/', { replace: true });
+            const user = useAuthStore.getState().user;
+            const isAdmin = user?.roles.includes('superadmin') ?? false;
+            navigate(isAdmin ? '/superadmin' : '/', { replace: true });
         } catch {
             setError(t('auth.login_error'));
         } finally {

@@ -15,14 +15,22 @@ import { PeriodClosingPage } from '@/features/period-closing/PeriodClosingPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { SuperAdminRoute } from '@/components/SuperAdminRoute';
 import { SuperAdminDashboard } from '@/features/superadmin/SuperAdminDashboard';
 
 export const router = createBrowserRouter([
     { path: '/login', element: <LoginPage /> },
     {
+        path: '/superadmin',
+        element: (
+            <SuperAdminRoute>
+                <SuperAdminDashboard />
+            </SuperAdminRoute>
+        ),
+    },
+    {
         element: <ProtectedRoute />,
         children: [
-            { path: '/superadmin', element: <SuperAdminDashboard /> },
             {
                 path: '/',
                 element: <AppLayout />,

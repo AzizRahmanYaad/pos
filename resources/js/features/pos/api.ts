@@ -16,6 +16,7 @@ export interface SalePaymentPayload {
 export interface CreateSalePayload {
     customer_id?: number | null;
     warehouse_id: number;
+    discount?: number;
     items: SaleItemPayload[];
     payments: SalePaymentPayload[];
 }

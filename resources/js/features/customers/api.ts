@@ -97,6 +97,33 @@ export async function clearCustomerLedger(customerId: number): Promise<void> {
     await apiClient.post(`/customers/${customerId}/ledger/clear`);
 }
 
+/**
+ * Download the ledger statement PDF (same filters as the on-screen view)
+ * and return an object URL plus the suggested filename so the caller can
+ * save it or hand it to the native share sheet for WhatsApp.
+ */
+export async function downloadCustomerLedgerPdf(
+    customerId: number,
+    filters: Omit<LedgerFilters, 'page'>,
+): Promise<{ url: string; filename: string; blob: Blob }> {
+    const response = await apiClient.get(`/customers/${customerId}/ledger/pdf`, {
+        responseType: 'blob',
+        params: {
+            ...(filters.search ? { search: filters.search } : {}),
+            ...(filters.from ? { from: filters.from } : {}),
+            ...(filters.to ? { to: filters.to } : {}),
+            ...(filters.includeArchived ? { include_archived: 1 } : {}),
+        },
+    });
+
+    const disposition = String(response.headers['content-disposition'] ?? '');
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] ?? `statement-${customerId}.pdf`;
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+
+    return { url: URL.createObjectURL(blob), filename, blob };
+}
+
 export interface CreateCustomerPayload {
     name: string;
     phone?: string;

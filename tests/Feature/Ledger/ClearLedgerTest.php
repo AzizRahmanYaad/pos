@@ -80,6 +80,20 @@ class ClearLedgerTest extends TestCase
             ->assertJsonPath('data.0.running_balance', 100);
     }
 
+    public function test_ledger_pdf_statement_downloads_as_a_pdf(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $customer = Customer::create(['name' => 'Ahmad Wali', 'phone' => '0700111222']);
+        $this->postEntries($customer, 500, 200);
+
+        $response = $this->actingAs($this->admin())
+            ->get("/api/v1/customers/{$customer->id}/ledger/pdf");
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+    }
+
     public function test_ledger_supports_search_and_date_range_filters(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

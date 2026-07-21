@@ -8,6 +8,7 @@ use App\Http\Requests\Parties\UpdateCustomerRequest;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\LedgerEntryResource;
 use App\Models\Customer;
+use App\Support\CustomerLedgerPdf;
 use Illuminate\Http\Response;
 
 class CustomerController extends Controller
@@ -73,6 +74,34 @@ class CustomerController extends Controller
 
         return LedgerEntryResource::collection($entries)->additional([
             'current_balance' => $customer->currentBalance(),
+        ]);
+    }
+
+    /**
+     * Download the customer's ledger as a professional PDF statement,
+     * honouring the same search / date-range / archived filters as the
+     * on-screen ledger. Entries are laid out chronologically so the
+     * running balance reads naturally top to bottom.
+     */
+    public function ledgerPdf(Customer $customer, CustomerLedgerPdf $pdf)
+    {
+        $this->authorize('viewAny', Customer::class);
+
+        $entries = $customer->ledgerEntries()
+            ->with('creator')
+            ->when(! request()->boolean('include_archived'), fn ($query) => $query->whereNull('archived_at'))
+            ->when(request('search'), fn ($query, $search) => $query->where('description', 'like', "%{$search}%"))
+            ->when(request('from'), fn ($query, $from) => $query->whereDate('transaction_date', '>=', $from))
+            ->when(request('to'), fn ($query, $to) => $query->whereDate('transaction_date', '<=', $to))
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get();
+
+        $filename = 'statement-'.\Illuminate\Support\Str::slug($customer->name).'-'.now()->format('Ymd').'.pdf';
+
+        return response($pdf->build($customer, $entries), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);
     }
 

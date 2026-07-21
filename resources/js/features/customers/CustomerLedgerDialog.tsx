@@ -34,12 +34,16 @@ import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOutlined';
+import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { useTranslation } from 'react-i18next';
 import {
     clearCustomerLedger,
+    downloadCustomerLedgerPdf,
     fetchCustomerLedger,
     type CustomerListItem,
 } from '@/features/customers/api';
+import { fetchBusinessSettings } from '@/features/settings/api';
 import { Can } from '@/components/Can';
 import { formatDate } from '@/lib/calendar';
 
@@ -98,8 +102,81 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
         },
     });
 
+    const { data: settings } = useQuery({
+        queryKey: ['business-settings'],
+        queryFn: fetchBusinessSettings,
+        enabled: open,
+    });
+
     const balance = data?.current_balance ?? customer.current_balance;
     const canClear = Math.abs(balance) < 0.005;
+    const [busyPdf, setBusyPdf] = useState(false);
+
+    const currentFilters = {
+        search: search || undefined,
+        from: from || undefined,
+        to: to || undefined,
+        includeArchived,
+    };
+
+    const balanceSummary =
+        balance > 0
+            ? t('ledger.owes_you', { amount: balance.toFixed(2) })
+            : balance < 0
+              ? t('ledger.advance_from', { amount: Math.abs(balance).toFixed(2) })
+              : t('ledger.settled');
+
+    const openPdf = async () => {
+        setBusyPdf(true);
+        try {
+            const { url } = await downloadCustomerLedgerPdf(customer.id, currentFilters);
+            window.open(url, '_blank');
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        } finally {
+            setBusyPdf(false);
+        }
+    };
+
+    const shareWhatsApp = async () => {
+        setBusyPdf(true);
+        try {
+            const { url, filename, blob } = await downloadCustomerLedgerPdf(customer.id, currentFilters);
+            const company = settings?.company_name ?? '';
+            const message = t('ledger.wa_message', {
+                company,
+                name: customer.name,
+                summary: balanceSummary,
+            });
+            const file = new File([blob], filename, { type: 'application/pdf' });
+
+            // Best path on mobile: native share sheet with the PDF attached.
+            const nav = navigator as Navigator & {
+                canShare?: (data?: ShareData) => boolean;
+            };
+            if (nav.canShare?.({ files: [file] })) {
+                try {
+                    await nav.share({ files: [file], text: message });
+                    return;
+                } catch {
+                    /* user cancelled or unsupported — fall through */
+                }
+            }
+
+            // Fallback: save the file and open a WhatsApp chat with a summary.
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            anchor.click();
+            const phone = (customer.phone ?? '').replace(/\D/g, '');
+            window.open(
+                `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+                '_blank',
+            );
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        } finally {
+            setBusyPdf(false);
+        }
+    };
 
     const balanceChip =
         balance > 0 ? (
@@ -188,6 +265,29 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                         InputLabelProps={{ shrink: true }}
                         sx={{ width: 160 }}
                     />
+                    <Tooltip title={t('ledger.download_pdf')}>
+                        <span>
+                            <IconButton
+                                size="small"
+                                color="primary"
+                                aria-label={t('ledger.download_pdf')}
+                                disabled={busyPdf}
+                                onClick={openPdf}
+                            >
+                                <PictureAsPdfOutlinedIcon fontSize="small" />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                    <Button
+                        size="small"
+                        variant="contained"
+                        disabled={busyPdf}
+                        startIcon={<WhatsAppIcon />}
+                        onClick={shareWhatsApp}
+                        sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' }, textTransform: 'none' }}
+                    >
+                        {t('ledger.whatsapp')}
+                    </Button>
                     <Can permission="payments.manage">
                         <Tooltip title={canClear ? '' : t('ledger.clear_blocked')}>
                             <span>

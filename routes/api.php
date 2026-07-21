@@ -51,6 +51,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/stock-adjustments', [StockAdjustmentController::class, 'store']);
 
         Route::get('/customers/{customer}/ledger', [CustomerController::class, 'ledger']);
+        Route::get('/customers/{customer}/ledger/pdf', [CustomerController::class, 'ledgerPdf']);
         Route::post('/customers/{customer}/ledger/clear', [CustomerController::class, 'clearLedger']);
         Route::apiResource('customers', CustomerController::class);
 

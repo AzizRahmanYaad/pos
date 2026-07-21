@@ -262,7 +262,8 @@
     "wa_message": "Payroll report {{period}} from {{company}} — total net pay {{total}}",
     "all_employees": "All employees",
     "date_hint": "Payroll runs for the month of the selected date.",
-    "execute": "Execute"
+    "execute": "Execute",
+    "advances_note": "Advances are deducted automatically."
   },
   "period_closing_page": {
     "close_a_period": "Close a period",

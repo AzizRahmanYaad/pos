@@ -24,6 +24,8 @@ class CreatePayrollRunAction
         int $generatedBy,
         ?int $employeeId = null,
         ?string $periodDate = null,
+        float $bonuses = 0.0,
+        float $otherDeductions = 0.0,
     ): PayrollRun {
         if ($employeeId !== null) {
             $alreadyRun = PayrollRun::where('employee_id', $employeeId)
@@ -42,7 +44,12 @@ class CreatePayrollRunAction
             );
         }
 
-        return DB::transaction(function () use ($periodMonth, $periodYear, $generatedBy, $employeeId, $periodDate) {
+        // Bonuses and extra deductions are entered per employee at execution
+        // time, so they only apply to a single-employee (individual) run.
+        $bonuses = $employeeId !== null ? round(max(0, $bonuses), 2) : 0.0;
+        $otherDeductions = $employeeId !== null ? round(max(0, $otherDeductions), 2) : 0.0;
+
+        return DB::transaction(function () use ($periodMonth, $periodYear, $generatedBy, $employeeId, $periodDate, $bonuses, $otherDeductions) {
             $run = PayrollRun::create([
                 'employee_id' => $employeeId,
                 'period_month' => $periodMonth,
@@ -65,15 +72,15 @@ class CreatePayrollRunAction
                     ? $outstandingTotal
                     : 0.0;
 
-                $netPay = round($baseSalary - $advancesDeducted, 2);
+                $netPay = round(max(0, $baseSalary + $bonuses - $advancesDeducted - $otherDeductions), 2);
 
                 $item = PayrollItem::create([
                     'payroll_run_id' => $run->id,
                     'employee_id' => $employee->id,
                     'base_salary' => $baseSalary,
                     'advances_deducted' => $advancesDeducted,
-                    'other_deductions' => 0,
-                    'bonuses' => 0,
+                    'other_deductions' => $otherDeductions,
+                    'bonuses' => $bonuses,
                     'net_pay' => $netPay,
                 ]);
 

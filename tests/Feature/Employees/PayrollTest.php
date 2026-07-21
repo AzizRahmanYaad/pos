@@ -123,6 +123,24 @@ class PayrollTest extends TestCase
         $this->assertEquals('2026-07-15', $run->period_date->toDateString());
     }
 
+    public function test_individual_payroll_applies_bonuses_and_deductions_at_execution(): void
+    {
+        $employee = Employee::factory()->create(['salary_amount' => 500]);
+        $cashAccount = CashAccount::factory()->create();
+        $user = User::factory()->create();
+
+        app(RecordEmployeeAdvanceAction::class)->execute($employee, 100, $cashAccount, 'Advance', $user->id);
+
+        $run = app(CreatePayrollRunAction::class)->execute(7, 2026, $user->id, $employee->id, '2026-07-15', 80, 30);
+        $item = $run->items->first();
+
+        // 500 base + 80 bonus - 100 advance - 30 deduction = 450
+        $this->assertEquals(80.0, (float) $item->bonuses);
+        $this->assertEquals(30.0, (float) $item->other_deductions);
+        $this->assertEquals(100.0, (float) $item->advances_deducted);
+        $this->assertEquals(450.0, (float) $item->net_pay);
+    }
+
     public function test_cannot_run_individual_payroll_twice_for_same_employee_and_period(): void
     {
         $employee = Employee::factory()->create(['salary_amount' => 500]);

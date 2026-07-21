@@ -262,7 +262,8 @@
     "wa_message": "گزارش معاشات {{period}} از {{company}} — مجموع معاش خالص {{total}}",
     "all_employees": "همه کارمندان",
     "date_hint": "معاش برای ماهِ تاریخ انتخاب‌شده اجرا می‌شود.",
-    "execute": "اجرا"
+    "execute": "اجرا",
+    "advances_note": "پیش‌پرداخت‌ها به‌صورت خودکار کسر می‌شوند."
   },
   "period_closing_page": {
     "close_a_period": "بستن یک دوره",

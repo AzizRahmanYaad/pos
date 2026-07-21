@@ -53,6 +53,7 @@
         @endif
         {{ $period }}
         @if ($run->period_date)
+            &nbsp;•&nbsp; {{ \App\Support\JalaliDate::monthYear($run->period_date) }} {{ __('Hijri Shamsi') }}
             &nbsp;•&nbsp; {{ \Illuminate\Support\Carbon::parse($run->period_date)->format('Y-m-d') }}
         @endif
         &nbsp;•&nbsp; <span class="status-pill" style="background: {{ $statusBg }};">{{ __(ucfirst($run->status)) }}</span>

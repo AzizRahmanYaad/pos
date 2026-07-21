@@ -33,10 +33,12 @@ import TuneIcon from '@mui/icons-material/Tune';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useTranslation } from 'react-i18next';
-import { fetchProductsPage, type ProductListItem } from '@/features/products/api';
+import { fetchProductsPage, downloadProductListPdf, type ProductListItem } from '@/features/products/api';
 import { createStockAdjustment } from '@/features/inventory/api';
 import { AddProductDialog } from '@/features/products/AddProductDialog';
 import { Can } from '@/components/Can';
+import { ReportActions } from '@/components/ReportActions';
+import { fetchBusinessSettings } from '@/features/settings/api';
 
 const AVATAR_COLORS = ['#1e6f5c', '#2b8a72', '#b8901f', '#3b7ea1', '#7d5ba6', '#a15b3b'];
 
@@ -69,6 +71,9 @@ export function ProductsListPage() {
         queryFn: () => fetchProductsPage({ page: page + 1, perPage, search: search || undefined }),
         placeholderData: keepPreviousData,
     });
+
+    const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
+    const companyName = settings?.company_name ?? '';
 
     const [addOpen, setAddOpen] = useState(false);
     const [adjusting, setAdjusting] = useState<ProductListItem | null>(null);
@@ -127,11 +132,18 @@ export function ProductsListPage() {
                         {t('products_page.subtitle')}
                     </Typography>
                 </Box>
-                <Can permission="products.manage">
-                    <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
-                        {t('products_page.new_product')}
-                    </Button>
-                </Can>
+                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+                    <ReportActions
+                        download={() => downloadProductListPdf(search || undefined)}
+                        message={t('products_page.wa_message', { company: companyName })}
+                        size="medium"
+                    />
+                    <Can permission="products.manage">
+                        <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
+                            {t('products_page.new_product')}
+                        </Button>
+                    </Can>
+                </Stack>
             </Box>
 
             {isError && <Alert severity="error">{t('common.loading')}</Alert>}

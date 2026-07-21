@@ -45,11 +45,13 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('units', UnitController::class);
         Route::apiResource('warehouses', WarehouseController::class);
+        Route::get('/products/report/pdf', [ProductController::class, 'listPdf']);
         Route::apiResource('products', ProductController::class);
 
         Route::get('/stock-movements', [StockMovementController::class, 'index']);
         Route::post('/stock-adjustments', [StockAdjustmentController::class, 'store']);
 
+        Route::get('/customers/report/pdf', [CustomerController::class, 'listPdf']);
         Route::get('/customers/{customer}/ledger', [CustomerController::class, 'ledger']);
         Route::get('/customers/{customer}/ledger/pdf', [CustomerController::class, 'ledgerPdf']);
         Route::post('/customers/{customer}/ledger/clear', [CustomerController::class, 'clearLedger']);

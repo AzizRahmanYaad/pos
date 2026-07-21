@@ -163,7 +163,8 @@
     "subtitle": "ستاسو کتلاک په ټولو ګدامونو کې د ژوندي موجودۍ سره.",
     "search_placeholder": "د نوم، کوډ یا بارکوډ له مخې ولټوئ…",
     "count": "{{count}} محصولات",
-    "no_products": "هیڅ محصول ونه موندل شو."
+    "no_products": "هیڅ محصول ونه موندل شو.",
+    "wa_message": "د محصولاتو کتلاګ د {{company}} څخه"
   },
   "purchases_page": {
     "title": "نوې پیرودنه",
@@ -378,7 +379,8 @@
     "subtitle": "ستاسو پیرودونکي د ژوندي بیلانس او بشپړ د معاملو کتابچې سره.",
     "search_placeholder": "د نوم یا تلیفون له مخې ولټوئ…",
     "count": "{{count}} پیرودونکي",
-    "no_customers": "هیڅ پیرودونکی ونه موندل شو."
+    "no_customers": "هیڅ پیرودونکی ونه موندل شو.",
+    "wa_message": "د پیرودونکو لړلیک د {{company}} څخه"
   },
   "ledger": {
     "title": "د حساب کتابچه — {{name}}",
@@ -429,7 +431,11 @@
   },
   "nav_header": {
     "messages": "پیغامونه",
-    "notifications": "خبرتیاوې"
+    "notifications": "خبرتیاوې",
+    "expand_menu": "مینو پرانیستل",
+    "collapse_menu": "مینو بندول",
+    "fullscreen": "بشپړ پرده",
+    "exit_fullscreen": "له بشپړ پردې وتل"
   },
   "calendar": {
     "gregorian": "میلادي",

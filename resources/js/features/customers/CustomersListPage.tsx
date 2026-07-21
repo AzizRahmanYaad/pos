@@ -29,10 +29,12 @@ import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { fetchCustomersPage, type CustomerListItem } from '@/features/customers/api';
+import { fetchCustomersPage, downloadCustomerListPdf, type CustomerListItem } from '@/features/customers/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
 import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
+import { ReportActions } from '@/components/ReportActions';
+import { fetchBusinessSettings } from '@/features/settings/api';
 
 const AVATAR_COLORS = ['#1e6f5c', '#2b8a72', '#b8901f', '#3b7ea1', '#7d5ba6', '#a15b3b'];
 
@@ -69,6 +71,9 @@ export function CustomersListPage() {
         placeholderData: keepPreviousData,
     });
 
+    const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
+    const companyName = settings?.company_name ?? '';
+
     const [addOpen, setAddOpen] = useState(false);
     const [paying, setPaying] = useState<CustomerListItem | null>(null);
 
@@ -92,11 +97,18 @@ export function CustomersListPage() {
                         {t('customers_page.subtitle')}
                     </Typography>
                 </Box>
-                <Can permission="sales.manage">
-                    <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
-                        {t('parties.new_customer')}
-                    </Button>
-                </Can>
+                <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+                    <ReportActions
+                        download={() => downloadCustomerListPdf(search || undefined)}
+                        message={t('customers_page.wa_message', { company: companyName })}
+                        size="medium"
+                    />
+                    <Can permission="sales.manage">
+                        <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
+                            {t('parties.new_customer')}
+                        </Button>
+                    </Can>
+                </Stack>
             </Box>
 
             {isError && <Alert severity="error">{t('common.loading')}</Alert>}

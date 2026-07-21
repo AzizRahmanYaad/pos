@@ -121,3 +121,17 @@ export async function createProduct(payload: CreateProductPayload): Promise<Prod
     const { data } = await apiClient.post<{ data: ProductListItem }>('/products', payload);
     return data.data;
 }
+
+export async function downloadProductListPdf(
+    search?: string,
+): Promise<{ url: string; filename: string; blob: Blob }> {
+    const response = await apiClient.get('/products/report/pdf', {
+        params: search ? { search } : {},
+        responseType: 'blob',
+    });
+    const disposition = String(response.headers['content-disposition'] ?? '');
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] ?? 'products.pdf';
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    return { url: URL.createObjectURL(blob), filename, blob };
+}

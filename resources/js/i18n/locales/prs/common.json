@@ -163,7 +163,8 @@
     "subtitle": "کتلاک شما با موجودی زنده در تمام گدام‌ها.",
     "search_placeholder": "جستجو بر اساس نام، کد یا بارکد…",
     "count": "{{count}} محصول",
-    "no_products": "محصولی یافت نشد."
+    "no_products": "محصولی یافت نشد.",
+    "wa_message": "کتلاگ محصولات از {{company}}"
   },
   "purchases_page": {
     "title": "خریداری جدید",
@@ -378,7 +379,8 @@
     "subtitle": "مشتریان شما با بیلانس زنده و کتابچه کامل معاملات.",
     "search_placeholder": "جستجو بر اساس نام یا تلفن…",
     "count": "{{count}} مشتری",
-    "no_customers": "مشتری یافت نشد."
+    "no_customers": "مشتری یافت نشد.",
+    "wa_message": "فهرست مشتریان از {{company}}"
   },
   "ledger": {
     "title": "کتابچه حساب — {{name}}",
@@ -429,7 +431,11 @@
   },
   "nav_header": {
     "messages": "پیام‌ها",
-    "notifications": "اعلان‌ها"
+    "notifications": "اعلان‌ها",
+    "expand_menu": "باز کردن منو",
+    "collapse_menu": "بستن منو",
+    "fullscreen": "تمام‌صفحه",
+    "exit_fullscreen": "خروج از تمام‌صفحه"
   },
   "calendar": {
     "gregorian": "میلادی",

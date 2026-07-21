@@ -163,7 +163,8 @@
     "subtitle": "Your catalog with live stock levels across warehouses.",
     "search_placeholder": "Search by name, SKU, or barcode…",
     "count": "{{count}} products",
-    "no_products": "No products found."
+    "no_products": "No products found.",
+    "wa_message": "Product catalogue from {{company}}"
   },
   "purchases_page": {
     "title": "New Purchase",
@@ -378,7 +379,8 @@
     "subtitle": "Your customers with live balances and full transaction ledgers.",
     "search_placeholder": "Search by name or phone…",
     "count": "{{count}} customers",
-    "no_customers": "No customers found."
+    "no_customers": "No customers found.",
+    "wa_message": "Customer directory from {{company}}"
   },
   "ledger": {
     "title": "Ledger — {{name}}",
@@ -429,7 +431,11 @@
   },
   "nav_header": {
     "messages": "Messages",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "expand_menu": "Expand menu",
+    "collapse_menu": "Collapse menu",
+    "fullscreen": "Full screen",
+    "exit_fullscreen": "Exit full screen"
   },
   "calendar": {
     "gregorian": "Gregorian",

@@ -30,6 +30,43 @@ class CustomerController extends Controller
         );
     }
 
+    public function listPdf(\App\Support\ListReportPdf $pdf)
+    {
+        $this->authorize('viewAny', Customer::class);
+
+        $customers = Customer::query()
+            ->when(request('search'), function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->get();
+
+        $sym = \App\Models\BusinessSetting::current()->currency_symbol ?: '';
+        $money = fn ($v) => number_format((float) $v, 2).($sym ? ' '.$sym : '');
+
+        $columns = [
+            ['label' => __('Name'), 'width' => '30%'],
+            ['label' => __('Phone'), 'width' => '20%'],
+            ['label' => __('Address'), 'width' => '28%'],
+            ['label' => __('Balance'), 'align' => 'right', 'width' => '22%'],
+        ];
+
+        $rows = $customers->map(fn ($c) => [
+            $c->name,
+            $c->phone ?: '—',
+            $c->address ?: '—',
+            $money($c->currentBalance()),
+        ])->all();
+
+        return response($pdf->build(__('Customers'), $columns, $rows, __('Customer directory')), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="customers-'.now()->format('Ymd').'.pdf"',
+        ]);
+    }
+
     public function store(StoreCustomerRequest $request): CustomerResource
     {
         return new CustomerResource(Customer::create($request->validated()));

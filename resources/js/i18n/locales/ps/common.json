@@ -220,7 +220,17 @@
     "landed_cost_checkbox": "د لېږد لګښت (د مسودې پیرودنې زېرمې لګښت ته اضافه کوي)",
     "draft_purchase": "مسوده پیرودنه",
     "save_failed": "لګښت ونشو خوندي کېدای — ډاډ ترلاسه کړئ چې د لېږد لګښت لپاره مسوده پیرودنه غوره شوې ده.",
-    "landed_cost_column": "د لېږد لګښت"
+    "landed_cost_column": "د لېږد لګښت",
+    "subtitle": "د لګښتونو ثبت او د کټګورۍ پر بنسټ راپورونه صادرول",
+    "all_dates": "ټولې نېټې",
+    "clear_dates": "پاکول",
+    "total_expenses": "د لګښتونو مجموعه",
+    "count_one": "{{count}} لګښت",
+    "count_other": "{{count}} لګښتونه",
+    "by_category": "د کټګورۍ له مخې",
+    "no_expenses": "په دې دوره کې لګښت نشته",
+    "details": "جزئیات",
+    "wa_message": "د لګښتونو راپور د {{company}} ({{period}}) — ټوله {{total}}"
   },
   "employees_page": {
     "new_employee": "نوی کارکوونکی",

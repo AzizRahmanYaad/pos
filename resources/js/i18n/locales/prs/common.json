@@ -220,7 +220,17 @@
     "landed_cost_checkbox": "مصرف انتقال (به قیمت تمام شده خریداری پیش‌نویس اضافه می‌شود)",
     "draft_purchase": "خریداری پیش‌نویس",
     "save_failed": "مصرف ذخیره نشد — مطمئن شوید یک خریداری پیش‌نویس برای مصرف انتقال انتخاب شده است.",
-    "landed_cost_column": "مصرف انتقال"
+    "landed_cost_column": "مصرف انتقال",
+    "subtitle": "ثبت مصارف و صدور گزارش‌های کتگوری‌وار",
+    "all_dates": "همه تاریخ‌ها",
+    "clear_dates": "پاک کردن",
+    "total_expenses": "مجموع مصارف",
+    "count_one": "{{count}} مصرف",
+    "count_other": "{{count}} مصرف",
+    "by_category": "بر اساس کتگوری",
+    "no_expenses": "در این دوره مصرفی وجود ندارد",
+    "details": "جزئیات",
+    "wa_message": "گزارش مصارف از {{company}} ({{period}}) — مجموع {{total}}"
   },
   "employees_page": {
     "new_employee": "کارمند جدید",

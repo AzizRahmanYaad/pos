@@ -31,9 +31,61 @@ export async function createExpenseCategory(name: string): Promise<ExpenseCatego
     return data.data;
 }
 
-export async function fetchExpenses(): Promise<ExpenseListItem[]> {
-    const { data } = await apiClient.get<CollectionResponse<ExpenseListItem>>('/expenses');
+export interface ExpenseRange {
+    from?: string;
+    to?: string;
+}
+
+export async function fetchExpenses(range: ExpenseRange = {}): Promise<ExpenseListItem[]> {
+    const { data } = await apiClient.get<CollectionResponse<ExpenseListItem>>('/expenses', {
+        params: {
+            per_page: 500,
+            ...(range.from ? { from: range.from } : {}),
+            ...(range.to ? { to: range.to } : {}),
+        },
+    });
     return data.data;
+}
+
+export interface ExpenseCategoryTotal {
+    category_name: string;
+    count: number;
+    total: number;
+}
+
+export interface ExpenseSummary {
+    from: string | null;
+    to: string | null;
+    count: number;
+    grand_total: number;
+    categories: ExpenseCategoryTotal[];
+}
+
+export async function fetchExpenseSummary(range: ExpenseRange = {}): Promise<ExpenseSummary> {
+    const { data } = await apiClient.get<{ data: ExpenseSummary }>('/expenses/summary', {
+        params: {
+            ...(range.from ? { from: range.from } : {}),
+            ...(range.to ? { to: range.to } : {}),
+        },
+    });
+    return data.data;
+}
+
+export async function downloadExpenseReportPdf(
+    range: ExpenseRange = {},
+): Promise<{ url: string; filename: string; blob: Blob }> {
+    const response = await apiClient.get('/expenses/report/pdf', {
+        params: {
+            ...(range.from ? { from: range.from } : {}),
+            ...(range.to ? { to: range.to } : {}),
+        },
+        responseType: 'blob',
+    });
+    const disposition = String(response.headers['content-disposition'] ?? '');
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] ?? `expenses-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    return { url: URL.createObjectURL(blob), filename, blob };
 }
 
 export interface CreateExpensePayload {

@@ -18,7 +18,7 @@ class PayrollReportPdf
     {
         $settings = BusinessSetting::current();
 
-        $run->loadMissing('items.employee');
+        $run->loadMissing(['employee', 'items.employee']);
 
         $html = view('pdf.payroll-report', [
             'run' => $run,

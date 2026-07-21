@@ -259,7 +259,10 @@
     "payslips": "فیش‌های معاش",
     "deductions": "کسرات",
     "bonuses": "پاداش‌ها",
-    "wa_message": "گزارش معاشات {{period}} از {{company}} — مجموع معاش خالص {{total}}"
+    "wa_message": "گزارش معاشات {{period}} از {{company}} — مجموع معاش خالص {{total}}",
+    "all_employees": "همه کارمندان",
+    "date_hint": "معاش برای ماهِ تاریخ انتخاب‌شده اجرا می‌شود.",
+    "execute": "اجرا"
   },
   "period_closing_page": {
     "close_a_period": "بستن یک دوره",

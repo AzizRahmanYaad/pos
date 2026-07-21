@@ -13,8 +13,11 @@ export interface PayrollItemDto {
 
 export interface PayrollRunDto {
     id: number;
+    employee_id: number | null;
+    employee_name: string | null;
     period_month: number;
     period_year: number;
+    period_date: string | null;
     status: 'draft' | 'paid';
     items: PayrollItemDto[];
     total_net_pay: number;
@@ -45,8 +48,8 @@ export async function downloadPayrollReportPdf(
     return { url: URL.createObjectURL(blob), filename, blob };
 }
 
-export async function createPayrollRun(periodMonth: number, periodYear: number): Promise<PayrollRunDto> {
-    const { data } = await apiClient.post('/payroll-runs', { period_month: periodMonth, period_year: periodYear });
+export async function createPayrollRun(employeeId: number, date: string): Promise<PayrollRunDto> {
+    const { data } = await apiClient.post('/payroll-runs', { employee_id: employeeId, date });
     return data.data;
 }
 

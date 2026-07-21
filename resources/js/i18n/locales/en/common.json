@@ -259,7 +259,10 @@
     "payslips": "Payslips",
     "deductions": "Deductions",
     "bonuses": "Bonuses",
-    "wa_message": "Payroll report {{period}} from {{company}} — total net pay {{total}}"
+    "wa_message": "Payroll report {{period}} from {{company}} — total net pay {{total}}",
+    "all_employees": "All employees",
+    "date_hint": "Payroll runs for the month of the selected date.",
+    "execute": "Execute"
   },
   "period_closing_page": {
     "close_a_period": "Close a period",

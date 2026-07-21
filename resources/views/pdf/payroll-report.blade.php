@@ -48,7 +48,13 @@
 
     <div class="doc-title">{{ __('Payroll Report') }}</div>
     <div class="doc-sub">
+        @if ($run->employee)
+            <strong>{{ $run->employee->name }}</strong> &nbsp;•&nbsp;
+        @endif
         {{ $period }}
+        @if ($run->period_date)
+            &nbsp;•&nbsp; {{ \Illuminate\Support\Carbon::parse($run->period_date)->format('Y-m-d') }}
+        @endif
         &nbsp;•&nbsp; <span class="status-pill" style="background: {{ $statusBg }};">{{ __(ucfirst($run->status)) }}</span>
         &nbsp;•&nbsp; {{ __('Generated') }}: {{ now()->format('Y-m-d') }}
     </div>

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['period_month', 'period_year', 'status', 'paid_at', 'generated_by'])]
+#[Fillable(['employee_id', 'period_month', 'period_year', 'period_date', 'status', 'paid_at', 'generated_by'])]
 class PayrollRun extends Model
 {
     use BelongsToTenant;
@@ -24,12 +24,18 @@ class PayrollRun extends Model
     {
         return [
             'paid_at' => 'datetime',
+            'period_date' => 'date',
         ];
     }
 
     public function items(): HasMany
     {
         return $this->hasMany(PayrollItem::class);
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
     }
 
     public function generator(): BelongsTo

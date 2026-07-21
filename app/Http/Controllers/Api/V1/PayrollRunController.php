@@ -22,16 +22,21 @@ class PayrollRunController extends Controller
         $this->authorize('viewAny', PayrollRun::class);
 
         return PayrollRunResource::collection(
-            PayrollRun::query()->with('items.employee')->orderByDesc('period_year')->orderByDesc('period_month')->get()
+            PayrollRun::query()->with(['employee', 'items.employee'])->orderByDesc('period_year')->orderByDesc('period_month')->orderByDesc('id')->get()
         );
     }
 
     public function store(StorePayrollRunRequest $request, CreatePayrollRunAction $createRun): PayrollRunResource
     {
+        $employee = \App\Models\Employee::findOrFail($request->validated('employee_id'));
+        $date = \Illuminate\Support\Carbon::parse($request->validated('date'));
+
         $run = $createRun->execute(
-            periodMonth: $request->validated('period_month'),
-            periodYear: $request->validated('period_year'),
+            periodMonth: (int) $date->month,
+            periodYear: (int) $date->year,
             generatedBy: $request->user()->id,
+            employeeId: $employee->id,
+            periodDate: $date->toDateString(),
         );
 
         return new PayrollRunResource($run);
@@ -41,7 +46,7 @@ class PayrollRunController extends Controller
     {
         $this->authorize('viewAny', PayrollRun::class);
 
-        return new PayrollRunResource($payrollRun->load('items.employee'));
+        return new PayrollRunResource($payrollRun->load(['employee', 'items.employee']));
     }
 
     public function reportPdf(PayrollRun $payrollRun, \App\Support\PayrollReportPdf $pdf)

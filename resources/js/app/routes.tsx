@@ -11,7 +11,9 @@ import { PurchaseDetailPage } from '@/features/purchases/PurchaseDetailPage';
 import { PosPage } from '@/features/pos/PosPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 import { EmployeesListPage } from '@/features/employees/EmployeesListPage';
+import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage';
 import { PayrollPage } from '@/features/payroll/PayrollPage';
+import { PayrollRunDetailPage } from '@/features/payroll/PayrollRunDetailPage';
 import { PeriodClosingPage } from '@/features/period-closing/PeriodClosingPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
@@ -66,7 +68,9 @@ export const router = createBrowserRouter([
                     { path: 'purchases/:id', element: guarded('purchases.manage', <PurchaseDetailPage />) },
                     { path: 'expenses', element: guarded('expenses.manage', <ExpensesPage />) },
                     { path: 'employees', element: guarded('employees.manage', <EmployeesListPage />) },
+                    { path: 'employees/:id', element: guarded('employees.manage', <EmployeeDetailPage />) },
                     { path: 'payroll', element: guarded('payroll.manage', <PayrollPage />) },
+                    { path: 'payroll/:id', element: guarded('payroll.manage', <PayrollRunDetailPage />) },
                     { path: 'period-closing', element: guarded('period-closing.close', <PeriodClosingPage />) },
                     { path: 'reports', element: guarded('reports.view', <ReportsPage />) },
                     { path: 'settings', element: <SettingsPage /> },

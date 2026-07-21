@@ -29,6 +29,22 @@ export async function fetchPayrollRuns(): Promise<PayrollRunDto[]> {
     return data.data;
 }
 
+export async function fetchPayrollRun(id: number): Promise<PayrollRunDto> {
+    const { data } = await apiClient.get<{ data: PayrollRunDto }>(`/payroll-runs/${id}`);
+    return data.data;
+}
+
+export async function downloadPayrollReportPdf(
+    id: number,
+): Promise<{ url: string; filename: string; blob: Blob }> {
+    const response = await apiClient.get(`/payroll-runs/${id}/pdf`, { responseType: 'blob' });
+    const disposition = String(response.headers['content-disposition'] ?? '');
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] ?? `payroll-${id}.pdf`;
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    return { url: URL.createObjectURL(blob), filename, blob };
+}
+
 export async function createPayrollRun(periodMonth: number, periodYear: number): Promise<PayrollRunDto> {
     const { data } = await apiClient.post('/payroll-runs', { period_month: periodMonth, period_year: periodYear });
     return data.data;

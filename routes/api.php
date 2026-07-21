@@ -78,10 +78,12 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'destroy']);
 
         Route::get('/employees/{employee}/ledger', [EmployeeController::class, 'ledger']);
+        Route::get('/employees/{employee}/pdf', [EmployeeController::class, 'statementPdf']);
         Route::post('/employees/{employee}/advances', [EmployeeController::class, 'storeAdvance']);
         Route::apiResource('employees', EmployeeController::class);
 
         Route::put('/payroll-items/{payrollItem}', [PayrollRunController::class, 'updateItem']);
+        Route::get('/payroll-runs/{payrollRun}/pdf', [PayrollRunController::class, 'reportPdf']);
         Route::post('/payroll-runs/{payrollRun}/pay', [PayrollRunController::class, 'pay']);
         Route::apiResource('payroll-runs', PayrollRunController::class)->only(['index', 'store', 'show']);
 

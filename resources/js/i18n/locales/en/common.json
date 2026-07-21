@@ -236,12 +236,29 @@
     "new_employee": "New employee",
     "give_advance": "Give advance",
     "advance_title": "Advance — {{name}}",
-    "advance_failed": "Could not record advance."
+    "advance_failed": "Could not record advance.",
+    "subtitle": "Staff, salaries, advances and statements",
+    "search_placeholder": "Search by name, role or phone…",
+    "count_one": "{{count}} employee",
+    "count_other": "{{count}} employees",
+    "view": "View details",
+    "no_employees": "No employees yet",
+    "transactions": "Transactions",
+    "no_transactions": "No transactions yet",
+    "wa_message": "Statement for {{name}} from {{company}} — outstanding advances {{advances}}"
   },
   "payroll_page": {
     "new_run": "New payroll run",
     "pay_run": "Pay run",
-    "run_exists": "A payroll run for that period may already exist."
+    "run_exists": "A payroll run for that period may already exist.",
+    "subtitle": "Monthly payroll runs and payslips",
+    "no_runs": "No payroll runs yet",
+    "employee_count_one": "{{count}} employee",
+    "employee_count_other": "{{count}} employees",
+    "payslips": "Payslips",
+    "deductions": "Deductions",
+    "bonuses": "Bonuses",
+    "wa_message": "Payroll report {{period}} from {{company}} — total net pay {{total}}"
   },
   "period_closing_page": {
     "close_a_period": "Close a period",
@@ -396,7 +413,8 @@
     "debit_hint_customer": "Red = amount the customer took on credit (they owe more)",
     "credit_hint_customer": "Green = payment received from the customer (they owe less)",
     "debit_hint_supplier": "Green = payment you made to the supplier (you owe less)",
-    "credit_hint_supplier": "Red = purchased on credit from the supplier (you owe more)"
+    "credit_hint_supplier": "Red = purchased on credit from the supplier (you owe more)",
+    "balance": "Balance"
   },
   "suppliers_page": {
     "subtitle": "Your suppliers with live balances and full transaction ledgers.",

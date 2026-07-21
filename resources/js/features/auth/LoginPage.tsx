@@ -69,7 +69,7 @@ export function LoginPage() {
         }
     };
 
-    const brandGradient = `linear-gradient(150deg, #10493c 0%, ${theme.palette.primary.main} 55%, #2b8a72 100%)`;
+    const brandGradient = `linear-gradient(150deg, #7E6420 0%, ${theme.palette.primary.dark} 45%, ${theme.palette.primary.main} 100%)`;
 
     return (
         <Box
@@ -310,7 +310,7 @@ export function LoginPage() {
                                         fontWeight: 700,
                                         fontSize: '1rem',
                                         textTransform: 'none',
-                                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, #2b8a72)`,
+                                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
                                         boxShadow: `0 12px 24px -10px ${alpha(theme.palette.primary.main, 0.6)}`,
                                         transition: 'transform 150ms ease, box-shadow 150ms ease',
                                         '&:hover': {

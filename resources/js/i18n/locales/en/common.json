@@ -250,7 +250,11 @@
         "top_products": "Top products (last 30 days)",
         "recent_sales": "Recent sales",
         "qty_sold": "Qty sold",
-        "invoice": "Invoice"
+        "invoice": "Invoice",
+        "title": "Dashboard",
+        "subtitle": "Your business at a glance",
+        "no_expenses": "No expenses recorded this month.",
+        "no_sales": "No sales yet."
     },
     "payments_dialog": {
         "receive_payment": "Receive payment",
@@ -379,5 +383,9 @@
         "search_placeholder": "Search by name or phone…",
         "count": "{{count}} suppliers",
         "no_suppliers": "No suppliers found."
+    },
+    "nav_header": {
+        "messages": "Messages",
+        "notifications": "Notifications"
     }
 }

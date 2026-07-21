@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Alert,
+    Avatar,
     Box,
     Button,
     Chip,
@@ -24,27 +25,36 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
-import { useTranslation } from 'react-i18next';
 import { fetchPayrollRuns, createPayrollRun } from '@/features/payroll/api';
+import { fetchEmployees } from '@/features/employees/api';
+import { DualDateField } from '@/components/DualDateField';
+import { formatDate } from '@/lib/calendar';
+
+function todayIso(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
 
 export function PayrollPage() {
-    const { t } = useTranslation();
-    const months = t('months', { returnObjects: true }) as string[];
+    const { t, i18n } = useTranslation();
+    const theme = useTheme();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { data: runs, isLoading } = useQuery({ queryKey: ['payroll-runs'], queryFn: fetchPayrollRuns });
+    const { data: employees } = useQuery({ queryKey: ['employees'], queryFn: () => fetchEmployees() });
 
-    const now = new Date();
     const [newOpen, setNewOpen] = useState(false);
-    const [month, setMonth] = useState(now.getMonth() + 1);
-    const [year, setYear] = useState(now.getFullYear());
+    const [employeeId, setEmployeeId] = useState<number | ''>('');
+    const [date, setDate] = useState(todayIso());
     const [error, setError] = useState<string | null>(null);
 
     const createMutation = useMutation({
-        mutationFn: () => createPayrollRun(month, year),
+        mutationFn: () => createPayrollRun(employeeId as number, date),
         onSuccess: (run) => {
             queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
             setNewOpen(false);
@@ -53,6 +63,14 @@ export function PayrollPage() {
         },
         onError: () => setError(t('payroll_page.run_exists')),
     });
+
+    /** Shows the run period in both the Gregorian and Hijri Shamsi calendars. */
+    const periodLabel = (run: { period_date: string | null }) => {
+        if (!run.period_date) return '—';
+        const greg = formatDate(run.period_date, 'en');
+        const jalali = formatDate(run.period_date, 'prs');
+        return { greg, jalali };
+    };
 
     return (
         <Box>
@@ -75,59 +93,90 @@ export function PayrollPage() {
                     <Table size="small">
                         <TableHead>
                             <TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'action.hover' } }}>
+                                <TableCell>{t('nav.employees')}</TableCell>
                                 <TableCell>{t('fields.period')}</TableCell>
                                 <TableCell>{t('fields.status')}</TableCell>
-                                <TableCell align="right">{t('fields.total_net_pay')}</TableCell>
+                                <TableCell align="right">{t('fields.net_pay')}</TableCell>
                                 <TableCell align="right"> </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {isLoading && (
                                 <TableRow>
-                                    <TableCell colSpan={4}>
+                                    <TableCell colSpan={5}>
                                         <Box sx={{ py: 4, textAlign: 'center' }}>
                                             <CircularProgress size={28} />
                                         </Box>
                                     </TableCell>
                                 </TableRow>
                             )}
-                            {runs?.map((run) => (
-                                <TableRow
-                                    key={run.id}
-                                    hover
-                                    sx={{ cursor: 'pointer' }}
-                                    onClick={() => navigate(`/payroll/${run.id}`)}
-                                >
-                                    <TableCell sx={{ fontWeight: 600 }}>
-                                        {months[run.period_month - 1]} {run.period_year}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            size="small"
-                                            color={run.status === 'paid' ? 'success' : 'default'}
-                                            variant={run.status === 'paid' ? 'filled' : 'outlined'}
-                                            label={t(`status.${run.status}`)}
-                                        />
-                                    </TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 700 }}>
-                                        {run.total_net_pay.toFixed(2)}
-                                    </TableCell>
-                                    <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                                        <Tooltip title={t('actions.view')}>
-                                            <IconButton
+                            {runs?.map((run) => {
+                                const period = periodLabel(run);
+                                return (
+                                    <TableRow
+                                        key={run.id}
+                                        hover
+                                        sx={{ cursor: 'pointer' }}
+                                        onClick={() => navigate(`/payroll/${run.id}`)}
+                                    >
+                                        <TableCell>
+                                            <Stack direction="row" alignItems="center" spacing={1.5}>
+                                                <Avatar
+                                                    sx={{
+                                                        width: 32,
+                                                        height: 32,
+                                                        fontSize: 13,
+                                                        bgcolor: alpha(theme.palette.primary.main, 0.15),
+                                                        color: 'primary.dark',
+                                                    }}
+                                                >
+                                                    {(run.employee_name ?? '#').charAt(0).toUpperCase()}
+                                                </Avatar>
+                                                <Typography variant="body2" fontWeight={600}>
+                                                    {run.employee_name ?? t('payroll_page.all_employees')}
+                                                </Typography>
+                                            </Stack>
+                                        </TableCell>
+                                        <TableCell>
+                                            {typeof period === 'string' ? (
+                                                period
+                                            ) : (
+                                                <Box>
+                                                    <Typography variant="body2">{period.greg}</Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {period.jalali} {t('calendar.hijri_shamsi')}
+                                                    </Typography>
+                                                </Box>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Chip
                                                 size="small"
-                                                color="primary"
-                                                onClick={() => navigate(`/payroll/${run.id}`)}
-                                            >
-                                                <VisibilityOutlinedIcon fontSize="small" />
-                                            </IconButton>
-                                        </Tooltip>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                                color={run.status === 'paid' ? 'success' : 'default'}
+                                                variant={run.status === 'paid' ? 'filled' : 'outlined'}
+                                                label={t(`status.${run.status}`)}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 700 }}>
+                                            {run.total_net_pay.toFixed(2)}
+                                        </TableCell>
+                                        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                                            <Tooltip title={t('actions.view')}>
+                                                <IconButton
+                                                    size="small"
+                                                    color="primary"
+                                                    onClick={() => navigate(`/payroll/${run.id}`)}
+                                                >
+                                                    <VisibilityOutlinedIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
                             {runs && runs.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={4}>
+                                    <TableCell colSpan={5}>
                                         <Box sx={{ py: 6, textAlign: 'center' }}>
                                             <PaymentsOutlinedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
                                             <Typography color="text.secondary">
@@ -149,30 +198,32 @@ export function PayrollPage() {
                         {error && <Alert severity="error">{error}</Alert>}
                         <TextField
                             select
-                            label={t('fields.month')}
-                            value={month}
-                            onChange={(e) => setMonth(Number(e.target.value))}
+                            label={t('nav.employees')}
+                            value={employeeId}
+                            onChange={(e) => setEmployeeId(Number(e.target.value))}
                             fullWidth
                         >
-                            {months.map((m, i) => (
-                                <MenuItem key={m} value={i + 1}>
-                                    {m}
+                            {employees?.map((emp) => (
+                                <MenuItem key={emp.id} value={emp.id}>
+                                    {emp.name}
+                                    {emp.designation ? ` — ${emp.designation}` : ''}
                                 </MenuItem>
                             ))}
                         </TextField>
-                        <TextField
-                            label={t('fields.year')}
-                            type="number"
-                            value={year}
-                            onChange={(e) => setYear(Number(e.target.value))}
-                            fullWidth
-                        />
+                        <DualDateField label={t('fields.date')} value={date} onChange={setDate} fullWidth />
+                        <Typography variant="caption" color="text.secondary">
+                            {t('payroll_page.date_hint')}
+                        </Typography>
                     </Stack>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setNewOpen(false)}>{t('actions.cancel')}</Button>
-                    <Button variant="contained" disabled={createMutation.isPending} onClick={() => createMutation.mutate()}>
-                        {t('actions.save')}
+                    <Button
+                        variant="contained"
+                        disabled={!employeeId || !date || createMutation.isPending}
+                        onClick={() => createMutation.mutate()}
+                    >
+                        {t('payroll_page.execute')}
                     </Button>
                 </DialogActions>
             </Dialog>

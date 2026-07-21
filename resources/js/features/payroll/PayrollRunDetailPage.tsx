@@ -31,6 +31,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchPayrollRun, payPayrollRun, downloadPayrollReportPdf } from '@/features/payroll/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 import { fetchBusinessSettings } from '@/features/settings/api';
+import { formatDate } from '@/lib/calendar';
 
 export function PayrollRunDetailPage() {
     const { t } = useTranslation();
@@ -134,10 +135,12 @@ export function PayrollRunDetailPage() {
                 </Avatar>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="h5" fontWeight={800} noWrap>
-                        {months[run.period_month - 1]} {run.period_year}
+                        {run.employee_name ?? `${months[run.period_month - 1]} ${run.period_year}`}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                        {t('payroll_page.employee_count', { count: run.items.length })}
+                        {run.period_date
+                            ? `${formatDate(run.period_date, 'en')} · ${formatDate(run.period_date, 'prs')} ${t('calendar.hijri_shamsi')}`
+                            : `${months[run.period_month - 1]} ${run.period_year}`}
                     </Typography>
                 </Box>
                 <Chip

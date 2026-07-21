@@ -18,23 +18,43 @@ class CreatePayrollRunAction
      * which isn't supported; any advance too large for one run's salary
      * is left outstanding for a future run to pick up in full.
      */
-    public function execute(int $periodMonth, int $periodYear, int $generatedBy): PayrollRun
-    {
-        if (PayrollRun::where('period_month', $periodMonth)->where('period_year', $periodYear)->exists()) {
+    public function execute(
+        int $periodMonth,
+        int $periodYear,
+        int $generatedBy,
+        ?int $employeeId = null,
+        ?string $periodDate = null,
+    ): PayrollRun {
+        if ($employeeId !== null) {
+            $alreadyRun = PayrollRun::where('employee_id', $employeeId)
+                ->where('period_month', $periodMonth)
+                ->where('period_year', $periodYear)
+                ->exists();
+
+            if ($alreadyRun) {
+                throw new PayrollAlreadyProcessedException(
+                    "Payroll for this employee has already been run for {$periodMonth}/{$periodYear}."
+                );
+            }
+        } elseif (PayrollRun::whereNull('employee_id')->where('period_month', $periodMonth)->where('period_year', $periodYear)->exists()) {
             throw new PayrollAlreadyProcessedException(
                 "A payroll run for {$periodMonth}/{$periodYear} already exists."
             );
         }
 
-        return DB::transaction(function () use ($periodMonth, $periodYear, $generatedBy) {
+        return DB::transaction(function () use ($periodMonth, $periodYear, $generatedBy, $employeeId, $periodDate) {
             $run = PayrollRun::create([
+                'employee_id' => $employeeId,
                 'period_month' => $periodMonth,
                 'period_year' => $periodYear,
+                'period_date' => $periodDate,
                 'status' => PayrollRun::STATUS_DRAFT,
                 'generated_by' => $generatedBy,
             ]);
 
-            $employees = Employee::query()->where('is_active', true)->get();
+            $employees = $employeeId !== null
+                ? Employee::query()->whereKey($employeeId)->get()
+                : Employee::query()->where('is_active', true)->get();
 
             foreach ($employees as $employee) {
                 $outstandingAdvances = $employee->advances()->whereNull('deducted_in_payroll_item_id')->get();
@@ -64,7 +84,7 @@ class CreatePayrollRunAction
                 }
             }
 
-            return $run->load('items.employee');
+            return $run->load(['employee', 'items.employee']);
         });
     }
 }

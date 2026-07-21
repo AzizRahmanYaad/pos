@@ -18,8 +18,8 @@ class StorePayrollRunRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'period_month' => ['required', 'integer', 'between:1,12'],
-            'period_year' => ['required', 'integer', 'between:2000,2100'],
+            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'date' => ['required', 'date'],
         ];
     }
 }

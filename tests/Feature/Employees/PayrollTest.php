@@ -109,20 +109,46 @@ class PayrollTest extends TestCase
         app(PayPayrollRunAction::class)->execute($run->fresh(), $cashAccount, $user->id);
     }
 
+    public function test_individual_payroll_run_targets_only_the_chosen_employee(): void
+    {
+        $chosen = Employee::factory()->create(['salary_amount' => 500]);
+        Employee::factory()->create(['salary_amount' => 900]);
+        $user = User::factory()->create();
+
+        $run = app(CreatePayrollRunAction::class)->execute(7, 2026, $user->id, $chosen->id, '2026-07-15');
+
+        $this->assertEquals($chosen->id, $run->employee_id);
+        $this->assertCount(1, $run->items);
+        $this->assertEquals($chosen->id, $run->items->first()->employee_id);
+        $this->assertEquals('2026-07-15', $run->period_date->toDateString());
+    }
+
+    public function test_cannot_run_individual_payroll_twice_for_same_employee_and_period(): void
+    {
+        $employee = Employee::factory()->create(['salary_amount' => 500]);
+        $user = User::factory()->create();
+
+        app(CreatePayrollRunAction::class)->execute(7, 2026, $user->id, $employee->id, '2026-07-15');
+
+        $this->expectException(PayrollAlreadyProcessedException::class);
+        app(CreatePayrollRunAction::class)->execute(7, 2026, $user->id, $employee->id, '2026-07-20');
+    }
+
     public function test_manager_can_create_and_pay_payroll_via_api(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
         $manager->assignRole('manager');
 
-        Employee::factory()->create(['salary_amount' => 400]);
+        $employee = Employee::factory()->create(['salary_amount' => 400]);
         $cashAccount = CashAccount::factory()->create(['opening_balance' => 1000]);
 
         $createResponse = $this->actingAs($manager)->postJson('/api/v1/payroll-runs', [
-            'period_month' => 8,
-            'period_year' => 2026,
+            'employee_id' => $employee->id,
+            'date' => '2026-08-15',
         ]);
         $createResponse->assertCreated();
+        $createResponse->assertJsonPath('data.employee_name', $employee->name);
         $runId = $createResponse->json('data.id');
 
         $this->actingAs($manager)
@@ -136,10 +162,11 @@ class PayrollTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
         $cashier = User::factory()->create();
         $cashier->assignRole('cashier');
+        $employee = Employee::factory()->create();
 
         $this->actingAs($cashier)->postJson('/api/v1/payroll-runs', [
-            'period_month' => 8,
-            'period_year' => 2026,
+            'employee_id' => $employee->id,
+            'date' => '2026-08-15',
         ])->assertForbidden();
     }
 }

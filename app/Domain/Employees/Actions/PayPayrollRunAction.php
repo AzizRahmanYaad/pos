@@ -61,7 +61,7 @@ class PayPayrollRunAction
 
             $locked->update(['status' => PayrollRun::STATUS_PAID, 'paid_at' => now()]);
 
-            return $payrollRun->fresh(['items.employee']);
+            return $payrollRun->fresh(['employee', 'items.employee']);
         });
     }
 }

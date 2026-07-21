@@ -362,6 +362,22 @@
         "clear_blocked": "کتابچه فقط زمانی تصفیه می‌شود که بیلانس صفر باشد.",
         "download_pdf": "دانلود صورت حساب PDF",
         "whatsapp": "واتساپ",
-        "wa_message": "محترم {{name}}، صورت حساب شما از {{company}} خدمت تقدیم است. {{summary}}."
+        "wa_message": "محترم {{name}}، صورت حساب شما از {{company}} خدمت تقدیم است. {{summary}}.",
+        "you_owe": "شما بدهکار {{amount}}",
+        "supplier_advance": "پیش‌پرداخت {{amount}}",
+        "debit_customer": "گرفته (بدهکار)",
+        "credit_customer": "پرداخته (بستانکار)",
+        "debit_supplier": "پرداخته (بدهکار)",
+        "credit_supplier": "خرید (بستانکار)",
+        "debit_hint_customer": "سرخ = مبلغی که مشتری قرض گرفته (بدهی بیشتر)",
+        "credit_hint_customer": "سبز = پرداختی که از مشتری دریافت شده (بدهی کمتر)",
+        "debit_hint_supplier": "سبز = پرداختی که به تهیه کننده کردید (بدهی شما کمتر)",
+        "credit_hint_supplier": "سرخ = خرید نسیه از تهیه کننده (بدهی شما بیشتر)"
+    },
+    "suppliers_page": {
+        "subtitle": "تهیه کنندگان شما با بیلانس زنده و کتابچه کامل معاملات.",
+        "search_placeholder": "جستجو بر اساس نام یا تلفن…",
+        "count": "{{count}} تهیه کننده",
+        "no_suppliers": "تهیه کننده‌ای یافت نشد."
     }
 }

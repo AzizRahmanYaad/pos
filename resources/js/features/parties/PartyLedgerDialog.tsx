@@ -31,24 +31,32 @@ import { alpha, useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { useTranslation } from 'react-i18next';
 import {
-    clearCustomerLedger,
-    downloadCustomerLedgerPdf,
-    fetchCustomerLedger,
-    type CustomerListItem,
-} from '@/features/customers/api';
+    clearPartyLedger,
+    downloadPartyLedgerPdf,
+    fetchPartyLedger,
+    type PartyKind,
+} from '@/features/parties/ledgerApi';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { Can } from '@/components/Can';
 import { formatDate } from '@/lib/calendar';
 
-interface CustomerLedgerDialogProps {
-    customer: CustomerListItem;
+export interface LedgerParty {
+    id: number;
+    name: string;
+    phone: string | null;
+    current_balance: number;
+}
+
+interface PartyLedgerDialogProps {
+    kind: PartyKind;
+    party: LedgerParty;
+    /** React Query key of the list to refresh after clearing. */
+    listQueryKey: string;
     open: boolean;
     onClose: () => void;
 }
@@ -59,7 +67,35 @@ function sourceKey(sourceType: string | null): string {
     return sourceType.split('\\').pop()!.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
 }
 
-export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedgerDialogProps) {
+/**
+ * Describe a signed balance for a party. A customer's positive balance
+ * means they owe the shop; a supplier's negative balance means the shop
+ * owes them — so the red/green tone and wording flip by kind.
+ */
+function describeBalance(
+    kind: PartyKind,
+    balance: number,
+    t: (key: string, opts?: Record<string, unknown>) => string,
+): { tone: 'error' | 'success' | 'default'; label: string } {
+    const amount = Math.abs(balance).toFixed(2);
+    if (Math.abs(balance) < 0.005) return { tone: 'default', label: t('ledger.settled') };
+    if (kind === 'customer') {
+        return balance > 0
+            ? { tone: 'error', label: t('ledger.owes_you', { amount }) }
+            : { tone: 'success', label: t('ledger.advance_from', { amount }) };
+    }
+    return balance < 0
+        ? { tone: 'error', label: t('ledger.you_owe', { amount }) }
+        : { tone: 'success', label: t('ledger.supplier_advance', { amount }) };
+}
+
+function balanceColor(kind: PartyKind, rb: number): string {
+    if (Math.abs(rb) < 0.005) return 'text.primary';
+    if (kind === 'customer') return rb > 0 ? 'error.main' : 'success.main';
+    return rb < 0 ? 'error.main' : 'success.main';
+}
+
+export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: PartyLedgerDialogProps) {
     const { t, i18n } = useTranslation();
     const theme = useTheme();
     const queryClient = useQueryClient();
@@ -70,6 +106,7 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
     const [to, setTo] = useState('');
     const [includeArchived, setIncludeArchived] = useState(false);
     const [confirmClear, setConfirmClear] = useState(false);
+    const [busyPdf, setBusyPdf] = useState(false);
 
     useEffect(() => {
         const handle = setTimeout(() => {
@@ -80,9 +117,9 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
     }, [searchInput]);
 
     const { data, isLoading } = useQuery({
-        queryKey: ['customer-ledger', customer.id, page, search, from, to, includeArchived],
+        queryKey: [`${kind}-ledger`, party.id, page, search, from, to, includeArchived],
         queryFn: () =>
-            fetchCustomerLedger(customer.id, {
+            fetchPartyLedger(kind, party.id, {
                 page: page + 1,
                 search: search || undefined,
                 from: from || undefined,
@@ -93,24 +130,32 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
         placeholderData: keepPreviousData,
     });
 
-    const clearMutation = useMutation({
-        mutationFn: () => clearCustomerLedger(customer.id),
-        onSuccess: () => {
-            setConfirmClear(false);
-            queryClient.invalidateQueries({ queryKey: ['customer-ledger', customer.id] });
-            queryClient.invalidateQueries({ queryKey: ['customers-page'] });
-        },
-    });
-
     const { data: settings } = useQuery({
         queryKey: ['business-settings'],
         queryFn: fetchBusinessSettings,
         enabled: open,
     });
 
-    const balance = data?.current_balance ?? customer.current_balance;
+    const clearMutation = useMutation({
+        mutationFn: () => clearPartyLedger(kind, party.id),
+        onSuccess: () => {
+            setConfirmClear(false);
+            queryClient.invalidateQueries({ queryKey: [`${kind}-ledger`, party.id] });
+            queryClient.invalidateQueries({ queryKey: [listQueryKey] });
+        },
+    });
+
+    const balance = data?.current_balance ?? party.current_balance;
     const canClear = Math.abs(balance) < 0.005;
-    const [busyPdf, setBusyPdf] = useState(false);
+    const summary = describeBalance(kind, balance, t);
+
+    // Debit/credit meaning flips between customer and supplier.
+    const debit = kind === 'customer'
+        ? { color: 'error.main', sign: '+' }
+        : { color: 'success.main', sign: '−' };
+    const credit = kind === 'customer'
+        ? { color: 'success.main', sign: '−' }
+        : { color: 'error.main', sign: '+' };
 
     const currentFilters = {
         search: search || undefined,
@@ -119,17 +164,10 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
         includeArchived,
     };
 
-    const balanceSummary =
-        balance > 0
-            ? t('ledger.owes_you', { amount: balance.toFixed(2) })
-            : balance < 0
-              ? t('ledger.advance_from', { amount: Math.abs(balance).toFixed(2) })
-              : t('ledger.settled');
-
     const openPdf = async () => {
         setBusyPdf(true);
         try {
-            const { url } = await downloadCustomerLedgerPdf(customer.id, currentFilters);
+            const { url } = await downloadPartyLedgerPdf(kind, party.id, currentFilters);
             window.open(url, '_blank');
             setTimeout(() => URL.revokeObjectURL(url), 60_000);
         } finally {
@@ -140,62 +178,35 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
     const shareWhatsApp = async () => {
         setBusyPdf(true);
         try {
-            const { url, filename, blob } = await downloadCustomerLedgerPdf(customer.id, currentFilters);
-            const company = settings?.company_name ?? '';
+            const { url, filename, blob } = await downloadPartyLedgerPdf(kind, party.id, currentFilters);
             const message = t('ledger.wa_message', {
-                company,
-                name: customer.name,
-                summary: balanceSummary,
+                company: settings?.company_name ?? '',
+                name: party.name,
+                summary: summary.label,
             });
             const file = new File([blob], filename, { type: 'application/pdf' });
 
-            // Best path on mobile: native share sheet with the PDF attached.
-            const nav = navigator as Navigator & {
-                canShare?: (data?: ShareData) => boolean;
-            };
+            const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
             if (nav.canShare?.({ files: [file] })) {
                 try {
                     await nav.share({ files: [file], text: message });
                     return;
                 } catch {
-                    /* user cancelled or unsupported — fall through */
+                    /* cancelled — fall through to download + chat */
                 }
             }
 
-            // Fallback: save the file and open a WhatsApp chat with a summary.
             const anchor = document.createElement('a');
             anchor.href = url;
             anchor.download = filename;
             anchor.click();
-            const phone = (customer.phone ?? '').replace(/\D/g, '');
-            window.open(
-                `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
-                '_blank',
-            );
+            const phone = (party.phone ?? '').replace(/\D/g, '');
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
             setTimeout(() => URL.revokeObjectURL(url), 60_000);
         } finally {
             setBusyPdf(false);
         }
     };
-
-    const balanceChip =
-        balance > 0 ? (
-            <Chip
-                color="error"
-                icon={<ArrowUpwardIcon />}
-                label={t('ledger.owes_you', { amount: balance.toFixed(2) })}
-                sx={{ fontWeight: 700 }}
-            />
-        ) : balance < 0 ? (
-            <Chip
-                color="success"
-                icon={<ArrowDownwardIcon />}
-                label={t('ledger.advance_from', { amount: Math.abs(balance).toFixed(2) })}
-                sx={{ fontWeight: 700 }}
-            />
-        ) : (
-            <Chip label={t('ledger.settled')} sx={{ fontWeight: 700 }} />
-        );
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -206,13 +217,13 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                     </Avatar>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="h6" fontWeight={700} noWrap>
-                            {t('ledger.title', { name: customer.name })}
+                            {t('ledger.title', { name: party.name })}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            {customer.phone ?? '—'}
+                            {party.phone ?? '—'}
                         </Typography>
                     </Box>
-                    {balanceChip}
+                    <Chip color={summary.tone} label={summary.label} sx={{ fontWeight: 700 }} />
                     <IconButton onClick={onClose} size="small">
                         <CloseIcon />
                     </IconButton>
@@ -220,7 +231,7 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
             </DialogTitle>
 
             <DialogContent sx={{ pt: 0 }}>
-                {/* Filters */}
+                {/* Filters + actions */}
                 <Stack
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={1.5}
@@ -306,18 +317,18 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                     </Can>
                 </Stack>
 
-                {/* Legend so anyone can read the ledger at a glance */}
+                {/* Legend */}
                 <Stack direction="row" spacing={2} sx={{ mb: 1.5 }} flexWrap="wrap">
                     <Stack direction="row" spacing={0.5} alignItems="center">
-                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'error.main' }} />
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: debit.color }} />
                         <Typography variant="caption" color="text.secondary">
-                            {t('ledger.debit_hint')}
+                            {t(`ledger.debit_hint_${kind}`)}
                         </Typography>
                     </Stack>
                     <Stack direction="row" spacing={0.5} alignItems="center">
-                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'success.main' }} />
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: credit.color }} />
                         <Typography variant="caption" color="text.secondary">
-                            {t('ledger.credit_hint')}
+                            {t(`ledger.credit_hint_${kind}`)}
                         </Typography>
                     </Stack>
                     <Box sx={{ flex: 1 }} />
@@ -347,8 +358,8 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                                 <TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'action.hover' } }}>
                                     <TableCell>{t('fields.date')}</TableCell>
                                     <TableCell>{t('fields.description')}</TableCell>
-                                    <TableCell align="right">{t('ledger.debit')}</TableCell>
-                                    <TableCell align="right">{t('ledger.credit')}</TableCell>
+                                    <TableCell align="right">{t(`ledger.debit_${kind}`)}</TableCell>
+                                    <TableCell align="right">{t(`ledger.credit_${kind}`)}</TableCell>
                                     <TableCell align="right">{t('fields.balance')}</TableCell>
                                 </TableRow>
                             </TableHead>
@@ -380,20 +391,14 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <Stack
-                                                direction="row"
-                                                spacing={1}
-                                                alignItems="center"
-                                                flexWrap="wrap"
-                                            >
+                                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                                                 {entry.source_type && (
                                                     <Chip
                                                         size="small"
                                                         variant="outlined"
-                                                        label={t(
-                                                            `ledger.source_${sourceKey(entry.source_type)}`,
-                                                            { defaultValue: sourceKey(entry.source_type) },
-                                                        )}
+                                                        label={t(`ledger.source_${sourceKey(entry.source_type)}`, {
+                                                            defaultValue: sourceKey(entry.source_type),
+                                                        })}
                                                         sx={{ height: 20, fontSize: 11 }}
                                                     />
                                                 )}
@@ -409,12 +414,9 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                                         </TableCell>
                                         <TableCell align="right">
                                             {entry.entry_type === 'debit' ? (
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight={700}
-                                                    color="error.main"
-                                                >
-                                                    +{entry.amount.toFixed(2)}
+                                                <Typography variant="body2" fontWeight={700} sx={{ color: debit.color }}>
+                                                    {debit.sign}
+                                                    {entry.amount.toFixed(2)}
                                                 </Typography>
                                             ) : (
                                                 <Typography variant="body2" color="text.disabled">
@@ -424,12 +426,9 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                                         </TableCell>
                                         <TableCell align="right">
                                             {entry.entry_type === 'credit' ? (
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight={700}
-                                                    color="success.main"
-                                                >
-                                                    −{entry.amount.toFixed(2)}
+                                                <Typography variant="body2" fontWeight={700} sx={{ color: credit.color }}>
+                                                    {credit.sign}
+                                                    {entry.amount.toFixed(2)}
                                                 </Typography>
                                             ) : (
                                                 <Typography variant="body2" color="text.disabled">
@@ -438,29 +437,13 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
                                             )}
                                         </TableCell>
                                         <TableCell align="right">
-                                            <Tooltip
-                                                title={
-                                                    entry.running_balance > 0
-                                                        ? t('ledger.owes_you', {
-                                                              amount: entry.running_balance.toFixed(2),
-                                                          })
-                                                        : t('ledger.settled')
-                                                }
+                                            <Typography
+                                                variant="body2"
+                                                fontWeight={700}
+                                                sx={{ color: balanceColor(kind, entry.running_balance) }}
                                             >
-                                                <Typography
-                                                    variant="body2"
-                                                    fontWeight={700}
-                                                    color={
-                                                        entry.running_balance > 0
-                                                            ? 'error.main'
-                                                            : entry.running_balance < 0
-                                                              ? 'success.main'
-                                                              : 'text.primary'
-                                                    }
-                                                >
-                                                    {entry.running_balance.toFixed(2)}
-                                                </Typography>
-                                            </Tooltip>
+                                                {entry.running_balance.toFixed(2)}
+                                            </Typography>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -496,7 +479,7 @@ export function CustomerLedgerDialog({ customer, open, onClose }: CustomerLedger
             <Dialog open={confirmClear} onClose={() => setConfirmClear(false)} maxWidth="xs" fullWidth>
                 <DialogTitle>{t('ledger.clear_title')}</DialogTitle>
                 <DialogContent>
-                    <Typography>{t('ledger.clear_confirm', { name: customer.name })}</Typography>
+                    <Typography>{t('ledger.clear_confirm', { name: party.name })}</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                         {t('ledger.clear_note')}
                     </Typography>

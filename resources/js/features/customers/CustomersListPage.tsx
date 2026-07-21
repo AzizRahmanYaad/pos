@@ -30,7 +30,7 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
 import { fetchCustomersPage, type CustomerListItem } from '@/features/customers/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
-import { CustomerLedgerDialog } from '@/features/customers/CustomerLedgerDialog';
+import { PartyLedgerDialog } from '@/features/parties/PartyLedgerDialog';
 import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
 
@@ -280,8 +280,10 @@ export function CustomersListPage() {
             <AddPartyDialog kind="customer" open={addOpen} onClose={() => setAddOpen(false)} />
 
             {ledgerFor && (
-                <CustomerLedgerDialog
-                    customer={ledgerFor}
+                <PartyLedgerDialog
+                    kind="customer"
+                    party={ledgerFor}
+                    listQueryKey="customers-page"
                     open
                     onClose={() => setLedgerFor(null)}
                 />

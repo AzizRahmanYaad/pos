@@ -3,35 +3,41 @@
 namespace App\Support;
 
 use App\Models\BusinessSetting;
-use App\Models\Customer;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Mpdf\Mpdf;
 
 /**
  * Renders a professional, WhatsApp-shareable account statement PDF for a
- * customer's ledger, with the business as the letterhead and a
- * company-name footer.
+ * customer's or supplier's ledger, with the business as the letterhead
+ * and a company-name footer.
  */
-class CustomerLedgerPdf
+class LedgerStatementPdf
 {
     /**
+     * @param  Model  $party  a Customer or Supplier
      * @param  Collection<int, \App\Models\LedgerEntry>  $entries  chronological
+     * @param  'customer'|'supplier'  $kind
      */
-    public function build(Customer $customer, Collection $entries): string
+    public function build(Model $party, Collection $entries, string $kind): string
     {
         $settings = BusinessSetting::current();
 
         $totalDebit = (float) $entries->where('entry_type', 'debit')->sum('amount');
         $totalCredit = (float) $entries->where('entry_type', 'credit')->sum('amount');
-        $balance = $customer->currentBalance();
+        // Ledger convention is the same for both parties: a positive
+        // running balance means the party owes the shop, negative means the
+        // shop owes the party. The blade adapts the wording per kind.
+        $owedToShop = round((float) $party->currentBalance(), 2);
 
-        $html = view('pdf.customer-ledger', [
-            'customer' => $customer,
+        $html = view('pdf.ledger-statement', [
+            'party' => $party,
             'entries' => $entries,
             'settings' => $settings,
+            'kind' => $kind,
             'totalDebit' => $totalDebit,
             'totalCredit' => $totalCredit,
-            'balance' => $balance,
+            'owedToShop' => $owedToShop,
         ])->render();
 
         $rtl = in_array(app()->getLocale(), ['ps', 'prs'], true);

@@ -1,10 +1,25 @@
 @php
-    /** @var \App\Models\Customer $customer */
+    /** @var \Illuminate\Database\Eloquent\Model $party */
     /** @var \Illuminate\Support\Collection $entries */
     /** @var \App\Models\BusinessSetting $settings */
+    /** @var string $kind  customer|supplier */
+    /** @var float $owedToShop  positive = party owes the shop */
     $sym = $settings->currency_symbol ?: '';
     $money = fn ($v) => number_format((float) $v, 2) . ($sym ? ' ' . $sym : '');
-    $balance = round((float) $balance, 2);
+    $owedToShop = round((float) $owedToShop, 2);
+    $partyLabel = $kind === 'supplier' ? __('Supplier') : __('Customer');
+    // For a customer, "owed to shop" is a balance due; for a supplier it is
+    // an advance / prepayment. The reverse sign flips the meaning.
+    if ($owedToShop > 0) {
+        $bg = $kind === 'supplier' ? '#1e6f5c' : '#b3261e';
+        $cap = $kind === 'supplier' ? __('Advance / prepaid') : __('Balance due');
+    } elseif ($owedToShop < 0) {
+        $bg = $kind === 'supplier' ? '#b3261e' : '#1e6f5c';
+        $cap = $kind === 'supplier' ? __('Payable due') : __('Advance / credit');
+    } else {
+        $bg = '#4b5563';
+        $cap = __('Settled');
+    }
 @endphp
 <!DOCTYPE html>
 <html>
@@ -81,21 +96,17 @@
         <tr>
             <td style="width: 58%; padding-right: 12px;">
                 <div class="party-box">
-                    <div class="label">{{ __('Customer') }}</div>
-                    <div class="party-name">{{ $customer->name }}</div>
-                    @if ($customer->phone)<div class="party-line">{{ $customer->phone }}</div>@endif
-                    @if ($customer->address)<div class="party-line">{{ $customer->address }}</div>@endif
+                    <div class="label">{{ $partyLabel }}</div>
+                    <div class="party-name">{{ $party->name }}</div>
+                    @if ($party->phone)<div class="party-line">{{ $party->phone }}</div>@endif
+                    @if ($party->address)<div class="party-line">{{ $party->address }}</div>@endif
                 </div>
             </td>
             <td style="width: 42%;">
-                @php
-                    $bg = $balance > 0 ? '#b3261e' : ($balance < 0 ? '#1e6f5c' : '#4b5563');
-                    $cap = $balance > 0 ? __('Balance due') : ($balance < 0 ? __('Advance / credit') : __('Settled'));
-                @endphp
                 <table style="width:100%; border-collapse:collapse;">
                     <tr>
                         <td bgcolor="{{ $bg }}" style="padding:12px; text-align:center; color:#ffffff; border-radius:6px;">
-                            <div style="font-size:19px; font-weight:bold; color:#ffffff;">{{ $money(abs($balance)) }}</div>
+                            <div style="font-size:19px; font-weight:bold; color:#ffffff;">{{ $money(abs($owedToShop)) }}</div>
                             <div style="font-size:9px; color:#ffffff;">{{ $cap }}</div>
                         </td>
                     </tr>
@@ -155,8 +166,8 @@
                 <td class="num credit">{{ $money($totalCredit) }}</td>
             </tr>
             <tr class="grand">
-                <td>{{ $balance > 0 ? __('Balance Due') : ($balance < 0 ? __('Advance / credit') : __('Settled')) }}</td>
-                <td class="num">{{ $money(abs($balance)) }}</td>
+                <td>{{ $cap }}</td>
+                <td class="num">{{ $money(abs($owedToShop)) }}</td>
             </tr>
         </table>
     @endif

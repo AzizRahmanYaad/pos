@@ -56,6 +56,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('customers', CustomerController::class);
 
         Route::get('/suppliers/{supplier}/ledger', [SupplierController::class, 'ledger']);
+        Route::get('/suppliers/{supplier}/ledger/pdf', [SupplierController::class, 'ledgerPdf']);
+        Route::post('/suppliers/{supplier}/ledger/clear', [SupplierController::class, 'clearLedger']);
         Route::apiResource('suppliers', SupplierController::class);
 
         Route::apiResource('cash-accounts', CashAccountController::class);

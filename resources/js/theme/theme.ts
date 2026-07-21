@@ -12,7 +12,17 @@ const BORDER = '#ECECEF';
 /** Gold sequential ramp (light → dark) for composition charts. */
 export const GOLD_RAMP = ['#E7D28A', '#DCC063', '#C9A227', '#A6852F', '#7E6420', '#5A4715'];
 
+// Latin UI text uses the modern geometric Plus Jakarta Sans; Persian/Dari
+// and Pashto use Vazirmatn, a polished modern Arabic-script face. The two
+// stacks just swap which family leads so each script gets its best font
+// while the other stays available as a fallback (e.g. the آسان حساب mark
+// shown even in English).
+const LATIN_STACK = "'Plus Jakarta Sans', 'Vazirmatn', system-ui, -apple-system, sans-serif";
+const RTL_STACK = "'Vazirmatn', 'Plus Jakarta Sans', system-ui, sans-serif";
+
 export function createAppTheme(direction: 'ltr' | 'rtl') {
+    const fontFamily = direction === 'rtl' ? RTL_STACK : LATIN_STACK;
+
     return createTheme({
         direction,
         palette: {
@@ -25,15 +35,10 @@ export function createAppTheme(direction: 'ltr' | 'rtl') {
         },
         shape: { borderRadius: 12 },
         typography: {
-            fontFamily: [
-                'Vazirmatn',
-                'Noto Sans Arabic',
-                'Instrument Sans',
-                'system-ui',
-                'sans-serif',
-            ].join(','),
-            h4: { fontWeight: 700 },
-            h5: { fontWeight: 700 },
+            fontFamily,
+            h3: { fontWeight: 800, letterSpacing: '-0.02em' },
+            h4: { fontWeight: 800, letterSpacing: '-0.01em' },
+            h5: { fontWeight: 700, letterSpacing: '-0.01em' },
             h6: { fontWeight: 700 },
             button: { textTransform: 'none', fontWeight: 600 },
         },

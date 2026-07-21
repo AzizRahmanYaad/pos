@@ -11,7 +11,17 @@ body,
 }
 
 body {
-    font-family: 'Vazirmatn', 'Noto Sans Arabic', 'Instrument Sans', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Vazirmatn', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* RTL locales lead with Vazirmatn for the crispest Persian/Dari/Pashto. */
+:lang(fa) body,
+:lang(prs) body,
+:lang(ps) body,
+[dir='rtl'] body {
+    font-family: 'Vazirmatn', 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
 @media print {

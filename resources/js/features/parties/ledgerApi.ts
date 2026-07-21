@@ -31,8 +31,22 @@ export interface LedgerPage {
     current_balance: number;
 }
 
+export interface LedgerParty {
+    id: number;
+    name: string;
+    phone: string | null;
+    address?: string | null;
+    current_balance: number;
+}
+
+export async function fetchParty(kind: PartyKind, partyId: number): Promise<LedgerParty> {
+    const { data } = await apiClient.get<{ data: LedgerParty }>(`/${base(kind)}/${partyId}`);
+    return data.data;
+}
+
 export interface LedgerFilters {
     page: number;
+    perPage?: number;
     search?: string;
     from?: string;
     to?: string;
@@ -47,7 +61,7 @@ export async function fetchPartyLedger(
     const { data } = await apiClient.get<LedgerPage>(`/${base(kind)}/${partyId}/ledger`, {
         params: {
             page: filters.page,
-            per_page: 15,
+            per_page: filters.perPage ?? 25,
             ...(filters.search ? { search: filters.search } : {}),
             ...(filters.from ? { from: filters.from } : {}),
             ...(filters.to ? { to: filters.to } : {}),

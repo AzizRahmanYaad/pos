@@ -61,6 +61,7 @@ export interface CreateEmployeePayload {
     designation?: string;
     salary_amount: number;
     salary_type: 'monthly' | 'daily';
+    hire_date?: string;
 }
 
 export async function createEmployee(payload: CreateEmployeePayload) {

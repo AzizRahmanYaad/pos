@@ -40,6 +40,12 @@ import {
     type EmployeeListItem,
 } from '@/features/employees/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { DualDateField } from '@/components/DualDateField';
+
+function todayIso(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
 
 export function EmployeesListPage() {
     const { t } = useTranslation();
@@ -65,6 +71,7 @@ export function EmployeesListPage() {
     const [name, setName] = useState('');
     const [designation, setDesignation] = useState('');
     const [salaryAmount, setSalaryAmount] = useState('');
+    const [hireDate, setHireDate] = useState(todayIso());
 
     const [advancing, setAdvancing] = useState<EmployeeListItem | null>(null);
     const [advanceAmount, setAdvanceAmount] = useState('');
@@ -270,6 +277,12 @@ export function EmployeesListPage() {
                             onChange={(e) => setSalaryAmount(e.target.value)}
                             fullWidth
                         />
+                        <DualDateField
+                            label={t('fields.hire_date')}
+                            value={hireDate}
+                            onChange={setHireDate}
+                            fullWidth
+                        />
                     </Stack>
                 </DialogContent>
                 <DialogActions>
@@ -283,6 +296,7 @@ export function EmployeesListPage() {
                                 designation: designation || undefined,
                                 salary_amount: Number(salaryAmount),
                                 salary_type: 'monthly',
+                                hire_date: hireDate || undefined,
                             })
                         }
                     >

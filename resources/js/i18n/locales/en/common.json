@@ -107,7 +107,8 @@
     "avg_cost": "Avg Cost",
     "value": "Value",
     "salary_type_monthly": "monthly",
-    "salary_type_daily": "daily"
+    "salary_type_daily": "daily",
+    "hire_date": "Hire date"
   },
   "status": {
     "draft": "Draft",
@@ -425,5 +426,12 @@
   "nav_header": {
     "messages": "Messages",
     "notifications": "Notifications"
+  },
+  "calendar": {
+    "gregorian": "Gregorian",
+    "hijri_shamsi": "Hijri Shamsi",
+    "year": "Year",
+    "month": "Month",
+    "day": "Day"
   }
 }

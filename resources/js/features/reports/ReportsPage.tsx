@@ -18,6 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { fetchProfitLoss, fetchInventoryValuation } from '@/features/reports/api';
 import { formatDate } from '@/lib/calendar';
+import { DualDateField } from '@/components/DualDateField';
 
 function startOfMonth(): string {
     const d = new Date();
@@ -53,7 +54,7 @@ export function ReportsPage() {
                 {t('nav.reports')}
             </Typography>
 
-            <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+            <Stack direction="row" spacing={2} alignItems="flex-start" flexWrap="wrap" useFlexGap sx={{ mb: 3 }}>
                 <TextField
                     select
                     label={t('reports_page.report_label')}
@@ -66,20 +67,8 @@ export function ReportsPage() {
                 </TextField>
                 {tab === 'profit-loss' && (
                     <>
-                        <TextField
-                            label={t('fields.from')}
-                            type="date"
-                            value={from}
-                            onChange={(e) => setFrom(e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                        />
-                        <TextField
-                            label={t('fields.to')}
-                            type="date"
-                            value={to}
-                            onChange={(e) => setTo(e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                        />
+                        <DualDateField label={t('fields.from')} value={from} onChange={setFrom} />
+                        <DualDateField label={t('fields.to')} value={to} onChange={setTo} />
                     </>
                 )}
             </Stack>

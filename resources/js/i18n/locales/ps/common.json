@@ -107,7 +107,8 @@
     "avg_cost": "منځنی لګښت",
     "value": "ارزښت",
     "salary_type_monthly": "میاشتنی",
-    "salary_type_daily": "ورځنی"
+    "salary_type_daily": "ورځنی",
+    "hire_date": "د استخدام نېټه"
   },
   "status": {
     "draft": "مسوده",
@@ -425,5 +426,12 @@
   "nav_header": {
     "messages": "پیغامونه",
     "notifications": "خبرتیاوې"
+  },
+  "calendar": {
+    "gregorian": "میلادي",
+    "hijri_shamsi": "هجري شمسي",
+    "year": "کال",
+    "month": "میاشت",
+    "day": "ورځ"
   }
 }

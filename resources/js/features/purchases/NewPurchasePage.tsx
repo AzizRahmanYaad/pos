@@ -18,6 +18,12 @@ import { fetchSuppliers } from '@/features/suppliers/api';
 import { fetchWarehouses } from '@/features/warehouses/api';
 import { fetchProducts } from '@/features/products/api';
 import { createPurchase, type PurchaseItemPayload } from '@/features/purchases/api';
+import { DualDateField } from '@/components/DualDateField';
+
+function todayIso(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
 
 interface ItemRow extends PurchaseItemPayload {
     key: number;
@@ -36,6 +42,7 @@ export function NewPurchasePage() {
 
     const [supplierId, setSupplierId] = useState<number | ''>('');
     const [warehouseId, setWarehouseId] = useState<number | ''>('');
+    const [purchaseDate, setPurchaseDate] = useState<string>(todayIso());
     const [landedCostAmount, setLandedCostAmount] = useState('');
     const [landedCostDescription, setLandedCostDescription] = useState('');
     const [items, setItems] = useState<ItemRow[]>([]);
@@ -72,7 +79,7 @@ export function NewPurchasePage() {
         mutation.mutate({
             supplier_id: supplierId,
             warehouse_id: warehouseId,
-            purchase_date: new Date().toISOString(),
+            purchase_date: purchaseDate || todayIso(),
             items: items.map(({ product_id, quantity, unit_id, unit_cost }) => ({
                 product_id,
                 quantity,
@@ -96,7 +103,7 @@ export function NewPurchasePage() {
                 <Stack spacing={2}>
                     {error && <Alert severity="error">{error}</Alert>}
 
-                    <Stack direction="row" spacing={2}>
+                    <Stack direction="row" spacing={2} alignItems="flex-start" flexWrap="wrap" useFlexGap>
                         <TextField
                             select
                             label={t('nav.suppliers')}
@@ -123,6 +130,7 @@ export function NewPurchasePage() {
                                 </MenuItem>
                             ))}
                         </TextField>
+                        <DualDateField label={t('fields.date')} value={purchaseDate} onChange={setPurchaseDate} />
                     </Stack>
 
                     <Typography variant="h6">{t('purchases_page.items')}</Typography>

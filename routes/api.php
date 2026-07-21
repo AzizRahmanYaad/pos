@@ -62,6 +62,7 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('cash-accounts', CashAccountController::class);
 
+        Route::get('/purchases/{purchase}/pdf', [PurchaseController::class, 'invoicePdf']);
         Route::post('/purchases/{purchase}/receive', [PurchaseController::class, 'receive']);
         Route::post('/purchases/{purchase}/cancel', [PurchaseController::class, 'cancel']);
         Route::apiResource('purchases', PurchaseController::class)->except(['update']);

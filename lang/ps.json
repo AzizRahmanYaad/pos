@@ -18,5 +18,21 @@
     "of": "له",
     "Supplier": "عرضه کوونکی",
     "Advance / prepaid": "مخکینۍ تادیه",
-    "Payable due": "د تادیې وړ"
+    "Payable due": "د تادیې وړ",
+    "Purchase Invoice": "د پیرود فکتور",
+    "Unit cost": "د واحد بیه",
+    "Line total": "د کرښې ټول",
+    "Quantity": "اندازه",
+    "Product": "محصول",
+    "Subtotal": "فرعي مجموع",
+    "Discount": "تخفیف",
+    "Tax": "مالیه",
+    "Landed cost": "ځنګلي لګښت",
+    "Grand Total": "لوی مجموع",
+    "Paid": "تادیه شوی",
+    "Due": "پاتې",
+    "Draft": "مسوده",
+    "Received": "ترلاسه شوی",
+    "Cancelled": "لغوه شوی",
+    "Warehouse": "ګدام"
 }

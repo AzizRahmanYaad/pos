@@ -250,7 +250,11 @@
         "top_products": "اجناس برتر (۳۰ روز اخیر)",
         "recent_sales": "فروش‌های اخیر",
         "qty_sold": "مقدار فروخته شده",
-        "invoice": "فاکتور"
+        "invoice": "فاکتور",
+        "title": "داشبورد",
+        "subtitle": "نمای کلی کسب و کار شما",
+        "no_expenses": "در این ماه مصرفی ثبت نشده است.",
+        "no_sales": "هنوز فروشی نیست."
     },
     "payments_dialog": {
         "receive_payment": "دریافت پرداخت",
@@ -379,5 +383,9 @@
         "search_placeholder": "جستجو بر اساس نام یا تلفن…",
         "count": "{{count}} تهیه کننده",
         "no_suppliers": "تهیه کننده‌ای یافت نشد."
+    },
+    "nav_header": {
+        "messages": "پیام‌ها",
+        "notifications": "اعلان‌ها"
     }
 }

@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     AppBar,
@@ -21,6 +21,9 @@ import {
     useTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import MenuOpenIcon from '@mui/icons-material/MenuOpen';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
@@ -46,6 +49,8 @@ import { useAuthStore } from '@/store/authStore';
 import { fetchBusinessSettings } from '@/features/settings/api';
 
 const DRAWER_WIDTH = 244;
+const COLLAPSED_WIDTH = 76;
+const COLLAPSE_KEY = 'pos_sidebar_collapsed';
 
 interface NavItem {
     to: string;
@@ -86,6 +91,8 @@ export function AppLayout() {
     const location = useLocation();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSE_KEY) === '1');
+    const [fullscreen, setFullscreen] = useState(false);
     const [profileEl, setProfileEl] = useState<null | HTMLElement>(null);
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
@@ -96,44 +103,81 @@ export function AppLayout() {
     const openProfile = (e: MouseEvent<HTMLElement>) => setProfileEl(e.currentTarget);
     const closeProfile = () => setProfileEl(null);
 
+    // Persist the collapsed choice and reflect real fullscreen state.
+    useEffect(() => {
+        localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+    }, [collapsed]);
+
+    useEffect(() => {
+        const onChange = () => setFullscreen(Boolean(document.fullscreenElement));
+        document.addEventListener('fullscreenchange', onChange);
+        return () => document.removeEventListener('fullscreenchange', onChange);
+    }, []);
+
+    const toggleFullscreen = () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen?.();
+        } else {
+            document.documentElement.requestFullscreen?.();
+        }
+    };
+
+    const mini = !isMobile && collapsed;
+    const currentWidth = mini ? COLLAPSED_WIDTH : DRAWER_WIDTH;
+
     const drawerContent = (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 2.5, py: 2.25 }}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: mini ? 'center' : 'flex-start',
+                    gap: 1.25,
+                    px: mini ? 1 : 2.5,
+                    py: 2.25,
+                }}
+            >
                 <LogoMark size={30} />
-                <Typography variant="subtitle1" noWrap fontWeight={800} letterSpacing={0.2}>
-                    {t('app_name')}
-                </Typography>
+                {!mini && (
+                    <Typography variant="subtitle1" noWrap fontWeight={800} letterSpacing={0.2}>
+                        {t('app_name')}
+                    </Typography>
+                )}
             </Box>
 
-            <List sx={{ px: 1.5, py: 0.5, flexGrow: 1 }}>
+            <List sx={{ px: mini ? 1 : 1.5, py: 0.5, flexGrow: 1 }}>
                 {NAV_ITEMS.map((item) => {
                     const selected = location.pathname === item.to;
                     const button = (
-                        <ListItemButton
-                            key={item.to}
-                            component={RouterLink}
-                            to={item.to}
-                            selected={selected}
-                            onClick={() => setMobileOpen(false)}
-                            sx={{ py: 0.85 }}
-                        >
-                            <ListItemIcon
-                                sx={{
-                                    minWidth: 34,
-                                    color: selected ? 'primary.dark' : 'text.secondary',
-                                }}
+                        <Tooltip key={item.to} title={mini ? t(item.labelKey) : ''} placement="right" arrow>
+                            <ListItemButton
+                                component={RouterLink}
+                                to={item.to}
+                                selected={selected}
+                                onClick={() => setMobileOpen(false)}
+                                sx={{ py: 0.85, justifyContent: mini ? 'center' : 'flex-start', px: mini ? 1.25 : 2 }}
                             >
-                                {item.icon}
-                            </ListItemIcon>
-                            <ListItemText
-                                primary={t(item.labelKey)}
-                                primaryTypographyProps={{
-                                    fontSize: 14,
-                                    fontWeight: selected ? 700 : 500,
-                                    color: selected ? 'text.primary' : 'text.secondary',
-                                }}
-                            />
-                        </ListItemButton>
+                                <ListItemIcon
+                                    sx={{
+                                        minWidth: mini ? 0 : 34,
+                                        justifyContent: 'center',
+                                        color: selected ? 'primary.dark' : 'text.secondary',
+                                    }}
+                                >
+                                    {item.icon}
+                                </ListItemIcon>
+                                {!mini && (
+                                    <ListItemText
+                                        primary={t(item.labelKey)}
+                                        primaryTypographyProps={{
+                                            fontSize: 14,
+                                            fontWeight: selected ? 700 : 500,
+                                            color: selected ? 'text.primary' : 'text.secondary',
+                                        }}
+                                    />
+                                )}
+                            </ListItemButton>
+                        </Tooltip>
                     );
 
                     return item.permission ? (
@@ -153,23 +197,33 @@ export function AppLayout() {
             <AppBar
                 position="fixed"
                 sx={{
-                    width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-                    ml: { md: `${DRAWER_WIDTH}px` },
+                    width: { md: `calc(100% - ${currentWidth}px)` },
+                    ml: { md: `${currentWidth}px` },
+                    transition: theme.transitions.create(['width', 'margin'], {
+                        easing: theme.transitions.easing.sharp,
+                        duration: theme.transitions.duration.enteringScreen,
+                    }),
                 }}
             >
                 <Toolbar sx={{ gap: 1 }}>
-                    <IconButton
-                        edge="start"
-                        onClick={() => setMobileOpen((open) => !open)}
-                        sx={{ display: { md: 'none' } }}
-                    >
-                        <MenuIcon />
-                    </IconButton>
+                    <Tooltip title={mini ? t('nav_header.expand_menu') : t('nav_header.collapse_menu')}>
+                        <IconButton
+                            edge="start"
+                            onClick={() => (isMobile ? setMobileOpen((open) => !open) : setCollapsed((c) => !c))}
+                        >
+                            {mini ? <MenuIcon /> : <MenuOpenIcon />}
+                        </IconButton>
+                    </Tooltip>
                     <Typography variant="h6" noWrap fontWeight={700} sx={{ color: 'text.primary' }}>
                         {companyName}
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
 
+                    <Tooltip title={fullscreen ? t('nav_header.exit_fullscreen') : t('nav_header.fullscreen')}>
+                        <IconButton size="small" onClick={toggleFullscreen} sx={{ color: 'text.secondary' }}>
+                            {fullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+                        </IconButton>
+                    </Tooltip>
                     <Tooltip title={t('nav_header.messages')}>
                         <IconButton size="small" sx={{ color: 'text.secondary' }}>
                             <MailOutlineIcon fontSize="small" />
@@ -231,14 +285,22 @@ export function AppLayout() {
                 </Toolbar>
             </AppBar>
 
-            <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
+            <Box component="nav" sx={{ width: { md: currentWidth }, flexShrink: { md: 0 } }}>
                 <Drawer
                     variant={isMobile ? 'temporary' : 'permanent'}
                     open={isMobile ? mobileOpen : true}
                     onClose={() => setMobileOpen(false)}
                     ModalProps={{ keepMounted: true }}
                     sx={{
-                        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
+                        '& .MuiDrawer-paper': {
+                            boxSizing: 'border-box',
+                            width: isMobile ? DRAWER_WIDTH : currentWidth,
+                            overflowX: 'hidden',
+                            transition: theme.transitions.create('width', {
+                                easing: theme.transitions.easing.sharp,
+                                duration: theme.transitions.duration.enteringScreen,
+                            }),
+                        },
                     }}
                 >
                     {drawerContent}
@@ -250,7 +312,11 @@ export function AppLayout() {
                 sx={{
                     flexGrow: 1,
                     p: { xs: 2, md: 3 },
-                    width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+                    width: { md: `calc(100% - ${currentWidth}px)` },
+                    transition: theme.transitions.create('width', {
+                        easing: theme.transitions.easing.sharp,
+                        duration: theme.transitions.duration.enteringScreen,
+                    }),
                 }}
             >
                 <Toolbar />

@@ -40,6 +40,48 @@ class ProductController extends Controller
         return ProductResource::collection($products);
     }
 
+    public function listPdf(\App\Support\ListReportPdf $pdf)
+    {
+        $this->authorize('viewAny', Product::class);
+
+        $products = Product::query()
+            ->with(['category', 'unit', 'stocks'])
+            ->when(request('search'), function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%")
+                        ->orWhere('barcode', $search);
+                });
+            })
+            ->orderBy('name')
+            ->get();
+
+        $sym = \App\Models\BusinessSetting::current()->currency_symbol ?: '';
+        $money = fn ($v) => number_format((float) $v, 2).($sym ? ' '.$sym : '');
+        $qty = fn ($v) => rtrim(rtrim(number_format((float) $v, 2), '0'), '.');
+
+        $columns = [
+            ['label' => __('Product'), 'width' => '32%'],
+            ['label' => __('SKU'), 'width' => '16%'],
+            ['label' => __('Category'), 'width' => '20%'],
+            ['label' => __('Sale price'), 'align' => 'right', 'width' => '16%'],
+            ['label' => __('Stock'), 'align' => 'right', 'width' => '16%'],
+        ];
+
+        $rows = $products->map(fn ($p) => [
+            $p->name,
+            $p->sku ?: '—',
+            $p->category?->name ?: '—',
+            $money($p->sale_price),
+            $p->track_inventory ? $qty($p->stocks->sum('quantity')) : '—',
+        ])->all();
+
+        return response($pdf->build(__('Products'), $columns, $rows, __('Product catalogue')), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="products-'.now()->format('Ymd').'.pdf"',
+        ]);
+    }
+
     public function store(StoreProductRequest $request): ProductResource
     {
         $product = Product::create($request->validated());

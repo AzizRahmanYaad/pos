@@ -27,8 +27,20 @@ interface CollectionResponse<T> {
     data: T[];
 }
 
-export async function fetchPayrollRuns(): Promise<PayrollRunDto[]> {
-    const { data } = await apiClient.get<CollectionResponse<PayrollRunDto>>('/payroll-runs');
+export interface PayrollRunFilters {
+    from?: string;
+    to?: string;
+    employeeId?: number;
+}
+
+export async function fetchPayrollRuns(filters: PayrollRunFilters = {}): Promise<PayrollRunDto[]> {
+    const { data } = await apiClient.get<CollectionResponse<PayrollRunDto>>('/payroll-runs', {
+        params: {
+            ...(filters.from ? { from: filters.from } : {}),
+            ...(filters.to ? { to: filters.to } : {}),
+            ...(filters.employeeId ? { employee_id: filters.employeeId } : {}),
+        },
+    });
     return data.data;
 }
 

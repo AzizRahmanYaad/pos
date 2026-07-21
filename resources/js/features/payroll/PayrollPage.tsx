@@ -45,8 +45,18 @@ export function PayrollPage() {
     const theme = useTheme();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { data: runs, isLoading } = useQuery({ queryKey: ['payroll-runs'], queryFn: fetchPayrollRuns });
+    const [fromFilter, setFromFilter] = useState('');
+    const [toFilter, setToFilter] = useState('');
+    const [employeeFilter, setEmployeeFilter] = useState<number | ''>('');
+    const filters = { from: fromFilter || undefined, to: toFilter || undefined, employeeId: employeeFilter || undefined };
+
+    const { data: runs, isLoading } = useQuery({
+        queryKey: ['payroll-runs', filters],
+        queryFn: () => fetchPayrollRuns(filters),
+    });
     const { data: employees } = useQuery({ queryKey: ['employees'], queryFn: () => fetchEmployees() });
+
+    const hasFilters = Boolean(fromFilter || toFilter || employeeFilter);
 
     const [newOpen, setNewOpen] = useState(false);
     const [employeeId, setEmployeeId] = useState<number | ''>('');
@@ -96,6 +106,47 @@ export function PayrollPage() {
                     {t('payroll_page.new_run')}
                 </Button>
             </Stack>
+
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+                <Stack
+                    direction={{ xs: 'column', md: 'row' }}
+                    spacing={1.5}
+                    alignItems={{ md: 'flex-start' }}
+                    flexWrap="wrap"
+                    useFlexGap
+                >
+                    <TextField
+                        select
+                        size="small"
+                        label={t('nav.employees')}
+                        value={employeeFilter}
+                        onChange={(e) => setEmployeeFilter(e.target.value === '' ? '' : Number(e.target.value))}
+                        sx={{ minWidth: 200 }}
+                    >
+                        <MenuItem value="">{t('payroll_page.all_employees')}</MenuItem>
+                        {employees?.map((emp) => (
+                            <MenuItem key={emp.id} value={emp.id}>
+                                {emp.name}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+                    <DualDateField label={t('fields.from')} value={fromFilter} onChange={setFromFilter} />
+                    <DualDateField label={t('fields.to')} value={toFilter} onChange={setToFilter} />
+                    {hasFilters && (
+                        <Button
+                            size="small"
+                            color="inherit"
+                            onClick={() => {
+                                setFromFilter('');
+                                setToFilter('');
+                                setEmployeeFilter('');
+                            }}
+                        >
+                            {t('expenses_page.clear_dates')}
+                        </Button>
+                    )}
+                </Stack>
+            </Paper>
 
             <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
                 <TableContainer>

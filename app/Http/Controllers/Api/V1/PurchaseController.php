@@ -24,6 +24,12 @@ class PurchaseController extends Controller
                 AllowedFilter::exact('supplier_id'),
                 AllowedFilter::exact('warehouse_id'),
                 AllowedFilter::exact('status'),
+                AllowedFilter::callback('search', function ($query, $value) {
+                    $query->where(function ($query) use ($value) {
+                        $query->where('purchase_number', 'like', "%{$value}%")
+                            ->orWhereHas('supplier', fn ($q) => $q->where('name', 'like', "%{$value}%"));
+                    });
+                }),
             )
             ->allowedSorts('purchase_date', 'created_at', 'grand_total')
             ->with(['supplier', 'warehouse'])
@@ -50,6 +56,20 @@ class PurchaseController extends Controller
         $this->authorize('viewAny', Purchase::class);
 
         return new PurchaseResource($purchase->load(['supplier', 'warehouse', 'items.product', 'landedCosts']));
+    }
+
+    public function invoicePdf(Purchase $purchase, \App\Support\PurchaseInvoicePdf $pdf)
+    {
+        $this->authorize('viewAny', Purchase::class);
+
+        $purchase->load(['supplier', 'warehouse', 'items.product', 'landedCosts']);
+
+        $filename = 'purchase-'.\Illuminate\Support\Str::slug($purchase->purchase_number).'.pdf';
+
+        return response($pdf->build($purchase), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ]);
     }
 
     public function receive(Purchase $purchase, ReceivePurchaseAction $receivePurchase): PurchaseResource

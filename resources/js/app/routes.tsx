@@ -7,6 +7,7 @@ import { CustomersListPage } from '@/features/customers/CustomersListPage';
 import { SuppliersListPage } from '@/features/suppliers/SuppliersListPage';
 import { PurchasesListPage } from '@/features/purchases/PurchasesListPage';
 import { NewPurchasePage } from '@/features/purchases/NewPurchasePage';
+import { PurchaseDetailPage } from '@/features/purchases/PurchaseDetailPage';
 import { PosPage } from '@/features/pos/PosPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 import { EmployeesListPage } from '@/features/employees/EmployeesListPage';
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
                     { path: 'suppliers/:id/ledger', element: guarded('purchases.manage', <PartyLedgerPage kind="supplier" />) },
                     { path: 'purchases', element: guarded('purchases.manage', <PurchasesListPage />) },
                     { path: 'purchases/new', element: guarded('purchases.manage', <NewPurchasePage />) },
+                    { path: 'purchases/:id', element: guarded('purchases.manage', <PurchaseDetailPage />) },
                     { path: 'expenses', element: guarded('expenses.manage', <ExpensesPage />) },
                     { path: 'employees', element: guarded('employees.manage', <EmployeesListPage />) },
                     { path: 'payroll', element: guarded('payroll.manage', <PayrollPage />) },

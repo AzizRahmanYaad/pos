@@ -18,5 +18,21 @@
     "of": "از",
     "Supplier": "تهیه کننده",
     "Advance / prepaid": "پیش‌پرداخت",
-    "Payable due": "قابل پرداخت"
+    "Payable due": "قابل پرداخت",
+    "Purchase Invoice": "فاکتور خرید",
+    "Unit cost": "قیمت واحد",
+    "Line total": "مجموع قلم",
+    "Quantity": "تعداد",
+    "Product": "محصول",
+    "Subtotal": "مجموع فرعی",
+    "Discount": "تخفیف",
+    "Tax": "مالیه",
+    "Landed cost": "هزینه‌های جانبی",
+    "Grand Total": "مجموع کل",
+    "Paid": "پرداخت شده",
+    "Due": "باقی مانده",
+    "Draft": "پیش‌نویس",
+    "Received": "دریافت شده",
+    "Cancelled": "لغو شده",
+    "Warehouse": "گدام"
 }

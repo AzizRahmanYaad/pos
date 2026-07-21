@@ -262,7 +262,8 @@
     "wa_message": "د معاش راپور {{period}} د {{company}} څخه — د خالص معاش مجموعه {{total}}",
     "all_employees": "ټول کارمندان",
     "date_hint": "معاش د ټاکل شوې نېټې میاشتې لپاره اجرا کیږي.",
-    "execute": "اجرا"
+    "execute": "اجرا",
+    "advances_note": "پیش‌ورکړې په اتوماتيک ډول کمیږي."
   },
   "period_closing_page": {
     "close_a_period": "یوه دوره وتړئ",

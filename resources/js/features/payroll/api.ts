@@ -48,8 +48,18 @@ export async function downloadPayrollReportPdf(
     return { url: URL.createObjectURL(blob), filename, blob };
 }
 
-export async function createPayrollRun(employeeId: number, date: string): Promise<PayrollRunDto> {
-    const { data } = await apiClient.post('/payroll-runs', { employee_id: employeeId, date });
+export async function createPayrollRun(
+    employeeId: number,
+    date: string,
+    bonuses = 0,
+    otherDeductions = 0,
+): Promise<PayrollRunDto> {
+    const { data } = await apiClient.post('/payroll-runs', {
+        employee_id: employeeId,
+        date,
+        bonuses,
+        other_deductions: otherDeductions,
+    });
     return data.data;
 }
 

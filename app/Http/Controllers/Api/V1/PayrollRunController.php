@@ -37,6 +37,8 @@ class PayrollRunController extends Controller
             generatedBy: $request->user()->id,
             employeeId: $employee->id,
             periodDate: $date->toDateString(),
+            bonuses: (float) ($request->validated('bonuses') ?? 0),
+            otherDeductions: (float) ($request->validated('other_deductions') ?? 0),
         );
 
         return new PayrollRunResource($run);

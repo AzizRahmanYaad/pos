@@ -20,6 +20,8 @@ class StorePayrollRunRequest extends FormRequest
         return [
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
             'date' => ['required', 'date'],
+            'bonuses' => ['nullable', 'numeric', 'min:0'],
+            'other_deductions' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

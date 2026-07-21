@@ -51,14 +51,23 @@ export function PayrollPage() {
     const [newOpen, setNewOpen] = useState(false);
     const [employeeId, setEmployeeId] = useState<number | ''>('');
     const [date, setDate] = useState(todayIso());
+    const [bonuses, setBonuses] = useState('');
+    const [deductions, setDeductions] = useState('');
     const [error, setError] = useState<string | null>(null);
 
+    const selectedEmployee = employees?.find((e) => e.id === employeeId);
+    const estimatedNet = selectedEmployee
+        ? Math.max(0, selectedEmployee.salary_amount + (Number(bonuses) || 0) - (Number(deductions) || 0))
+        : null;
+
     const createMutation = useMutation({
-        mutationFn: () => createPayrollRun(employeeId as number, date),
+        mutationFn: () => createPayrollRun(employeeId as number, date, Number(bonuses) || 0, Number(deductions) || 0),
         onSuccess: (run) => {
             queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
             setNewOpen(false);
             setError(null);
+            setBonuses('');
+            setDeductions('');
             navigate(`/payroll/${run.id}`);
         },
         onError: () => setError(t('payroll_page.run_exists')),
@@ -211,8 +220,46 @@ export function PayrollPage() {
                             ))}
                         </TextField>
                         <DualDateField label={t('fields.date')} value={date} onChange={setDate} fullWidth />
+                        <Stack direction="row" spacing={1.5}>
+                            <TextField
+                                label={t('payroll_page.bonuses')}
+                                type="number"
+                                value={bonuses}
+                                onChange={(e) => setBonuses(e.target.value)}
+                                fullWidth
+                            />
+                            <TextField
+                                label={t('payroll_page.deductions')}
+                                type="number"
+                                value={deductions}
+                                onChange={(e) => setDeductions(e.target.value)}
+                                fullWidth
+                            />
+                        </Stack>
+                        {estimatedNet !== null && (
+                            <Box
+                                sx={{
+                                    p: 1.5,
+                                    borderRadius: 2,
+                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <Typography variant="body2" color="text.secondary">
+                                    {t('fields.net_pay')}
+                                </Typography>
+                                <Typography variant="h6" fontWeight={800} color="primary.dark">
+                                    {estimatedNet.toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                                </Typography>
+                            </Box>
+                        )}
                         <Typography variant="caption" color="text.secondary">
-                            {t('payroll_page.date_hint')}
+                            {t('payroll_page.date_hint')} {t('payroll_page.advances_note')}
                         </Typography>
                     </Stack>
                 </DialogContent>

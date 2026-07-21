@@ -15,6 +15,7 @@ import { PeriodClosingPage } from '@/features/period-closing/PeriodClosingPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { UsersPage } from '@/features/users/UsersPage';
+import { PartyLedgerPage } from '@/features/parties/PartyLedgerPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { RequirePermission } from '@/components/RequirePermission';
 import { useAuthStore } from '@/store/authStore';
@@ -56,7 +57,9 @@ export const router = createBrowserRouter([
                     { path: 'pos', element: guarded('pos.access', <PosPage />) },
                     { path: 'products', element: guarded('products.manage', <ProductsListPage />) },
                     { path: 'customers', element: guarded('sales.manage', <CustomersListPage />) },
+                    { path: 'customers/:id/ledger', element: guarded('sales.manage', <PartyLedgerPage kind="customer" />) },
                     { path: 'suppliers', element: guarded('purchases.manage', <SuppliersListPage />) },
+                    { path: 'suppliers/:id/ledger', element: guarded('purchases.manage', <PartyLedgerPage kind="supplier" />) },
                     { path: 'purchases', element: guarded('purchases.manage', <PurchasesListPage />) },
                     { path: 'purchases/new', element: guarded('purchases.manage', <NewPurchasePage />) },
                     { path: 'expenses', element: guarded('expenses.manage', <ExpensesPage />) },

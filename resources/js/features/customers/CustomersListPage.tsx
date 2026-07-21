@@ -28,9 +28,9 @@ import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { fetchCustomersPage, type CustomerListItem } from '@/features/customers/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
-import { PartyLedgerDialog } from '@/features/parties/PartyLedgerDialog';
 import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
 
@@ -48,6 +48,7 @@ function initials(name: string): string {
 
 export function CustomersListPage() {
     const { t } = useTranslation();
+    const navigate = useNavigate();
 
     const [page, setPage] = useState(0);
     const [perPage, setPerPage] = useState(10);
@@ -70,7 +71,6 @@ export function CustomersListPage() {
 
     const [addOpen, setAddOpen] = useState(false);
     const [paying, setPaying] = useState<CustomerListItem | null>(null);
-    const [ledgerFor, setLedgerFor] = useState<CustomerListItem | null>(null);
 
     return (
         <Box>
@@ -225,7 +225,7 @@ export function CustomersListPage() {
                                                 <IconButton
                                                     size="small"
                                                     color="primary"
-                                                    onClick={() => setLedgerFor(customer)}
+                                                    onClick={() => navigate(`/customers/${customer.id}/ledger`)}
                                                 >
                                                     <MenuBookOutlinedIcon fontSize="small" />
                                                 </IconButton>
@@ -278,16 +278,6 @@ export function CustomersListPage() {
             </Paper>
 
             <AddPartyDialog kind="customer" open={addOpen} onClose={() => setAddOpen(false)} />
-
-            {ledgerFor && (
-                <PartyLedgerDialog
-                    kind="customer"
-                    party={ledgerFor}
-                    listQueryKey="customers-page"
-                    open
-                    onClose={() => setLedgerFor(null)}
-                />
-            )}
 
             {paying && (
                 <PaymentDialog

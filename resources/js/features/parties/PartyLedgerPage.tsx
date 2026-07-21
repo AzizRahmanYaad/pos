@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
     Avatar,
     Box,
@@ -28,7 +29,7 @@ import {
     Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import CloseIcon from '@mui/icons-material/Close';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOutlined';
@@ -38,6 +39,7 @@ import { useTranslation } from 'react-i18next';
 import {
     clearPartyLedger,
     downloadPartyLedgerPdf,
+    fetchParty,
     fetchPartyLedger,
     type PartyKind,
 } from '@/features/parties/ledgerApi';
@@ -45,33 +47,12 @@ import { fetchBusinessSettings } from '@/features/settings/api';
 import { Can } from '@/components/Can';
 import { formatDate } from '@/lib/calendar';
 
-export interface LedgerParty {
-    id: number;
-    name: string;
-    phone: string | null;
-    current_balance: number;
-}
-
-interface PartyLedgerDialogProps {
-    kind: PartyKind;
-    party: LedgerParty;
-    /** React Query key of the list to refresh after clearing. */
-    listQueryKey: string;
-    open: boolean;
-    onClose: () => void;
-}
-
 /** "App\Models\Sale" → "sale" */
 function sourceKey(sourceType: string | null): string {
     if (!sourceType) return 'manual';
     return sourceType.split('\\').pop()!.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
 }
 
-/**
- * Describe a signed balance for a party. A customer's positive balance
- * means they owe the shop; a supplier's negative balance means the shop
- * owes them — so the red/green tone and wording flip by kind.
- */
 function describeBalance(
     kind: PartyKind,
     balance: number,
@@ -95,11 +76,17 @@ function balanceColor(kind: PartyKind, rb: number): string {
     return rb < 0 ? 'error.main' : 'success.main';
 }
 
-export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: PartyLedgerDialogProps) {
+export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
     const { t, i18n } = useTranslation();
     const theme = useTheme();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const partyId = Number(useParams().id);
+    const listPath = kind === 'customer' ? '/customers' : '/suppliers';
+    const listQueryKey = kind === 'customer' ? 'customers-page' : 'suppliers-page';
+
     const [page, setPage] = useState(0);
+    const [perPage, setPerPage] = useState(25);
     const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
     const [from, setFrom] = useState('');
@@ -116,40 +103,42 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
         return () => clearTimeout(handle);
     }, [searchInput]);
 
+    const { data: party } = useQuery({
+        queryKey: [`${kind}-detail`, partyId],
+        queryFn: () => fetchParty(kind, partyId),
+    });
+
     const { data, isLoading } = useQuery({
-        queryKey: [`${kind}-ledger`, party.id, page, search, from, to, includeArchived],
+        queryKey: [`${kind}-ledger`, partyId, page, perPage, search, from, to, includeArchived],
         queryFn: () =>
-            fetchPartyLedger(kind, party.id, {
+            fetchPartyLedger(kind, partyId, {
                 page: page + 1,
+                perPage,
                 search: search || undefined,
                 from: from || undefined,
                 to: to || undefined,
                 includeArchived,
             }),
-        enabled: open,
         placeholderData: keepPreviousData,
     });
 
-    const { data: settings } = useQuery({
-        queryKey: ['business-settings'],
-        queryFn: fetchBusinessSettings,
-        enabled: open,
-    });
+    const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
 
     const clearMutation = useMutation({
-        mutationFn: () => clearPartyLedger(kind, party.id),
+        mutationFn: () => clearPartyLedger(kind, partyId),
         onSuccess: () => {
             setConfirmClear(false);
-            queryClient.invalidateQueries({ queryKey: [`${kind}-ledger`, party.id] });
+            queryClient.invalidateQueries({ queryKey: [`${kind}-ledger`, partyId] });
+            queryClient.invalidateQueries({ queryKey: [`${kind}-detail`, partyId] });
             queryClient.invalidateQueries({ queryKey: [listQueryKey] });
         },
     });
 
-    const balance = data?.current_balance ?? party.current_balance;
+    const balance = data?.current_balance ?? party?.current_balance ?? 0;
     const canClear = Math.abs(balance) < 0.005;
     const summary = describeBalance(kind, balance, t);
+    const name = party?.name ?? '…';
 
-    // Debit/credit meaning flips between customer and supplier.
     const debit = kind === 'customer'
         ? { color: 'error.main', sign: '+' }
         : { color: 'success.main', sign: '−' };
@@ -167,7 +156,7 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
     const openPdf = async () => {
         setBusyPdf(true);
         try {
-            const { url } = await downloadPartyLedgerPdf(kind, party.id, currentFilters);
+            const { url } = await downloadPartyLedgerPdf(kind, partyId, currentFilters);
             window.open(url, '_blank');
             setTimeout(() => URL.revokeObjectURL(url), 60_000);
         } finally {
@@ -178,10 +167,10 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
     const shareWhatsApp = async () => {
         setBusyPdf(true);
         try {
-            const { url, filename, blob } = await downloadPartyLedgerPdf(kind, party.id, currentFilters);
+            const { url, filename, blob } = await downloadPartyLedgerPdf(kind, partyId, currentFilters);
             const message = t('ledger.wa_message', {
                 company: settings?.company_name ?? '',
-                name: party.name,
+                name,
                 summary: summary.label,
             });
             const file = new File([blob], filename, { type: 'application/pdf' });
@@ -192,7 +181,7 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
                     await nav.share({ files: [file], text: message });
                     return;
                 } catch {
-                    /* cancelled — fall through to download + chat */
+                    /* cancelled — fall through */
                 }
             }
 
@@ -200,7 +189,7 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
             anchor.href = url;
             anchor.download = filename;
             anchor.click();
-            const phone = (party.phone ?? '').replace(/\D/g, '');
+            const phone = (party?.phone ?? '').replace(/\D/g, '');
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
             setTimeout(() => URL.revokeObjectURL(url), 60_000);
         } finally {
@@ -209,41 +198,41 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
     };
 
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-            <DialogTitle sx={{ pb: 1.5 }}>
-                <Stack direction="row" alignItems="center" spacing={1.5}>
-                    <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.9) }}>
-                        <MenuBookOutlinedIcon />
-                    </Avatar>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="h6" fontWeight={700} noWrap>
-                            {t('ledger.title', { name: party.name })}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            {party.phone ?? '—'}
-                        </Typography>
-                    </Box>
-                    <Chip color={summary.tone} label={summary.label} sx={{ fontWeight: 700 }} />
-                    <IconButton onClick={onClose} size="small">
-                        <CloseIcon />
-                    </IconButton>
-                </Stack>
-            </DialogTitle>
+        <Box>
+            {/* Header */}
+            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
+                <IconButton onClick={() => navigate(listPath)} aria-label={t('actions.cancel')}>
+                    <ArrowBackIcon />
+                </IconButton>
+                <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.9) }}>
+                    <MenuBookOutlinedIcon />
+                </Avatar>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="h5" fontWeight={800} noWrap>
+                        {t('ledger.title', { name })}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        {party?.phone ?? '—'}
+                    </Typography>
+                </Box>
+                <Chip color={summary.tone} label={summary.label} sx={{ fontWeight: 700, height: 32 }} />
+            </Stack>
 
-            <DialogContent sx={{ pt: 0 }}>
-                {/* Filters + actions */}
+            {/* Toolbar */}
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
                 <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
+                    direction={{ xs: 'column', md: 'row' }}
                     spacing={1.5}
-                    sx={{ mb: 1.5 }}
-                    alignItems={{ sm: 'center' }}
+                    alignItems={{ md: 'center' }}
+                    flexWrap="wrap"
+                    useFlexGap
                 >
                     <TextField
                         size="small"
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
                         placeholder={t('ledger.search_placeholder')}
-                        sx={{ flex: 1, minWidth: 160 }}
+                        sx={{ flex: 1, minWidth: 180 }}
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start">
@@ -276,26 +265,25 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
                         InputLabelProps={{ shrink: true }}
                         sx={{ width: 160 }}
                     />
+                    <Box sx={{ flexGrow: 1 }} />
                     <Tooltip title={t('ledger.download_pdf')}>
                         <span>
                             <IconButton
-                                size="small"
                                 color="primary"
                                 aria-label={t('ledger.download_pdf')}
                                 disabled={busyPdf}
                                 onClick={openPdf}
                             >
-                                <PictureAsPdfOutlinedIcon fontSize="small" />
+                                <PictureAsPdfOutlinedIcon />
                             </IconButton>
                         </span>
                     </Tooltip>
                     <Button
-                        size="small"
                         variant="contained"
                         disabled={busyPdf}
                         startIcon={<WhatsAppIcon />}
                         onClick={shareWhatsApp}
-                        sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' }, textTransform: 'none' }}
+                        sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
                     >
                         {t('ledger.whatsapp')}
                     </Button>
@@ -303,7 +291,6 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
                         <Tooltip title={canClear ? '' : t('ledger.clear_blocked')}>
                             <span>
                                 <Button
-                                    size="small"
                                     color="error"
                                     variant="outlined"
                                     startIcon={<CleaningServicesOutlinedIcon />}
@@ -317,8 +304,7 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
                     </Can>
                 </Stack>
 
-                {/* Legend */}
-                <Stack direction="row" spacing={2} sx={{ mb: 1.5 }} flexWrap="wrap">
+                <Stack direction="row" spacing={2} sx={{ mt: 1.5 }} flexWrap="wrap" alignItems="center">
                     <Stack direction="row" spacing={0.5} alignItems="center">
                         <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: debit.color }} />
                         <Typography variant="caption" color="text.secondary">
@@ -350,136 +336,139 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
                         }
                     />
                 </Stack>
+            </Paper>
 
-                <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
-                    <TableContainer sx={{ maxHeight: 420 }}>
-                        <Table size="small" stickyHeader>
-                            <TableHead>
-                                <TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'action.hover' } }}>
-                                    <TableCell>{t('fields.date')}</TableCell>
-                                    <TableCell>{t('fields.description')}</TableCell>
-                                    <TableCell align="right">{t(`ledger.debit_${kind}`)}</TableCell>
-                                    <TableCell align="right">{t(`ledger.credit_${kind}`)}</TableCell>
-                                    <TableCell align="right">{t('fields.balance')}</TableCell>
+            {/* Ledger table */}
+            <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                <TableContainer>
+                    <Table size="small">
+                        <TableHead>
+                            <TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'action.hover' } }}>
+                                <TableCell>{t('fields.date')}</TableCell>
+                                <TableCell>{t('fields.description')}</TableCell>
+                                <TableCell align="right">{t(`ledger.debit_${kind}`)}</TableCell>
+                                <TableCell align="right">{t(`ledger.credit_${kind}`)}</TableCell>
+                                <TableCell align="right">{t('fields.balance')}</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {isLoading && (
+                                <TableRow>
+                                    <TableCell colSpan={5}>
+                                        <Box sx={{ py: 5, textAlign: 'center' }}>
+                                            <CircularProgress size={28} />
+                                        </Box>
+                                    </TableCell>
                                 </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {isLoading && (
-                                    <TableRow>
-                                        <TableCell colSpan={5}>
-                                            <Box sx={{ py: 4, textAlign: 'center' }}>
-                                                <CircularProgress size={26} />
-                                            </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                                {data?.data.map((entry) => (
-                                    <TableRow
-                                        key={entry.id}
-                                        hover
-                                        sx={entry.archived_at ? { opacity: 0.55 } : undefined}
-                                    >
-                                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                                            {formatDate(entry.transaction_date, i18n.language)}
-                                            {entry.archived_at && (
+                            )}
+                            {data?.data.map((entry) => (
+                                <TableRow
+                                    key={entry.id}
+                                    hover
+                                    sx={entry.archived_at ? { opacity: 0.55 } : undefined}
+                                >
+                                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                        {formatDate(entry.transaction_date, i18n.language)}
+                                        {entry.archived_at && (
+                                            <Chip
+                                                size="small"
+                                                variant="outlined"
+                                                label={t('ledger.cleared_chip')}
+                                                sx={{ ml: 0.75, height: 18, fontSize: 10 }}
+                                            />
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                            {entry.source_type && (
                                                 <Chip
                                                     size="small"
                                                     variant="outlined"
-                                                    label={t('ledger.cleared_chip')}
-                                                    sx={{ ml: 0.75, height: 18, fontSize: 10 }}
+                                                    label={t(`ledger.source_${sourceKey(entry.source_type)}`, {
+                                                        defaultValue: sourceKey(entry.source_type),
+                                                    })}
+                                                    sx={{ height: 20, fontSize: 11 }}
                                                 />
                                             )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                                                {entry.source_type && (
-                                                    <Chip
-                                                        size="small"
-                                                        variant="outlined"
-                                                        label={t(`ledger.source_${sourceKey(entry.source_type)}`, {
-                                                            defaultValue: sourceKey(entry.source_type),
-                                                        })}
-                                                        sx={{ height: 20, fontSize: 11 }}
-                                                    />
-                                                )}
-                                                <Typography variant="body2">
-                                                    {entry.description ?? '—'}
-                                                </Typography>
-                                            </Stack>
-                                            {entry.created_by && (
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {entry.created_by}
-                                                </Typography>
-                                            )}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            {entry.entry_type === 'debit' ? (
-                                                <Typography variant="body2" fontWeight={700} sx={{ color: debit.color }}>
-                                                    {debit.sign}
-                                                    {entry.amount.toFixed(2)}
-                                                </Typography>
-                                            ) : (
-                                                <Typography variant="body2" color="text.disabled">
-                                                    —
-                                                </Typography>
-                                            )}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            {entry.entry_type === 'credit' ? (
-                                                <Typography variant="body2" fontWeight={700} sx={{ color: credit.color }}>
-                                                    {credit.sign}
-                                                    {entry.amount.toFixed(2)}
-                                                </Typography>
-                                            ) : (
-                                                <Typography variant="body2" color="text.disabled">
-                                                    —
-                                                </Typography>
-                                            )}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <Typography
-                                                variant="body2"
-                                                fontWeight={700}
-                                                sx={{ color: balanceColor(kind, entry.running_balance) }}
-                                            >
-                                                {entry.running_balance.toFixed(2)}
+                                            <Typography variant="body2">{entry.description ?? '—'}</Typography>
+                                        </Stack>
+                                        {entry.created_by && (
+                                            <Typography variant="caption" color="text.secondary">
+                                                {entry.created_by}
                                             </Typography>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {data && data.data.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={5}>
-                                            <Box sx={{ py: 5, textAlign: 'center' }}>
-                                                <MenuBookOutlinedIcon
-                                                    sx={{ fontSize: 38, color: 'text.disabled', mb: 1 }}
-                                                />
-                                                <Typography color="text.secondary">
-                                                    {t('ledger.no_entries')}
-                                                </Typography>
-                                            </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                    <TablePagination
-                        component="div"
-                        count={data?.meta.total ?? 0}
-                        page={page}
-                        onPageChange={(_, newPage) => setPage(newPage)}
-                        rowsPerPage={data?.meta.per_page ?? 15}
-                        rowsPerPageOptions={[]}
-                    />
-                </Paper>
-            </DialogContent>
+                                        )}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        {entry.entry_type === 'debit' ? (
+                                            <Typography variant="body2" fontWeight={700} sx={{ color: debit.color }}>
+                                                {debit.sign}
+                                                {entry.amount.toFixed(2)}
+                                            </Typography>
+                                        ) : (
+                                            <Typography variant="body2" color="text.disabled">
+                                                —
+                                            </Typography>
+                                        )}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        {entry.entry_type === 'credit' ? (
+                                            <Typography variant="body2" fontWeight={700} sx={{ color: credit.color }}>
+                                                {credit.sign}
+                                                {entry.amount.toFixed(2)}
+                                            </Typography>
+                                        ) : (
+                                            <Typography variant="body2" color="text.disabled">
+                                                —
+                                            </Typography>
+                                        )}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <Typography
+                                            variant="body2"
+                                            fontWeight={700}
+                                            sx={{ color: balanceColor(kind, entry.running_balance) }}
+                                        >
+                                            {entry.running_balance.toFixed(2)}
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {data && data.data.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5}>
+                                        <Box sx={{ py: 6, textAlign: 'center' }}>
+                                            <MenuBookOutlinedIcon
+                                                sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }}
+                                            />
+                                            <Typography color="text.secondary">
+                                                {t('ledger.no_entries')}
+                                            </Typography>
+                                        </Box>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                <TablePagination
+                    component="div"
+                    count={data?.meta.total ?? 0}
+                    page={page}
+                    onPageChange={(_, newPage) => setPage(newPage)}
+                    rowsPerPage={perPage}
+                    onRowsPerPageChange={(e) => {
+                        setPerPage(Number(e.target.value));
+                        setPage(0);
+                    }}
+                    rowsPerPageOptions={[25, 50, 100]}
+                />
+            </Paper>
 
-            {/* Clear-ledger confirmation */}
+            {/* Clear confirmation */}
             <Dialog open={confirmClear} onClose={() => setConfirmClear(false)} maxWidth="xs" fullWidth>
                 <DialogTitle>{t('ledger.clear_title')}</DialogTitle>
                 <DialogContent>
-                    <Typography>{t('ledger.clear_confirm', { name: party.name })}</Typography>
+                    <Typography>{t('ledger.clear_confirm', { name })}</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                         {t('ledger.clear_note')}
                     </Typography>
@@ -497,6 +486,6 @@ export function PartyLedgerDialog({ kind, party, listQueryKey, open, onClose }: 
                     </Button>
                 </DialogActions>
             </Dialog>
-        </Dialog>
+        </Box>
     );
 }

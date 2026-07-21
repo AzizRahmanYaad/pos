@@ -21,9 +21,17 @@ class PayrollRunController extends Controller
     {
         $this->authorize('viewAny', PayrollRun::class);
 
-        return PayrollRunResource::collection(
-            PayrollRun::query()->with(['employee', 'items.employee'])->orderByDesc('period_year')->orderByDesc('period_month')->orderByDesc('id')->get()
-        );
+        $runs = PayrollRun::query()
+            ->with(['employee', 'items.employee'])
+            ->when(request('from'), fn ($query, $from) => $query->whereDate('period_date', '>=', $from))
+            ->when(request('to'), fn ($query, $to) => $query->whereDate('period_date', '<=', $to))
+            ->when(request('employee_id'), fn ($query, $employeeId) => $query->where('employee_id', $employeeId))
+            ->orderByDesc('period_year')
+            ->orderByDesc('period_month')
+            ->orderByDesc('id')
+            ->get();
+
+        return PayrollRunResource::collection($runs);
     }
 
     public function store(StorePayrollRunRequest $request, CreatePayrollRunAction $createRun): PayrollRunResource

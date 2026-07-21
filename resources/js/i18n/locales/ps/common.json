@@ -236,12 +236,29 @@
     "new_employee": "نوی کارکوونکی",
     "give_advance": "مساعده ورکړئ",
     "advance_title": "مساعده — {{name}}",
-    "advance_failed": "مساعده ونشوه ثبتېدای."
+    "advance_failed": "مساعده ونشوه ثبتېدای.",
+    "subtitle": "کارمندان، معاشونه، پیش‌ورکړې او حساب‌صورتونه",
+    "search_placeholder": "د نوم، دندې یا شمېرې له مخې لټون…",
+    "count_one": "{{count}} کارمند",
+    "count_other": "{{count}} کارمندان",
+    "view": "جزئیات وګورئ",
+    "no_employees": "تر اوسه کارمند نشته",
+    "transactions": "راکړې ورکړې",
+    "no_transactions": "تر اوسه راکړه ورکړه نشته",
+    "wa_message": "د {{name}} حساب صورت د {{company}} څخه — پاتې پیش‌ورکړې {{advances}}"
   },
   "payroll_page": {
     "new_run": "نوې د معاش پروسه",
     "pay_run": "معاش تادیه کړئ",
-    "run_exists": "د دې دورې لپاره د معاش پروسه شاید مخکې جوړه شوې وي."
+    "run_exists": "د دې دورې لپاره د معاش پروسه شاید مخکې جوړه شوې وي.",
+    "subtitle": "میاشتنۍ معاش ورکړه او د معاش پاڼې",
+    "no_runs": "تر اوسه معاش ورکړه نشته",
+    "employee_count_one": "{{count}} کارمند",
+    "employee_count_other": "{{count}} کارمندان",
+    "payslips": "د معاش پاڼې",
+    "deductions": "کسرونه",
+    "bonuses": "انعامونه",
+    "wa_message": "د معاش راپور {{period}} د {{company}} څخه — د خالص معاش مجموعه {{total}}"
   },
   "period_closing_page": {
     "close_a_period": "یوه دوره وتړئ",
@@ -396,7 +413,8 @@
     "debit_hint_customer": "سور = هغه مبلغ چې پیرودونکي په پور اخیستی (ډیر پور)",
     "credit_hint_customer": "شین = هغه تادیه چې له پیرودونکي ترلاسه شوه (لږ پور)",
     "debit_hint_supplier": "شین = هغه تادیه چې تاسو عرضه کوونکي ته وکړه (ستاسو لږ پور)",
-    "credit_hint_supplier": "سور = له عرضه کوونکي نه په پور پیرود (ستاسو ډیر پور)"
+    "credit_hint_supplier": "سور = له عرضه کوونکي نه په پور پیرود (ستاسو ډیر پور)",
+    "balance": "بیلانس"
   },
   "suppliers_page": {
     "subtitle": "ستاسو عرضه کوونکي د ژوندي بیلانس او بشپړ د معاملو کتابچې سره.",

@@ -236,12 +236,29 @@
     "new_employee": "کارمند جدید",
     "give_advance": "پیش‌پرداخت بدهید",
     "advance_title": "پیش‌پرداخت — {{name}}",
-    "advance_failed": "پیش‌پرداخت ثبت نشد."
+    "advance_failed": "پیش‌پرداخت ثبت نشد.",
+    "subtitle": "کارمندان، معاشات، پیش‌پرداخت‌ها و صورت‌حساب‌ها",
+    "search_placeholder": "جستجو با نام، وظیفه یا شماره تماس…",
+    "count_one": "{{count}} کارمند",
+    "count_other": "{{count}} کارمند",
+    "view": "مشاهده جزئیات",
+    "no_employees": "هنوز کارمندی وجود ندارد",
+    "transactions": "معاملات",
+    "no_transactions": "هنوز معامله‌ای وجود ندارد",
+    "wa_message": "صورت‌حساب {{name}} از {{company}} — پیش‌پرداخت باقی‌مانده {{advances}}"
   },
   "payroll_page": {
     "new_run": "دور معاش جدید",
     "pay_run": "پرداخت معاش",
-    "run_exists": "دور معاش برای این دوره احتمالاً قبلاً ایجاد شده است."
+    "run_exists": "دور معاش برای این دوره احتمالاً قبلاً ایجاد شده است.",
+    "subtitle": "پرداخت معاشات ماهانه و فیش‌های معاش",
+    "no_runs": "هنوز پرداخت معاشی وجود ندارد",
+    "employee_count_one": "{{count}} کارمند",
+    "employee_count_other": "{{count}} کارمند",
+    "payslips": "فیش‌های معاش",
+    "deductions": "کسرات",
+    "bonuses": "پاداش‌ها",
+    "wa_message": "گزارش معاشات {{period}} از {{company}} — مجموع معاش خالص {{total}}"
   },
   "period_closing_page": {
     "close_a_period": "بستن یک دوره",
@@ -396,7 +413,8 @@
     "debit_hint_customer": "سرخ = مبلغی که مشتری قرض گرفته (بدهی بیشتر)",
     "credit_hint_customer": "سبز = پرداختی که از مشتری دریافت شده (بدهی کمتر)",
     "debit_hint_supplier": "سبز = پرداختی که به تهیه کننده کردید (بدهی شما کمتر)",
-    "credit_hint_supplier": "سرخ = خرید نسیه از تهیه کننده (بدهی شما بیشتر)"
+    "credit_hint_supplier": "سرخ = خرید نسیه از تهیه کننده (بدهی شما بیشتر)",
+    "balance": "بیلانس"
   },
   "suppliers_page": {
     "subtitle": "تهیه کنندگان شما با بیلانس زنده و کتابچه کامل معاملات.",

@@ -5,10 +5,12 @@ import {
     Box,
     Button,
     Chip,
+    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
     DialogTitle,
+    IconButton,
     MenuItem,
     Paper,
     Stack,
@@ -19,25 +21,26 @@ import {
     TableHead,
     TableRow,
     TextField,
+    Tooltip,
     Typography,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
-import { fetchPayrollRuns, createPayrollRun, payPayrollRun, type PayrollRunDto } from '@/features/payroll/api';
-import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { fetchPayrollRuns, createPayrollRun } from '@/features/payroll/api';
 
 export function PayrollPage() {
     const { t } = useTranslation();
     const months = t('months', { returnObjects: true }) as string[];
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { data: runs } = useQuery({ queryKey: ['payroll-runs'], queryFn: fetchPayrollRuns });
-    const { data: cashAccounts } = useQuery({ queryKey: ['cash-accounts'], queryFn: fetchCashAccounts });
+    const { data: runs, isLoading } = useQuery({ queryKey: ['payroll-runs'], queryFn: fetchPayrollRuns });
 
     const now = new Date();
     const [newOpen, setNewOpen] = useState(false);
     const [month, setMonth] = useState(now.getMonth() + 1);
     const [year, setYear] = useState(now.getFullYear());
-    const [expanded, setExpanded] = useState<PayrollRunDto | null>(null);
-    const [payingCashAccountId, setPayingCashAccountId] = useState<number | ''>('');
     const [error, setError] = useState<string | null>(null);
 
     const createMutation = useMutation({
@@ -45,34 +48,33 @@ export function PayrollPage() {
         onSuccess: (run) => {
             queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
             setNewOpen(false);
-            setExpanded(run);
             setError(null);
+            navigate(`/payroll/${run.id}`);
         },
         onError: () => setError(t('payroll_page.run_exists')),
     });
 
-    const payMutation = useMutation({
-        mutationFn: () => payPayrollRun(expanded!.id, payingCashAccountId as number),
-        onSuccess: (run) => {
-            queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
-            setExpanded(run);
-        },
-    });
-
     return (
         <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h4">{t('nav.payroll')}</Typography>
-                <Button variant="contained" onClick={() => setNewOpen(true)}>
+            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" flexWrap="wrap" gap={2} sx={{ mb: 3 }}>
+                <Box>
+                    <Typography variant="h4" fontWeight={800}>
+                        {t('nav.payroll')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {t('payroll_page.subtitle')}
+                    </Typography>
+                </Box>
+                <Button variant="contained" size="large" onClick={() => setNewOpen(true)}>
                     {t('payroll_page.new_run')}
                 </Button>
-            </Box>
+            </Stack>
 
-            {runs && (
-                <TableContainer component={Paper} sx={{ mb: 3 }}>
+            <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                <TableContainer>
                     <Table size="small">
                         <TableHead>
-                            <TableRow>
+                            <TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'action.hover' } }}>
                                 <TableCell>{t('fields.period')}</TableCell>
                                 <TableCell>{t('fields.status')}</TableCell>
                                 <TableCell align="right">{t('fields.total_net_pay')}</TableCell>
@@ -80,84 +82,65 @@ export function PayrollPage() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {runs.map((run) => (
-                                <TableRow key={run.id}>
-                                    <TableCell>
+                            {isLoading && (
+                                <TableRow>
+                                    <TableCell colSpan={4}>
+                                        <Box sx={{ py: 4, textAlign: 'center' }}>
+                                            <CircularProgress size={28} />
+                                        </Box>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {runs?.map((run) => (
+                                <TableRow
+                                    key={run.id}
+                                    hover
+                                    sx={{ cursor: 'pointer' }}
+                                    onClick={() => navigate(`/payroll/${run.id}`)}
+                                >
+                                    <TableCell sx={{ fontWeight: 600 }}>
                                         {months[run.period_month - 1]} {run.period_year}
                                     </TableCell>
                                     <TableCell>
                                         <Chip
                                             size="small"
                                             color={run.status === 'paid' ? 'success' : 'default'}
+                                            variant={run.status === 'paid' ? 'filled' : 'outlined'}
                                             label={t(`status.${run.status}`)}
                                         />
                                     </TableCell>
-                                    <TableCell align="right">{run.total_net_pay.toFixed(2)}</TableCell>
-                                    <TableCell align="right">
-                                        <Button size="small" onClick={() => setExpanded(run)}>
-                                            {t('actions.view')}
-                                        </Button>
+                                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                                        {run.total_net_pay.toFixed(2)}
+                                    </TableCell>
+                                    <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                                        <Tooltip title={t('actions.view')}>
+                                            <IconButton
+                                                size="small"
+                                                color="primary"
+                                                onClick={() => navigate(`/payroll/${run.id}`)}
+                                            >
+                                                <VisibilityOutlinedIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
                                     </TableCell>
                                 </TableRow>
                             ))}
+                            {runs && runs.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={4}>
+                                        <Box sx={{ py: 6, textAlign: 'center' }}>
+                                            <PaymentsOutlinedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+                                            <Typography color="text.secondary">
+                                                {t('payroll_page.no_runs')}
+                                            </Typography>
+                                        </Box>
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>
-            )}
-
-            {expanded && (
-                <Paper sx={{ p: 2 }}>
-                    <Typography variant="h6" gutterBottom>
-                        {months[expanded.period_month - 1]} {expanded.period_year} — {t(`status.${expanded.status}`)}
-                    </Typography>
-                    <Table size="small">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>{t('nav.employees')}</TableCell>
-                                <TableCell align="right">{t('fields.base_salary')}</TableCell>
-                                <TableCell align="right">{t('fields.advances_deducted')}</TableCell>
-                                <TableCell align="right">{t('fields.net_pay')}</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {expanded.items.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell>{item.employee_name}</TableCell>
-                                    <TableCell align="right">{item.base_salary.toFixed(2)}</TableCell>
-                                    <TableCell align="right">{item.advances_deducted.toFixed(2)}</TableCell>
-                                    <TableCell align="right">{item.net_pay.toFixed(2)}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-
-                    {expanded.status === 'draft' && (
-                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
-                            <TextField
-                                select
-                                size="small"
-                                label={t('fields.pay_from')}
-                                value={payingCashAccountId}
-                                onChange={(e) => setPayingCashAccountId(Number(e.target.value))}
-                                sx={{ minWidth: 200 }}
-                            >
-                                {cashAccounts?.map((a) => (
-                                    <MenuItem key={a.id} value={a.id}>
-                                        {a.name}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                            <Button
-                                variant="contained"
-                                disabled={!payingCashAccountId || payMutation.isPending}
-                                onClick={() => payMutation.mutate()}
-                            >
-                                {t('payroll_page.pay_run')}
-                            </Button>
-                        </Stack>
-                    )}
-                </Paper>
-            )}
+            </Paper>
 
             <Dialog open={newOpen} onClose={() => setNewOpen(false)} fullWidth maxWidth="xs">
                 <DialogTitle>{t('payroll_page.new_run')}</DialogTitle>

@@ -44,6 +44,18 @@ class PayrollRunController extends Controller
         return new PayrollRunResource($payrollRun->load('items.employee'));
     }
 
+    public function reportPdf(PayrollRun $payrollRun, \App\Support\PayrollReportPdf $pdf)
+    {
+        $this->authorize('viewAny', PayrollRun::class);
+
+        $filename = 'payroll-'.$payrollRun->period_year.'-'.str_pad((string) $payrollRun->period_month, 2, '0', STR_PAD_LEFT).'.pdf';
+
+        return response($pdf->build($payrollRun), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ]);
+    }
+
     public function updateItem(
         UpdatePayrollItemRequest $request,
         PayrollItem $payrollItem,

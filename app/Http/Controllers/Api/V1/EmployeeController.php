@@ -19,7 +19,18 @@ class EmployeeController extends Controller
     {
         $this->authorize('viewAny', Employee::class);
 
-        return EmployeeResource::collection(Employee::query()->orderBy('name')->get());
+        $employees = Employee::query()
+            ->when(request('search'), function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('designation', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name')
+            ->get();
+
+        return EmployeeResource::collection($employees);
     }
 
     public function store(StoreEmployeeRequest $request): EmployeeResource
@@ -62,6 +73,23 @@ class EmployeeController extends Controller
 
         return LedgerEntryResource::collection($entries)->additional([
             'current_balance' => $employee->currentBalance(),
+        ]);
+    }
+
+    public function statementPdf(Employee $employee, \App\Support\EmployeeStatementPdf $pdf)
+    {
+        $this->authorize('viewAny', Employee::class);
+
+        $entries = $employee->ledgerEntries()
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get();
+
+        $filename = 'employee-'.\Illuminate\Support\Str::slug($employee->name).'-'.now()->format('Ymd').'.pdf';
+
+        return response($pdf->build($employee, $entries), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);
     }
 

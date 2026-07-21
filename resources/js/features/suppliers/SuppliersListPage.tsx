@@ -1,89 +1,288 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
     Alert,
+    Avatar,
     Box,
     Button,
     Chip,
     CircularProgress,
+    IconButton,
+    InputAdornment,
     Paper,
+    Stack,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
+    TablePagination,
     TableRow,
+    TextField,
+    Tooltip,
     Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import SearchIcon from '@mui/icons-material/Search';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
-import { fetchSuppliers, type SupplierListItem } from '@/features/suppliers/api';
+import { fetchSuppliersPage, type SupplierListItem } from '@/features/suppliers/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
+import { PartyLedgerDialog } from '@/features/parties/PartyLedgerDialog';
 import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
 
+const AVATAR_COLORS = ['#1e6f5c', '#2b8a72', '#b8901f', '#3b7ea1', '#7d5ba6', '#a15b3b'];
+
+function initials(name: string): string {
+    return name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join('')
+        .toUpperCase();
+}
+
 export function SuppliersListPage() {
     const { t } = useTranslation();
-    const { data, isLoading, isError } = useQuery({
-        queryKey: ['suppliers'],
-        queryFn: fetchSuppliers,
+
+    const [page, setPage] = useState(0);
+    const [perPage, setPerPage] = useState(10);
+    const [searchInput, setSearchInput] = useState('');
+    const [search, setSearch] = useState('');
+
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            setSearch(searchInput.trim());
+            setPage(0);
+        }, 300);
+        return () => clearTimeout(handle);
+    }, [searchInput]);
+
+    const { data, isLoading, isError, isFetching } = useQuery({
+        queryKey: ['suppliers-page', page, perPage, search],
+        queryFn: () => fetchSuppliersPage({ page: page + 1, perPage, search: search || undefined }),
+        placeholderData: keepPreviousData,
     });
+
     const [addOpen, setAddOpen] = useState(false);
     const [paying, setPaying] = useState<SupplierListItem | null>(null);
+    const [ledgerFor, setLedgerFor] = useState<SupplierListItem | null>(null);
 
     return (
         <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h4">{t('nav.suppliers')}</Typography>
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 2,
+                    mb: 3,
+                }}
+            >
+                <Box>
+                    <Typography variant="h4" fontWeight={700}>
+                        {t('nav.suppliers')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {t('suppliers_page.subtitle')}
+                    </Typography>
+                </Box>
                 <Can permission="purchases.manage">
-                    <Button variant="contained" onClick={() => setAddOpen(true)}>
-                        {t('actions.add')}
+                    <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
+                        {t('parties.new_supplier')}
                     </Button>
                 </Can>
             </Box>
 
-            {isLoading && <CircularProgress />}
             {isError && <Alert severity="error">{t('common.loading')}</Alert>}
 
-            {data && (
-                <TableContainer component={Paper}>
+            <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                <Stack
+                    direction="row"
+                    spacing={2}
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{ p: 2 }}
+                >
+                    <TextField
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        placeholder={t('suppliers_page.search_placeholder')}
+                        size="small"
+                        fullWidth
+                        sx={{ maxWidth: 380 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                            endAdornment: isFetching ? (
+                                <InputAdornment position="end">
+                                    <CircularProgress size={16} />
+                                </InputAdornment>
+                            ) : undefined,
+                        }}
+                    />
+                    {data && (
+                        <Chip
+                            variant="outlined"
+                            size="small"
+                            icon={<LocalShippingOutlinedIcon />}
+                            label={t('suppliers_page.count', { count: data.meta.total })}
+                        />
+                    )}
+                </Stack>
+
+                <TableContainer>
                     <Table size="small">
                         <TableHead>
-                            <TableRow>
+                            <TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'action.hover' } }}>
                                 <TableCell>{t('nav.suppliers')}</TableCell>
                                 <TableCell>{t('fields.phone')}</TableCell>
                                 <TableCell align="right">{t('fields.balance')}</TableCell>
-                                <Can permission="payments.manage">
-                                    <TableCell align="right"> </TableCell>
-                                </Can>
+                                <TableCell align="right"> </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {data.map((supplier) => (
-                                <TableRow key={supplier.id}>
-                                    <TableCell>{supplier.name}</TableCell>
-                                    <TableCell>{supplier.phone ?? '—'}</TableCell>
-                                    <TableCell align="right">
-                                        <Chip
-                                            size="small"
-                                            color={supplier.current_balance < 0 ? 'warning' : 'default'}
-                                            label={supplier.current_balance.toFixed(2)}
-                                        />
+                            {isLoading && (
+                                <TableRow>
+                                    <TableCell colSpan={4}>
+                                        <Box sx={{ py: 4, textAlign: 'center' }}>
+                                            <CircularProgress size={28} />
+                                        </Box>
                                     </TableCell>
-                                    <Can permission="payments.manage">
-                                        <TableCell align="right">
-                                            <Button size="small" onClick={() => setPaying(supplier)}>
-                                                {t('actions.pay')}
-                                            </Button>
-                                        </TableCell>
-                                    </Can>
                                 </TableRow>
-                            ))}
+                            )}
+                            {data?.data.map((supplier, index) => {
+                                const color = AVATAR_COLORS[index % AVATAR_COLORS.length];
+                                return (
+                                    <TableRow key={supplier.id} hover>
+                                        <TableCell>
+                                            <Stack direction="row" spacing={1.5} alignItems="center">
+                                                <Avatar
+                                                    sx={{
+                                                        width: 38,
+                                                        height: 38,
+                                                        fontSize: 14,
+                                                        fontWeight: 700,
+                                                        bgcolor: alpha(color, 0.15),
+                                                        color,
+                                                    }}
+                                                >
+                                                    {initials(supplier.name)}
+                                                </Avatar>
+                                                <Box>
+                                                    <Typography variant="body2" fontWeight={600}>
+                                                        {supplier.name}
+                                                    </Typography>
+                                                    {supplier.address && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {supplier.address}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            </Stack>
+                                        </TableCell>
+                                        <TableCell>{supplier.phone ?? '—'}</TableCell>
+                                        <TableCell align="right">
+                                            {supplier.current_balance < 0 ? (
+                                                <Chip
+                                                    size="small"
+                                                    color="error"
+                                                    label={t('ledger.you_owe', {
+                                                        amount: Math.abs(supplier.current_balance).toFixed(2),
+                                                    })}
+                                                />
+                                            ) : supplier.current_balance > 0 ? (
+                                                <Chip
+                                                    size="small"
+                                                    color="success"
+                                                    label={t('ledger.supplier_advance', {
+                                                        amount: supplier.current_balance.toFixed(2),
+                                                    })}
+                                                />
+                                            ) : (
+                                                <Chip
+                                                    size="small"
+                                                    variant="outlined"
+                                                    label={t('ledger.settled')}
+                                                />
+                                            )}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <Tooltip title={t('ledger.view_ledger')}>
+                                                <IconButton
+                                                    size="small"
+                                                    color="primary"
+                                                    onClick={() => setLedgerFor(supplier)}
+                                                >
+                                                    <MenuBookOutlinedIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                            <Can permission="payments.manage">
+                                                <Tooltip title={t('actions.pay')}>
+                                                    <IconButton
+                                                        size="small"
+                                                        color="success"
+                                                        onClick={() => setPaying(supplier)}
+                                                    >
+                                                        <PaymentsOutlinedIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Can>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                            {data && data.data.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={4}>
+                                        <Box sx={{ py: 6, textAlign: 'center' }}>
+                                            <LocalShippingOutlinedIcon
+                                                sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }}
+                                            />
+                                            <Typography color="text.secondary">
+                                                {t('suppliers_page.no_suppliers')}
+                                            </Typography>
+                                        </Box>
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>
-            )}
+
+                <TablePagination
+                    component="div"
+                    count={data?.meta.total ?? 0}
+                    page={page}
+                    onPageChange={(_, newPage) => setPage(newPage)}
+                    rowsPerPage={perPage}
+                    onRowsPerPageChange={(e) => {
+                        setPerPage(Number(e.target.value));
+                        setPage(0);
+                    }}
+                    rowsPerPageOptions={[10, 20, 50]}
+                />
+            </Paper>
 
             <AddPartyDialog kind="supplier" open={addOpen} onClose={() => setAddOpen(false)} />
+
+            {ledgerFor && (
+                <PartyLedgerDialog
+                    kind="supplier"
+                    party={ledgerFor}
+                    listQueryKey="suppliers-page"
+                    open
+                    onClose={() => setLedgerFor(null)}
+                />
+            )}
 
             {paying && (
                 <PaymentDialog
@@ -92,7 +291,7 @@ export function SuppliersListPage() {
                     partyType="supplier"
                     partyId={paying.id}
                     partyName={paying.name}
-                    invalidateQueryKey="suppliers"
+                    invalidateQueryKey="suppliers-page"
                 />
             )}
         </Box>

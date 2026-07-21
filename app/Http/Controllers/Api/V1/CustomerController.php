@@ -8,7 +8,7 @@ use App\Http\Requests\Parties\UpdateCustomerRequest;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\LedgerEntryResource;
 use App\Models\Customer;
-use App\Support\CustomerLedgerPdf;
+use App\Support\LedgerStatementPdf;
 use Illuminate\Http\Response;
 
 class CustomerController extends Controller
@@ -83,7 +83,7 @@ class CustomerController extends Controller
      * on-screen ledger. Entries are laid out chronologically so the
      * running balance reads naturally top to bottom.
      */
-    public function ledgerPdf(Customer $customer, CustomerLedgerPdf $pdf)
+    public function ledgerPdf(Customer $customer, LedgerStatementPdf $pdf)
     {
         $this->authorize('viewAny', Customer::class);
 
@@ -99,7 +99,7 @@ class CustomerController extends Controller
 
         $filename = 'statement-'.\Illuminate\Support\Str::slug($customer->name).'-'.now()->format('Ymd').'.pdf';
 
-        return response($pdf->build($customer, $entries), 200, [
+        return response($pdf->build($customer, $entries, 'customer'), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);

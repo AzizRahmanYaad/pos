@@ -362,6 +362,22 @@
         "clear_blocked": "The ledger can only be cleared when the balance is zero.",
         "download_pdf": "Download PDF statement",
         "whatsapp": "WhatsApp",
-        "wa_message": "Dear {{name}}, please find your account statement from {{company}}. {{summary}}."
+        "wa_message": "Dear {{name}}, please find your account statement from {{company}}. {{summary}}.",
+        "you_owe": "You owe {{amount}}",
+        "supplier_advance": "Advance {{amount}}",
+        "debit_customer": "Took (debit)",
+        "credit_customer": "Paid (credit)",
+        "debit_supplier": "Paid (debit)",
+        "credit_supplier": "Billed (credit)",
+        "debit_hint_customer": "Red = amount the customer took on credit (they owe more)",
+        "credit_hint_customer": "Green = payment received from the customer (they owe less)",
+        "debit_hint_supplier": "Green = payment you made to the supplier (you owe less)",
+        "credit_hint_supplier": "Red = purchased on credit from the supplier (you owe more)"
+    },
+    "suppliers_page": {
+        "subtitle": "Your suppliers with live balances and full transaction ledgers.",
+        "search_placeholder": "Search by name or phone…",
+        "count": "{{count}} suppliers",
+        "no_suppliers": "No suppliers found."
     }
 }

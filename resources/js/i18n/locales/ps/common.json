@@ -362,6 +362,22 @@
         "clear_blocked": "کتابچه یوازې هغه وخت تصفیه کیږي چې بیلانس صفر وي.",
         "download_pdf": "د PDF حساب صورت ډاونلوډ",
         "whatsapp": "واتساپ",
-        "wa_message": "محترم {{name}}، ستاسو د حساب صورت د {{company}} له لوري وړاندې دی. {{summary}}."
+        "wa_message": "محترم {{name}}، ستاسو د حساب صورت د {{company}} له لوري وړاندې دی. {{summary}}.",
+        "you_owe": "تاسو پوروړي {{amount}}",
+        "supplier_advance": "مخکینۍ تادیه {{amount}}",
+        "debit_customer": "اخیستي (پوروړی)",
+        "credit_customer": "ورکړي (پورلرونکی)",
+        "debit_supplier": "ورکړي (پوروړی)",
+        "credit_supplier": "پیرود (پورلرونکی)",
+        "debit_hint_customer": "سور = هغه مبلغ چې پیرودونکي په پور اخیستی (ډیر پور)",
+        "credit_hint_customer": "شین = هغه تادیه چې له پیرودونکي ترلاسه شوه (لږ پور)",
+        "debit_hint_supplier": "شین = هغه تادیه چې تاسو عرضه کوونکي ته وکړه (ستاسو لږ پور)",
+        "credit_hint_supplier": "سور = له عرضه کوونکي نه په پور پیرود (ستاسو ډیر پور)"
+    },
+    "suppliers_page": {
+        "subtitle": "ستاسو عرضه کوونکي د ژوندي بیلانس او بشپړ د معاملو کتابچې سره.",
+        "search_placeholder": "د نوم یا تلیفون له مخې ولټوئ…",
+        "count": "{{count}} عرضه کوونکي",
+        "no_suppliers": "هیڅ عرضه کوونکی ونه موندل شو."
     }
 }

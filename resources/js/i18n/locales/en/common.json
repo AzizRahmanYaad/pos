@@ -220,7 +220,17 @@
     "landed_cost_checkbox": "Landed cost (adds to a draft purchase's stock cost)",
     "draft_purchase": "Draft purchase",
     "save_failed": "Could not save expense — check a draft purchase is selected for landed costs.",
-    "landed_cost_column": "Landed cost"
+    "landed_cost_column": "Landed cost",
+    "subtitle": "Record spending and export category-wise reports",
+    "all_dates": "All dates",
+    "clear_dates": "Clear",
+    "total_expenses": "Total expenses",
+    "count_one": "{{count}} expense",
+    "count_other": "{{count}} expenses",
+    "by_category": "By category",
+    "no_expenses": "No expenses in this period",
+    "details": "Details",
+    "wa_message": "Expenses report from {{company}} ({{period}}) — total {{total}}"
   },
   "employees_page": {
     "new_employee": "New employee",

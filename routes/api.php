@@ -73,6 +73,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('payments', PaymentController::class)->only(['index', 'store']);
 
         Route::apiResource('expense-categories', ExpenseCategoryController::class)->only(['index', 'store', 'destroy']);
+        Route::get('/expenses/summary', [ExpenseController::class, 'summary']);
+        Route::get('/expenses/report/pdf', [ExpenseController::class, 'reportPdf']);
         Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'destroy']);
 
         Route::get('/employees/{employee}/ledger', [EmployeeController::class, 'ledger']);

@@ -44,6 +44,7 @@ import {
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 import { fetchPurchases } from '@/features/purchases/api';
 import { fetchBusinessSettings } from '@/features/settings/api';
+import { DualDateField } from '@/components/DualDateField';
 
 export function ExpensesPage() {
     const { t } = useTranslation();
@@ -197,28 +198,12 @@ export function ExpensesPage() {
                 <Stack
                     direction={{ xs: 'column', md: 'row' }}
                     spacing={1.5}
-                    alignItems={{ md: 'center' }}
+                    alignItems={{ md: 'flex-start' }}
                     flexWrap="wrap"
                     useFlexGap
                 >
-                    <TextField
-                        size="small"
-                        type="date"
-                        label={t('fields.from')}
-                        value={from}
-                        onChange={(e) => setFrom(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ width: 170 }}
-                    />
-                    <TextField
-                        size="small"
-                        type="date"
-                        label={t('fields.to')}
-                        value={to}
-                        onChange={(e) => setTo(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ width: 170 }}
-                    />
+                    <DualDateField label={t('fields.from')} value={from} onChange={setFrom} />
+                    <DualDateField label={t('fields.to')} value={to} onChange={setTo} />
                     {(from || to) && (
                         <Button size="small" color="inherit" onClick={() => { setFrom(''); setTo(''); }}>
                             {t('expenses_page.clear_dates')}

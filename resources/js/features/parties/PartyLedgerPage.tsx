@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
+import { DualDateField } from '@/components/DualDateField';
 import {
     Avatar,
     Box,
@@ -223,7 +224,7 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                 <Stack
                     direction={{ xs: 'column', md: 'row' }}
                     spacing={1.5}
-                    alignItems={{ md: 'center' }}
+                    alignItems={{ md: 'flex-start' }}
                     flexWrap="wrap"
                     useFlexGap
                 >
@@ -241,29 +242,21 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                             ),
                         }}
                     />
-                    <TextField
-                        size="small"
-                        type="date"
+                    <DualDateField
                         label={t('fields.from')}
                         value={from}
-                        onChange={(e) => {
-                            setFrom(e.target.value);
+                        onChange={(v) => {
+                            setFrom(v);
                             setPage(0);
                         }}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ width: 160 }}
                     />
-                    <TextField
-                        size="small"
-                        type="date"
+                    <DualDateField
                         label={t('fields.to')}
                         value={to}
-                        onChange={(e) => {
-                            setTo(e.target.value);
+                        onChange={(v) => {
+                            setTo(v);
                             setPage(0);
                         }}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ width: 160 }}
                     />
                     <Box sx={{ flexGrow: 1 }} />
                     <Tooltip title={t('ledger.download_pdf')}>

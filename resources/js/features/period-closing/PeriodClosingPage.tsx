@@ -24,6 +24,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { fetchPeriodClosings, fetchPeriodClosing, closePeriod, reopenPeriod, type PeriodClosingDto } from '@/features/period-closing/api';
 import { Can } from '@/components/Can';
+import { DualDateField } from '@/components/DualDateField';
 import { formatDate } from '@/lib/calendar';
 
 export function PeriodClosingPage() {
@@ -166,22 +167,8 @@ export function PeriodClosingPage() {
                             <MenuItem value="monthly">{t('period_closing_page.monthly')}</MenuItem>
                             <MenuItem value="custom">{t('period_closing_page.custom')}</MenuItem>
                         </TextField>
-                        <TextField
-                            label={t('fields.from')}
-                            type="date"
-                            value={periodStart}
-                            onChange={(e) => setPeriodStart(e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                            fullWidth
-                        />
-                        <TextField
-                            label={t('fields.to')}
-                            type="date"
-                            value={periodEnd}
-                            onChange={(e) => setPeriodEnd(e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                            fullWidth
-                        />
+                        <DualDateField label={t('fields.from')} value={periodStart} onChange={setPeriodStart} fullWidth />
+                        <DualDateField label={t('fields.to')} value={periodEnd} onChange={setPeriodEnd} fullWidth />
                     </Stack>
                 </DialogContent>
                 <DialogActions>

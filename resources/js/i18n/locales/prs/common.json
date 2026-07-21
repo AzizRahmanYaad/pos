@@ -107,7 +107,8 @@
     "avg_cost": "قیمت اوسط",
     "value": "ارزش",
     "salary_type_monthly": "ماهوار",
-    "salary_type_daily": "روزانه"
+    "salary_type_daily": "روزانه",
+    "hire_date": "تاریخ استخدام"
   },
   "status": {
     "draft": "پیش‌نویس",
@@ -425,5 +426,12 @@
   "nav_header": {
     "messages": "پیام‌ها",
     "notifications": "اعلان‌ها"
+  },
+  "calendar": {
+    "gregorian": "میلادی",
+    "hijri_shamsi": "هجری شمسی",
+    "year": "سال",
+    "month": "ماه",
+    "day": "روز"
   }
 }

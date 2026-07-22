@@ -8,6 +8,8 @@ use App\Http\Requests\Products\StoreProductRequest;
 use App\Http\Requests\Products\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -106,11 +108,21 @@ class ProductController extends Controller
         return new ProductResource($product->load(['category', 'unit', 'stocks.warehouse']));
     }
 
-    public function destroy(Product $product): Response
+    public function destroy(Product $product): Response|JsonResponse
     {
         $this->authorize('delete', $product);
 
-        $product->delete();
+        try {
+            $product->delete();
+        } catch (QueryException $exception) {
+            if ((int) $exception->getCode() === 23000) {
+                return response()->json([
+                    'message' => __('This product has sales, purchases, or stock history and cannot be deleted. Deactivate it instead.'),
+                ], 409);
+            }
+
+            throw $exception;
+        }
 
         return response()->noContent();
     }

@@ -30,16 +30,12 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
-import {
-    cancelPurchase,
-    downloadPurchaseInvoicePdf,
-    fetchPurchase,
-    receivePurchase,
-} from '@/features/purchases/api';
+import { cancelPurchase, downloadPurchaseInvoicePdf, fetchPurchase } from '@/features/purchases/api';
 import { fetchParty } from '@/features/parties/ledgerApi';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { formatDate } from '@/lib/calendar';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
+import { ReceivePurchaseDialog } from '@/features/purchases/ReceivePurchaseDialog';
 
 const STATUS_COLOR: Record<string, 'default' | 'success' | 'error'> = {
     draft: 'default',
@@ -55,6 +51,7 @@ export function PurchaseDetailPage() {
     const id = Number(useParams().id);
     const [busyPdf, setBusyPdf] = useState(false);
     const [paying, setPaying] = useState(false);
+    const [receiving, setReceiving] = useState(false);
 
     const { data: purchase, isLoading } = useQuery({
         queryKey: ['purchase', id],
@@ -69,7 +66,6 @@ export function PurchaseDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['products'] });
         queryClient.invalidateQueries({ queryKey: ['products-page'] });
     };
-    const receiveMutation = useMutation({ mutationFn: () => receivePurchase(id), onSuccess: invalidate });
     const cancelMutation = useMutation({ mutationFn: () => cancelPurchase(id), onSuccess: invalidate });
 
     const money = (v: number) =>
@@ -204,8 +200,7 @@ export function PurchaseDetailPage() {
                             variant="contained"
                             color="success"
                             startIcon={<CheckCircleOutlineIcon />}
-                            disabled={receiveMutation.isPending}
-                            onClick={() => receiveMutation.mutate()}
+                            onClick={() => setReceiving(true)}
                         >
                             {t('actions.receive')}
                         </Button>
@@ -346,6 +341,12 @@ export function PurchaseDetailPage() {
                     dueAmount={purchase.due_amount}
                 />
             )}
+
+            <ReceivePurchaseDialog
+                purchase={receiving ? { id: purchase.id, grand_total: purchase.grand_total } : null}
+                onClose={() => setReceiving(false)}
+                invalidateQueryKey={['purchase', 'purchases-page', 'suppliers-page']}
+            />
         </Box>
     );
 }

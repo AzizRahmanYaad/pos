@@ -6,6 +6,7 @@ use App\Domain\Purchases\Actions\CancelPurchaseAction;
 use App\Domain\Purchases\Actions\CreatePurchaseAction;
 use App\Domain\Purchases\Actions\ReceivePurchaseAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Purchases\ReceivePurchaseRequest;
 use App\Http\Requests\Purchases\StorePurchaseRequest;
 use App\Http\Resources\PurchaseResource;
 use App\Models\Purchase;
@@ -72,11 +73,12 @@ class PurchaseController extends Controller
         ]);
     }
 
-    public function receive(Purchase $purchase, ReceivePurchaseAction $receivePurchase): PurchaseResource
-    {
-        $this->authorize('update', $purchase);
-
-        $received = $receivePurchase->execute($purchase, request()->user()->id);
+    public function receive(
+        ReceivePurchaseRequest $request,
+        Purchase $purchase,
+        ReceivePurchaseAction $receivePurchase,
+    ): PurchaseResource {
+        $received = $receivePurchase->execute($purchase, $request->user()->id, $request->validated('payment'));
 
         return new PurchaseResource($received);
     }

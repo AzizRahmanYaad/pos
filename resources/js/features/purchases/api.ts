@@ -113,8 +113,15 @@ export async function createPurchase(payload: CreatePurchasePayload) {
     return data.data;
 }
 
-export async function receivePurchase(id: number) {
-    const { data } = await apiClient.post(`/purchases/${id}/receive`);
+export interface ReceivePurchasePayment {
+    amount: number;
+    cash_account_id: number;
+    method: 'cash' | 'card' | 'mobile_wallet' | 'bank';
+    description?: string;
+}
+
+export async function receivePurchase(id: number, payment?: ReceivePurchasePayment) {
+    const { data } = await apiClient.post(`/purchases/${id}/receive`, payment ? { payment } : undefined);
     return data.data;
 }
 

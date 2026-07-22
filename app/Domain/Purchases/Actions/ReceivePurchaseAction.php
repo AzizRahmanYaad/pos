@@ -5,9 +5,12 @@ namespace App\Domain\Purchases\Actions;
 use App\Domain\Inventory\Actions\ApplyAutoPricingAction;
 use App\Domain\Inventory\Actions\RecordStockMovementAction;
 use App\Domain\Ledger\Actions\PostLedgerEntryAction;
+use App\Domain\Payments\Actions\RecordPaymentAction;
 use App\Domain\PeriodClosing\Services\PeriodGuard;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
+use App\Models\CashAccount;
 use App\Models\LedgerEntry;
+use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +22,7 @@ class ReceivePurchaseAction
         private readonly PostLedgerEntryAction $postLedgerEntry,
         private readonly PeriodGuard $periodGuard,
         private readonly ApplyAutoPricingAction $applyAutoPricing,
+        private readonly RecordPaymentAction $recordPayment,
     ) {}
 
     /**
@@ -27,12 +31,19 @@ class ReceivePurchaseAction
      * item at its landed unit cost, and credit the supplier for the
      * purchase's grand total (landed costs are capitalized into inventory,
      * not owed to the supplier, so they're excluded from that credit).
+     *
+     * Optionally settle the supplier in the same step: pass `$payment` with
+     * `amount`/`cash_account_id`/`method`/`description` to pay the supplier
+     * in full or in part right away — whatever isn't paid stays as the
+     * purchase's due amount and the supplier's outstanding ledger balance.
+     *
+     * @param  array{amount: float|string, cash_account_id: int, method?: string, description?: ?string}|null  $payment
      */
-    public function execute(Purchase $purchase, int $receivedBy): Purchase
+    public function execute(Purchase $purchase, int $receivedBy, ?array $payment = null): Purchase
     {
         $this->periodGuard->assertMutable($purchase->purchase_date);
 
-        return DB::transaction(function () use ($purchase, $receivedBy) {
+        return DB::transaction(function () use ($purchase, $receivedBy, $payment) {
             $locked = Purchase::query()->whereKey($purchase->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->status !== Purchase::STATUS_DRAFT) {
@@ -98,6 +109,20 @@ class ReceivePurchaseAction
                 'due_amount' => $purchase->grand_total,
                 'landed_cost_total' => $landedTotal,
             ]);
+
+            if ($payment !== null && (float) ($payment['amount'] ?? 0) > 0) {
+                $this->recordPayment->execute(
+                    party: $purchase->supplier,
+                    direction: Payment::DIRECTION_OUT,
+                    amount: (float) $payment['amount'],
+                    cashAccount: CashAccount::findOrFail($payment['cash_account_id']),
+                    method: $payment['method'] ?? 'cash',
+                    description: $payment['description'] ?? "Payment for {$purchase->purchase_number}",
+                    reference: $purchase,
+                    receivedBy: $receivedBy,
+                    paidAt: $purchase->purchase_date,
+                );
+            }
 
             return $purchase->fresh(['items.product', 'landedCosts', 'supplier']);
         });

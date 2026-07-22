@@ -201,7 +201,10 @@
     "no_purchases": "No purchases yet",
     "print": "Print",
     "tax": "Tax",
-    "wa_message": "Purchase invoice {{number}} from {{company}} — total {{total}}"
+    "wa_message": "Purchase invoice {{number}} from {{company}} — total {{total}}",
+    "receive_failed": "Could not receive the purchase. Please try again.",
+    "receive_pay_hint": "Grand total: {{amount}}. Optionally pay the supplier now — the rest stays on their ledger.",
+    "pay_now": "Pay now (optional)"
   },
   "pos_page": {
     "sale_completed": "Sale {{invoice}} completed.",

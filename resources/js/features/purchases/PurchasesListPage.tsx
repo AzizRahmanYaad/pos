@@ -29,13 +29,9 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
-import {
-    fetchPurchasesPage,
-    receivePurchase,
-    cancelPurchase,
-    type PurchaseListItem,
-} from '@/features/purchases/api';
+import { fetchPurchasesPage, cancelPurchase, type PurchaseListItem } from '@/features/purchases/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
+import { ReceivePurchaseDialog } from '@/features/purchases/ReceivePurchaseDialog';
 
 const STATUS_COLOR: Record<string, 'default' | 'success' | 'error'> = {
     draft: 'default',
@@ -72,10 +68,10 @@ export function PurchasesListPage() {
         queryClient.invalidateQueries({ queryKey: ['products'] });
         queryClient.invalidateQueries({ queryKey: ['products-page'] });
     };
-    const receiveMutation = useMutation({ mutationFn: receivePurchase, onSuccess: invalidate });
     const cancelMutation = useMutation({ mutationFn: cancelPurchase, onSuccess: invalidate });
 
     const [paying, setPaying] = useState<PurchaseListItem | null>(null);
+    const [receiving, setReceiving] = useState<PurchaseListItem | null>(null);
 
     return (
         <Box>
@@ -195,8 +191,7 @@ export function PurchasesListPage() {
                                                     <IconButton
                                                         size="small"
                                                         color="success"
-                                                        disabled={receiveMutation.isPending}
-                                                        onClick={() => receiveMutation.mutate(purchase.id)}
+                                                        onClick={() => setReceiving(purchase)}
                                                     >
                                                         <CheckCircleOutlineIcon fontSize="small" />
                                                     </IconButton>
@@ -272,6 +267,12 @@ export function PurchasesListPage() {
                     dueAmount={paying.due_amount}
                 />
             )}
+
+            <ReceivePurchaseDialog
+                purchase={receiving}
+                onClose={() => setReceiving(null)}
+                invalidateQueryKey={['purchases-page', 'purchase', 'suppliers-page']}
+            />
         </Box>
     );
 }

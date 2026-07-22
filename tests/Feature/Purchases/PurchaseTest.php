@@ -94,6 +94,47 @@ class PurchaseTest extends TestCase
         $this->assertEquals(-150.0, $supplier->fresh()->currentBalance());
     }
 
+    public function test_receiving_a_purchase_exposes_allocated_landed_cost_and_total_cost_per_item(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $productA = Product::factory()->create();
+        $productB = Product::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [
+                ['product_id' => $productA->id, 'quantity' => 10, 'unit_id' => $productA->unit_id, 'unit_cost' => 10],
+                ['product_id' => $productB->id, 'quantity' => 5, 'unit_id' => $productB->unit_id, 'unit_cost' => 10],
+            ],
+            landedCosts: [['description' => 'Transport', 'amount' => 30]],
+            createdBy: $manager->id,
+        );
+
+        // Before receiving, no landed cost has been allocated yet.
+        $draftItemA = $purchase->items()->where('product_id', $productA->id)->first();
+        $this->assertEquals(0.0, (float) $draftItemA->allocated_landed_cost);
+
+        $received = app(ReceivePurchaseAction::class)->execute($purchase, $manager->id);
+
+        $response = $this->actingAs($manager)->getJson("/api/v1/purchases/{$received->id}")->assertOk();
+        $items = collect($response->json('data.items'))->keyBy('product_id');
+
+        // Product A: allocated = 20, landed unit cost = 12, total cost = 120.
+        $this->assertEquals(20.0, $items[$productA->id]['allocated_landed_cost']);
+        $this->assertEquals(12.0, $items[$productA->id]['landed_unit_cost']);
+        $this->assertEquals(120.0, $items[$productA->id]['total_cost']);
+
+        // Product B: allocated = 10, landed unit cost = 12, total cost = 60.
+        $this->assertEquals(10.0, $items[$productB->id]['allocated_landed_cost']);
+        $this->assertEquals(12.0, $items[$productB->id]['landed_unit_cost']);
+        $this->assertEquals(60.0, $items[$productB->id]['total_cost']);
+    }
+
     public function test_landed_cost_allocation_weighs_by_quantity_and_price_together(): void
     {
         // Item A: 100 units @ 10 (line value 1,000). Item B: 100 units @ 20

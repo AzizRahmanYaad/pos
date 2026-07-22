@@ -301,6 +301,8 @@ export function PurchaseDetailPage() {
                                     <TableCell align="right">{t('fields.quantity')}</TableCell>
                                     <TableCell align="right">{t('fields.unit_cost')}</TableCell>
                                     <TableCell align="right">{t('fields.total')}</TableCell>
+                                    <TableCell align="right">{t('purchases_page.landed_cost_short')}</TableCell>
+                                    <TableCell align="right">{t('purchases_page.total_cost')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -312,11 +314,17 @@ export function PurchaseDetailPage() {
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>
                                             {money(item.line_total)}
                                         </TableCell>
+                                        <TableCell align="right" sx={{ color: 'text.secondary' }}>
+                                            {money(item.allocated_landed_cost)}
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 700, color: 'primary.dark' }}>
+                                            {money(item.total_cost)}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                                 {purchase.landed_costs.map((cost) => (
                                     <TableRow key={`lc-${cost.id}`}>
-                                        <TableCell colSpan={3} sx={{ color: 'text.secondary' }}>
+                                        <TableCell colSpan={5} sx={{ color: 'text.secondary' }}>
                                             {t('purchases_page.landed_cost')}: {cost.description}
                                         </TableCell>
                                         <TableCell align="right">{money(cost.amount)}</TableCell>

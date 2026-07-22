@@ -82,7 +82,10 @@ class ReceivePurchaseAction
                     movementDate: $purchase->purchase_date,
                 );
 
-                $item->update(['received_quantity' => $item->quantity]);
+                $item->update([
+                    'received_quantity' => $item->quantity,
+                    'allocated_landed_cost' => round($allocatedLandedCost, 4),
+                ]);
             }
 
             // Every product whose cost this purchase just changed gets its

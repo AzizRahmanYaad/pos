@@ -213,7 +213,9 @@
     "wa_message": "د پیرود فکتور {{number}} د {{company}} څخه — ټوله {{total}}",
     "receive_failed": "پیرودنه تر لاسه نشوه. مهرباني وکړئ بیا هڅه وکړئ.",
     "receive_pay_hint": "ټول مبلغ: {{amount}}. که وغواړئ اوس تامین کوونکي ته ورکړه وکړئ — پاتې به یې د هغه په حساب کې ثبت شي.",
-    "pay_now": "اوس ورکړه (اختياري)"
+    "pay_now": "اوس ورکړه (اختياري)",
+    "landed_cost_short": "اضافي لګښت",
+    "total_cost": "ټول لګښت"
   },
   "pos_page": {
     "sale_completed": "پلورنه {{invoice}} بشپړه شوه.",
@@ -573,6 +575,7 @@
     "available_to_return": "د بېرته ورکړې وړ",
     "return_quantity": "اندازه",
     "nothing_to_return": "د دې پلورنې ټول توکي دمخه بېرته ورکړل شوي دي.",
-    "wa_message": "د پلورنې بل {{number}} د {{company}} لخوا — ټول {{total}}"
+    "wa_message": "د پلورنې بل {{number}} د {{company}} لخوا — ټول {{total}}",
+    "unit_cost": "د واحد لګښت"
   }
 }

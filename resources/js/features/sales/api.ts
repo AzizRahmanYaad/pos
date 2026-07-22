@@ -9,6 +9,7 @@ export interface SaleItem {
     refundable_quantity: number;
     unit_price: number;
     cost_price_snapshot: number;
+    total_cost: number;
     discount: number;
     tax: number;
     line_total: number;

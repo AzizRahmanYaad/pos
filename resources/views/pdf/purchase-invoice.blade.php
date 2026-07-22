@@ -71,24 +71,33 @@
     <table class="items">
         <thead>
             <tr>
-                <th style="width: 42%;">{{ __('Product') }}</th>
-                <th class="num" style="width: 14%;">{{ __('Quantity') }}</th>
-                <th class="num" style="width: 20%;">{{ __('Unit cost') }}</th>
-                <th class="num" style="width: 24%;">{{ __('Line total') }}</th>
+                <th style="width: 30%;">{{ __('Product') }}</th>
+                <th class="num" style="width: 11%;">{{ __('Quantity') }}</th>
+                <th class="num" style="width: 15%;">{{ __('Unit cost') }}</th>
+                <th class="num" style="width: 15%;">{{ __('Line total') }}</th>
+                <th class="num" style="width: 14%;">{{ __('Landed cost') }}</th>
+                <th class="num" style="width: 15%;">{{ __('Total cost') }}</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($purchase->items as $item)
+                @php
+                    $itemQty = (float) $item->quantity;
+                    $itemAllocated = (float) $item->allocated_landed_cost;
+                    $itemLandedUnitCost = $itemQty > 0 ? (float) $item->unit_cost + ($itemAllocated / $itemQty) : (float) $item->unit_cost;
+                @endphp
                 <tr>
                     <td>{{ $item->product?->name ?? '—' }}</td>
-                    <td class="num">{{ rtrim(rtrim(number_format((float) $item->quantity, 2), '0'), '.') }}</td>
+                    <td class="num">{{ rtrim(rtrim(number_format($itemQty, 2), '0'), '.') }}</td>
                     <td class="num">{{ $money($item->unit_cost) }}</td>
                     <td class="num">{{ $money($item->line_total) }}</td>
+                    <td class="num">{{ $money($itemAllocated) }}</td>
+                    <td class="num">{{ $money($itemQty * $itemLandedUnitCost) }}</td>
                 </tr>
             @endforeach
             @foreach ($purchase->landedCosts as $cost)
                 <tr>
-                    <td colspan="3">{{ __('Landed cost') }}: {{ $cost->description }}</td>
+                    <td colspan="5">{{ __('Landed cost') }}: {{ $cost->description }}</td>
                     <td class="num">{{ $money($cost->amount) }}</td>
                 </tr>
             @endforeach

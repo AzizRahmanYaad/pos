@@ -399,6 +399,30 @@ class SaleTest extends TestCase
         $this->assertCount(1, $response->json('data'));
     }
 
+    public function test_sale_item_exposes_unit_and_total_cost(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $product = $this->stockedProduct($warehouse, qty: 50, cost: 10);
+
+        $sale = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [['product_id' => $product->id, 'quantity' => 4, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 100]],
+            cashierId: $manager->id,
+        );
+
+        $response = $this->actingAs($manager)->getJson("/api/v1/sales/{$sale->id}")->assertOk();
+        $item = $response->json('data.items.0');
+
+        $this->assertEquals(10.0, $item['cost_price_snapshot']);
+        $this->assertEquals(40.0, $item['total_cost']); // 4 units @ 10 landed unit cost
+    }
+
     public function test_manager_sees_all_sales_regardless_of_cashier(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

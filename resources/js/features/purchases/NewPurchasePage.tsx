@@ -15,6 +15,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import { fetchSuppliers } from '@/features/suppliers/api';
 import { fetchWarehouses } from '@/features/warehouses/api';
 import { fetchProducts } from '@/features/products/api';
@@ -270,32 +271,28 @@ export function NewPurchasePage() {
                             onChange={(e) => setNewCategoryName(e.target.value)}
                             sx={{ minWidth: 200 }}
                         />
-                        <Button
+                        <LoadingButton
                             size="small"
                             startIcon={<AddIcon />}
-                            disabled={!newCategoryName || categoryMutation.isPending}
+                            loading={categoryMutation.isPending}
+                            disabled={!newCategoryName}
                             onClick={() => categoryMutation.mutate(newCategoryName)}
                         >
                             {t('actions.add')}
-                        </Button>
+                        </LoadingButton>
                     </Stack>
 
                     <Typography variant="subtitle1">{t('fields.subtotal')}: {total.toFixed(2)}</Typography>
 
                     <Stack direction="row" spacing={2}>
-                        <Button
+                        <LoadingButton
                             variant="contained"
                             onClick={submit}
-                            disabled={
-                                mutation.isPending ||
-                                !supplierId ||
-                                !warehouseId ||
-                                items.length === 0 ||
-                                !landedCostValid
-                            }
+                            loading={mutation.isPending}
+                            disabled={!supplierId || !warehouseId || items.length === 0 || !landedCostValid}
                         >
                             {t('actions.save')}
-                        </Button>
+                        </LoadingButton>
                         <Button onClick={() => navigate('/purchases')}>{t('actions.cancel')}</Button>
                     </Stack>
                 </Stack>

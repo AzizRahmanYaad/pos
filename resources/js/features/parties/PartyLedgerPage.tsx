@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DualDateField } from '@/components/DualDateField';
+import { LoadingButton } from '@/components/LoadingButton';
 import {
     Avatar,
     Box,
@@ -468,15 +469,15 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setConfirmClear(false)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
                         color="error"
                         startIcon={<CleaningServicesOutlinedIcon />}
-                        disabled={clearMutation.isPending}
+                        loading={clearMutation.isPending}
                         onClick={() => clearMutation.mutate()}
                     >
                         {t('ledger.clear')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
         </Box>

@@ -35,6 +35,7 @@ import { fetchWarehouses } from '@/features/warehouses/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 import { createSale, type SalePaymentPayload, type SaleReceipt } from '@/features/pos/api';
 import { ReceiptView } from '@/features/pos/ReceiptView';
+import { LoadingButton } from '@/components/LoadingButton';
 
 interface CartLine {
     product: ProductListItem;
@@ -663,7 +664,7 @@ export function PosPage() {
                         </Typography>
                     )}
 
-                    <Button
+                    <LoadingButton
                         fullWidth
                         variant="contained"
                         size="large"
@@ -676,11 +677,12 @@ export function PosPage() {
                             textTransform: 'none',
                             background: `linear-gradient(135deg, ${theme.palette.primary.main}, #2b8a72)`,
                         }}
-                        disabled={cart.length === 0 || mutation.isPending || walkInUnderpaid}
+                        loading={mutation.isPending}
+                        disabled={cart.length === 0 || walkInUnderpaid}
                         onClick={checkout}
                     >
                         {t('pos_page.complete_sale')} · {grandTotal.toFixed(2)}
-                    </Button>
+                    </LoadingButton>
                 </Paper>
             </Box>
         </Box>

@@ -40,6 +40,7 @@ import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import {
     createUser,
     deleteUser,
@@ -712,13 +713,14 @@ export function UsersPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={closeDialog}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={!canSave || saveMutation.isPending}
+                        loading={saveMutation.isPending}
+                        disabled={!canSave}
                         onClick={() => saveMutation.mutate()}
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
 
@@ -735,14 +737,14 @@ export function UsersPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setExtending(null)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
                         startIcon={<EventRepeatIcon />}
-                        disabled={extendMutation.isPending}
+                        loading={extendMutation.isPending}
                         onClick={() => extending && extendMutation.mutate(extending)}
                     >
                         {t('users_page.extend')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
 
@@ -753,14 +755,14 @@ export function UsersPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDeleting(null)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
                         color="error"
-                        disabled={deleteMutation.isPending}
+                        loading={deleteMutation.isPending}
                         onClick={() => deleting && deleteMutation.mutate(deleting)}
                     >
                         {t('actions.delete')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
         </Box>

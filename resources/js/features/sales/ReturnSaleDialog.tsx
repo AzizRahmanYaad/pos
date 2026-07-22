@@ -18,6 +18,7 @@ import {
     Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import { refundSale, type SaleDetail } from '@/features/sales/api';
 
 interface ReturnSaleDialogProps {
@@ -140,14 +141,15 @@ export function ReturnSaleDialog({ sale, onClose }: ReturnSaleDialogProps) {
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>{t('actions.cancel')}</Button>
-                <Button
+                <LoadingButton
                     variant="contained"
                     color="error"
-                    disabled={!canSubmit || mutation.isPending}
+                    loading={mutation.isPending}
+                    disabled={!canSubmit}
                     onClick={() => mutation.mutate()}
                 >
                     {t('sales_page.return')}
-                </Button>
+                </LoadingButton>
             </DialogActions>
         </Dialog>
     );

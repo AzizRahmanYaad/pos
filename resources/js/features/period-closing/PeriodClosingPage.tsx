@@ -37,6 +37,7 @@ import { fetchPeriodClosings, closePeriod } from '@/features/period-closing/api'
 import { Can } from '@/components/Can';
 import { DualDateField } from '@/components/DualDateField';
 import { formatDate } from '@/lib/calendar';
+import { LoadingButton } from '@/components/LoadingButton';
 
 function StatTile({
     icon,
@@ -250,15 +251,16 @@ export function PeriodClosingPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setNewOpen(false)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={!periodStart || !periodEnd || closeMutation.isPending}
+                        loading={closeMutation.isPending}
+                        disabled={!periodStart || !periodEnd}
                         onClick={() =>
                             closeMutation.mutate({ period_type: periodType, period_start: periodStart, period_end: periodEnd })
                         }
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
         </Box>

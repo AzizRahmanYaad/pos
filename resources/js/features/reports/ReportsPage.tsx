@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import {
     Box,
     Chip,
-    CircularProgress,
     MenuItem,
     Paper,
     Stack,
@@ -20,6 +19,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
+import { BrandSpinner } from '@/components/BrandSpinner';
 import {
     fetchProfitLoss,
     fetchInventoryValuation,
@@ -196,11 +196,7 @@ export function ReportsPage() {
                 </Stack>
             </Paper>
 
-            {isLoading && (
-                <Box sx={{ py: 6, textAlign: 'center' }}>
-                    <CircularProgress />
-                </Box>
-            )}
+            {isLoading && <BrandSpinner fullPage minHeight={240} label={t('common.loading')} />}
 
             {!isLoading && tab === 'profit-loss' && pnl && (
                 <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, maxWidth: 640 }}>

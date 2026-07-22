@@ -11,6 +11,7 @@ import {
     TextField,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import { createCustomer } from '@/features/customers/api';
 import { createSupplier } from '@/features/suppliers/api';
 
@@ -126,13 +127,14 @@ export function AddPartyDialog({ kind, open, onClose }: AddPartyDialogProps) {
             </DialogContent>
             <DialogActions>
                 <Button onClick={close}>{t('actions.cancel')}</Button>
-                <Button
+                <LoadingButton
                     variant="contained"
-                    disabled={!name || mutation.isPending}
+                    loading={mutation.isPending}
+                    disabled={!name}
                     onClick={() => mutation.mutate()}
                 >
                     {t('actions.save')}
-                </Button>
+                </LoadingButton>
             </DialogActions>
         </Dialog>
     );

@@ -9,6 +9,7 @@ import { createAppTheme } from '@/theme/theme';
 import { useLocaleStore } from '@/store/localeStore';
 import { useAuthStore } from '@/store/authStore';
 import { queryClient } from '@/lib/queryClient';
+import { TopProgressBar } from '@/components/TopProgressBar';
 
 export function App() {
     const direction = useLocaleStore((state) => state.direction);
@@ -34,6 +35,7 @@ export function App() {
         <CacheProvider value={cache}>
             <ThemeProvider theme={theme}>
                 <CssBaseline />
+                <TopProgressBar />
                 <QueryClientProvider client={queryClient}>
                     <RouterProvider router={router} />
                     <Snackbar

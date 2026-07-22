@@ -15,6 +15,7 @@ import {
     TextField,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import {
     fetchCategories,
     fetchUnits,
@@ -207,13 +208,14 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>{t('actions.cancel')}</Button>
-                <Button
+                <LoadingButton
                     variant="contained"
-                    disabled={!canSave || saveMutation.isPending}
+                    loading={saveMutation.isPending}
+                    disabled={!canSave}
                     onClick={() => saveMutation.mutate()}
                 >
                     {t('actions.save')}
-                </Button>
+                </LoadingButton>
             </DialogActions>
         </Dialog>
     );

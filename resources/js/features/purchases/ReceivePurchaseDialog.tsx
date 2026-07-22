@@ -14,6 +14,7 @@ import {
     Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 import { receivePurchase, type ReceivePurchasePayment } from '@/features/purchases/api';
 
@@ -132,14 +133,15 @@ export function ReceivePurchaseDialog({ purchase, onClose, invalidateQueryKey }:
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>{t('actions.cancel')}</Button>
-                <Button
+                <LoadingButton
                     variant="contained"
                     color="success"
-                    disabled={!canSubmit || mutation.isPending}
+                    loading={mutation.isPending}
+                    disabled={!canSubmit}
                     onClick={() => mutation.mutate()}
                 >
                     {t('actions.receive')}
-                </Button>
+                </LoadingButton>
             </DialogActions>
         </Dialog>
     );

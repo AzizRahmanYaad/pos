@@ -122,6 +122,67 @@ class ProductManagementTest extends TestCase
         $this->assertEquals(97.5, (float) $product->fresh()->sale_price);
     }
 
+    public function test_updating_a_product_to_profit_basis_pricing_divides_instead_of_multiplies(): void
+    {
+        $product = Product::factory()->create([
+            'sale_price' => 100,
+            'default_cost' => 80,
+            'pricing_mode' => Product::PRICING_FIXED,
+        ]);
+
+        $response = $this->actingAs($this->manager)->putJson("/api/v1/products/{$product->id}", [
+            'pricing_mode' => Product::PRICING_MARGIN,
+            'margin_basis' => Product::MARGIN_BASIS_PROFIT,
+            'margin_percent' => 20,
+        ]);
+
+        // "20% profit of the selling price" (not 20% markup on cost):
+        // price = 80 / (1 - 0.20) = 100 -> profit of 20 is exactly 20% of 100.
+        $response->assertOk();
+        $this->assertEquals(100.0, (float) $product->fresh()->sale_price);
+    }
+
+    public function test_markup_and_profit_basis_produce_different_prices_for_the_same_percentage(): void
+    {
+        $markupProduct = Product::factory()->create([
+            'default_cost' => 100,
+            'pricing_mode' => Product::PRICING_FIXED,
+        ]);
+        $profitProduct = Product::factory()->create([
+            'default_cost' => 100,
+            'pricing_mode' => Product::PRICING_FIXED,
+        ]);
+
+        $this->actingAs($this->manager)->putJson("/api/v1/products/{$markupProduct->id}", [
+            'pricing_mode' => Product::PRICING_MARGIN,
+            'margin_basis' => Product::MARGIN_BASIS_MARKUP,
+            'margin_percent' => 20,
+        ])->assertOk();
+
+        $this->actingAs($this->manager)->putJson("/api/v1/products/{$profitProduct->id}", [
+            'pricing_mode' => Product::PRICING_MARGIN,
+            'margin_basis' => Product::MARGIN_BASIS_PROFIT,
+            'margin_percent' => 20,
+        ])->assertOk();
+
+        // Same cost, same percentage, deliberately different prices: 20%
+        // markup on 100 is 120; 20% profit of the selling price needs 125
+        // (25 profit on a 125 price is exactly 20% of 125).
+        $this->assertEquals(120.0, (float) $markupProduct->fresh()->sale_price);
+        $this->assertEquals(125.0, (float) $profitProduct->fresh()->sale_price);
+    }
+
+    public function test_profit_percentage_of_100_or_more_is_rejected(): void
+    {
+        $product = Product::factory()->create(['default_cost' => 50]);
+
+        $this->actingAs($this->manager)->putJson("/api/v1/products/{$product->id}", [
+            'pricing_mode' => Product::PRICING_MARGIN,
+            'margin_basis' => Product::MARGIN_BASIS_PROFIT,
+            'margin_percent' => 100,
+        ])->assertUnprocessable();
+    }
+
     public function test_creating_a_product_with_margin_pricing_computes_initial_sale_price(): void
     {
         $unit = Unit::factory()->create();

@@ -32,7 +32,16 @@ class UpdateProductRequest extends FormRequest
             ])],
             'sale_price' => ['sometimes', 'required', 'numeric', 'min:0'],
             'pricing_mode' => ['sometimes', 'required', Rule::in([Product::PRICING_FIXED, Product::PRICING_MARGIN])],
-            'margin_percent' => ['nullable', 'numeric', 'min:0', 'max:1000', 'required_if:pricing_mode,margin'],
+            'margin_basis' => ['nullable', Rule::in([Product::MARGIN_BASIS_MARKUP, Product::MARGIN_BASIS_PROFIT])],
+            'margin_percent' => [
+                'nullable', 'numeric', 'min:0', 'max:1000', 'required_if:pricing_mode,margin',
+                function ($attribute, $value, $fail) {
+                    $basis = $this->input('margin_basis', $this->route('product')?->margin_basis);
+                    if ($value !== null && $basis === Product::MARGIN_BASIS_PROFIT && (float) $value >= 100) {
+                        $fail(__('A profit percentage of the selling price must be less than 100.'));
+                    }
+                },
+            ],
             'default_cost' => ['sometimes', 'required', 'numeric', 'min:0'],
             'tax_rate' => ['sometimes', 'required', 'numeric', 'min:0', 'max:100'],
             'reorder_level' => ['sometimes', 'required', 'numeric', 'min:0'],

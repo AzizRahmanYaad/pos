@@ -318,9 +318,12 @@ export function ProductsListPage() {
                                             <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
                                                 {product.pricing_mode === 'margin' && (
                                                     <Tooltip
-                                                        title={t('products_page.auto_priced_tooltip', {
-                                                            margin: product.margin_percent,
-                                                        })}
+                                                        title={t(
+                                                            product.margin_basis === 'profit'
+                                                                ? 'products_page.auto_priced_tooltip_profit'
+                                                                : 'products_page.auto_priced_tooltip',
+                                                            { margin: product.margin_percent },
+                                                        )}
                                                     >
                                                         <AutoModeOutlinedIcon fontSize="small" color="primary" />
                                                     </Tooltip>

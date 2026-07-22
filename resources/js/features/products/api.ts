@@ -20,6 +20,7 @@ export interface ProductListItem {
     sale_price: number;
     pricing_mode: 'fixed' | 'margin';
     margin_percent: number | null;
+    margin_basis: 'markup' | 'profit';
     default_cost: number;
     tax_rate: number;
     reorder_level: number;
@@ -115,6 +116,7 @@ export interface CreateProductPayload {
     sale_price: number;
     pricing_mode?: 'fixed' | 'margin';
     margin_percent?: number;
+    margin_basis?: 'markup' | 'profit';
     default_cost: number;
     tax_rate: number;
     reorder_level: number;
@@ -130,6 +132,7 @@ export async function createProduct(payload: CreateProductPayload): Promise<Prod
 export interface UpdatePricingPayload {
     pricing_mode: 'fixed' | 'margin';
     margin_percent?: number | null;
+    margin_basis?: 'markup' | 'profit';
     sale_price?: number;
 }
 

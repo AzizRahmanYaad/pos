@@ -183,7 +183,14 @@
     "delete_product": "Delete product",
     "delete_confirm": "Delete \"{{name}}\"? This cannot be undone.",
     "delete_failed": "Could not delete the product. Please try again.",
-    "update_failed": "Could not save the changes. Check the details and try again."
+    "update_failed": "Could not save the changes. Check the details and try again.",
+    "margin_basis": "Margin basis",
+    "margin_basis_markup": "Markup % over cost",
+    "margin_basis_profit": "Profit % of selling price",
+    "profit_percent": "Profit %",
+    "profit_percent_too_high": "Must be less than 100%.",
+    "profit_hint": "The price is set so this percentage of the final selling price is profit — e.g. 20% profit means 20% of what the customer pays is your margin.",
+    "auto_priced_tooltip_profit": "Auto-priced for {{margin}}% profit of the selling price"
   },
   "purchases_page": {
     "title": "New Purchase",

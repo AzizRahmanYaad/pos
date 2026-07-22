@@ -15,7 +15,8 @@
     "period_closing": "تصفیه",
     "reports": "راپورها",
     "settings": "تنظیمات",
-    "users": "مدیریت کاربران"
+    "users": "مدیریت کاربران",
+    "stocks": "موجودی"
   },
   "actions": {
     "save": "ذخیره",
@@ -435,7 +436,12 @@
     "expand_menu": "باز کردن منو",
     "collapse_menu": "بستن منو",
     "fullscreen": "تمام‌صفحه",
-    "exit_fullscreen": "خروج از تمام‌صفحه"
+    "exit_fullscreen": "خروج از تمام‌صفحه",
+    "stock_alerts": "اخطار موجودی",
+    "no_alerts": "در حال حاضر هیچ اخطاری وجود ندارد",
+    "out_of_stock_alert": "ناموجود",
+    "low_stock_alert": "{{qty}} باقی‌مانده، سفارش مجدد در {{reorder}}",
+    "view_all_stock": "دیدن همه موجودی"
   },
   "calendar": {
     "gregorian": "میلادی",
@@ -443,5 +449,25 @@
     "year": "سال",
     "month": "ماه",
     "day": "روز"
+  },
+  "stocks_page": {
+    "title": "موجودی",
+    "subtitle": "موجودی قابل دسترس در همه گدام‌ها و اجناسی که نیاز به سفارش مجدد دارند",
+    "tracked_products": "محصولات تحت نظارت",
+    "low_stock": "موجودی کم",
+    "out_of_stock": "ناموجود",
+    "stock_value": "ارزش موجودی",
+    "search_placeholder": "جستجو با نام، کد جنس یا بارکد…",
+    "all_warehouses": "همه گدام‌ها",
+    "filter_all": "همه",
+    "filter_low": "موجودی کم",
+    "filter_out": "ناموجود",
+    "by_warehouse": "بر اساس گدام",
+    "reorder_level": "سطح سفارش مجدد",
+    "available_stock": "موجودی قابل دسترس",
+    "no_stock": "هیچ رکورد موجودی با فیلترهای شما مطابقت ندارد",
+    "status_ok": "موجود",
+    "status_low": "موجودی کم",
+    "status_out": "ناموجود"
   }
 }

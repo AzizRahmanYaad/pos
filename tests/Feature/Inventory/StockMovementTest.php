@@ -123,4 +123,74 @@ class StockMovementTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data');
     }
+
+    public function test_stock_list_reports_status_per_product(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+        $warehouse = Warehouse::factory()->create();
+
+        $healthy = Product::factory()->create(['track_inventory' => true, 'reorder_level' => 5]);
+        $low = Product::factory()->create(['track_inventory' => true, 'reorder_level' => 10]);
+        $out = Product::factory()->create(['track_inventory' => true, 'reorder_level' => 5]);
+
+        app(RecordStockMovementAction::class)->execute($healthy, $warehouse, StockMovement::TYPE_OPENING, 50, 2.5);
+        app(RecordStockMovementAction::class)->execute($low, $warehouse, StockMovement::TYPE_OPENING, 3, 2.5);
+        // $out gets no stock movement, so its total stays at 0.
+
+        $response = $this->actingAs($manager)->getJson('/api/v1/inventory/stock')->assertOk();
+        $byId = collect($response->json('data'))->keyBy('id');
+
+        $this->assertEquals('ok', $byId[$healthy->id]['status']);
+        $this->assertEquals('low', $byId[$low->id]['status']);
+        $this->assertEquals('out', $byId[$out->id]['status']);
+        $this->assertEquals(50.0, $byId[$healthy->id]['total_stock']);
+    }
+
+    public function test_stock_summary_counts_low_and_out_of_stock(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+        $warehouse = Warehouse::factory()->create();
+
+        Product::factory()->create(['track_inventory' => true, 'reorder_level' => 5]);
+        $low = Product::factory()->create(['track_inventory' => true, 'reorder_level' => 10]);
+        app(RecordStockMovementAction::class)->execute($low, $warehouse, StockMovement::TYPE_OPENING, 3, 2.5);
+
+        $this->actingAs($manager)
+            ->getJson('/api/v1/inventory/stock/summary')
+            ->assertOk()
+            ->assertJsonPath('data.low_stock_count', 1)
+            ->assertJsonPath('data.out_of_stock_count', 1);
+    }
+
+    public function test_stock_alerts_only_include_low_and_out_of_stock_products(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+        $warehouse = Warehouse::factory()->create();
+
+        $healthy = Product::factory()->create(['track_inventory' => true, 'reorder_level' => 5, 'is_active' => true]);
+        app(RecordStockMovementAction::class)->execute($healthy, $warehouse, StockMovement::TYPE_OPENING, 50, 2.5);
+        $low = Product::factory()->create(['track_inventory' => true, 'reorder_level' => 10, 'is_active' => true]);
+        app(RecordStockMovementAction::class)->execute($low, $warehouse, StockMovement::TYPE_OPENING, 3, 2.5);
+
+        $response = $this->actingAs($manager)->getJson('/api/v1/inventory/stock/alerts')->assertOk();
+        $ids = collect($response->json('data'))->pluck('id');
+
+        $this->assertTrue($ids->contains($low->id));
+        $this->assertFalse($ids->contains($healthy->id));
+    }
+
+    public function test_cashier_cannot_view_stock_list(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $cashier = User::factory()->create();
+        $cashier->assignRole('cashier');
+
+        $this->actingAs($cashier)->getJson('/api/v1/inventory/stock')->assertForbidden();
+    }
 }

@@ -15,7 +15,8 @@
     "period_closing": "تصفیه",
     "reports": "راپورونه",
     "settings": "تنظیمات",
-    "users": "د کاروونکو مدیریت"
+    "users": "د کاروونکو مدیریت",
+    "stocks": "ذخیره"
   },
   "actions": {
     "save": "خوندي کول",
@@ -435,7 +436,12 @@
     "expand_menu": "مینو پرانیستل",
     "collapse_menu": "مینو بندول",
     "fullscreen": "بشپړ پرده",
-    "exit_fullscreen": "له بشپړ پردې وتل"
+    "exit_fullscreen": "له بشپړ پردې وتل",
+    "stock_alerts": "د ذخیرې خبرداری",
+    "no_alerts": "اوس مهال هیڅ خبرداری نشته",
+    "out_of_stock_alert": "ناموجود",
+    "low_stock_alert": "{{qty}} پاتې، بیا سپارښتنه په {{reorder}}",
+    "view_all_stock": "ټول ذخیره وګورئ"
   },
   "calendar": {
     "gregorian": "میلادي",
@@ -443,5 +449,25 @@
     "year": "کال",
     "month": "میاشت",
     "day": "ورځ"
+  },
+  "stocks_page": {
+    "title": "ذخیره",
+    "subtitle": "په ټولو ګدامونو کې شتون لرونکې ذخیره او هغه توکي چې بیا سپارښتنې ته اړتیا لري",
+    "tracked_products": "تعقیب شوي محصولات",
+    "low_stock": "کمه ذخیره",
+    "out_of_stock": "ناموجود",
+    "stock_value": "د ذخیرې ارزښت",
+    "search_placeholder": "د نوم، SKU یا بارکوډ له مخې لټون…",
+    "all_warehouses": "ټول ګدامونه",
+    "filter_all": "ټول",
+    "filter_low": "کمه ذخیره",
+    "filter_out": "ناموجود",
+    "by_warehouse": "د ګدام له مخې",
+    "reorder_level": "د بیا سپارښتنې کچه",
+    "available_stock": "شتون لرونکې ذخیره",
+    "no_stock": "ستاسو د فلټرونو سره سم هیڅ ریکارډ نشته",
+    "status_ok": "شتون لري",
+    "status_low": "کمه ذخیره",
+    "status_out": "ناموجود"
   }
 }

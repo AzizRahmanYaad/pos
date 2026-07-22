@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\StockAdjustmentController;
+use App\Http\Controllers\Api\V1\StockController;
 use App\Http\Controllers\Api\V1\StockMovementController;
 use App\Http\Controllers\Api\V1\SupplierController;
 use App\Http\Controllers\Api\V1\TenantController;
@@ -50,6 +51,9 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/stock-movements', [StockMovementController::class, 'index']);
         Route::post('/stock-adjustments', [StockAdjustmentController::class, 'store']);
+        Route::get('/inventory/stock', [StockController::class, 'index']);
+        Route::get('/inventory/stock/summary', [StockController::class, 'summary']);
+        Route::get('/inventory/stock/alerts', [StockController::class, 'alerts']);
 
         Route::get('/customers/report/pdf', [CustomerController::class, 'listPdf']);
         Route::get('/customers/{customer}/ledger', [CustomerController::class, 'ledger']);

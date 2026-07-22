@@ -215,7 +215,8 @@
     "receive_pay_hint": "Grand total: {{amount}}. Optionally pay the supplier now — the rest stays on their ledger.",
     "pay_now": "Pay now (optional)",
     "landed_cost_short": "Landed cost",
-    "total_cost": "Total cost"
+    "total_cost": "Total cost",
+    "landed_cost_estimated_hint": "Estimated — the final amount is set once this purchase is received."
   },
   "pos_page": {
     "sale_completed": "Sale {{invoice}} completed.",

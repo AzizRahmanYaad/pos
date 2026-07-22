@@ -315,10 +315,32 @@ export function PurchaseDetailPage() {
                                             {money(item.line_total)}
                                         </TableCell>
                                         <TableCell align="right" sx={{ color: 'text.secondary' }}>
-                                            {money(item.allocated_landed_cost)}
+                                            <Tooltip
+                                                title={
+                                                    item.landed_cost_is_estimated
+                                                        ? t('purchases_page.landed_cost_estimated_hint')
+                                                        : ''
+                                                }
+                                            >
+                                                <span style={{ fontStyle: item.landed_cost_is_estimated ? 'italic' : 'normal' }}>
+                                                    {item.landed_cost_is_estimated ? '≈ ' : ''}
+                                                    {money(item.allocated_landed_cost)}
+                                                </span>
+                                            </Tooltip>
                                         </TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 700, color: 'primary.dark' }}>
-                                            {money(item.total_cost)}
+                                            <Tooltip
+                                                title={
+                                                    item.landed_cost_is_estimated
+                                                        ? t('purchases_page.landed_cost_estimated_hint')
+                                                        : ''
+                                                }
+                                            >
+                                                <span style={{ fontStyle: item.landed_cost_is_estimated ? 'italic' : 'normal' }}>
+                                                    {item.landed_cost_is_estimated ? '≈ ' : ''}
+                                                    {money(item.total_cost)}
+                                                </span>
+                                            </Tooltip>
                                         </TableCell>
                                     </TableRow>
                                 ))}

@@ -135,6 +135,42 @@ class PurchaseTest extends TestCase
         $this->assertEquals(60.0, $items[$productB->id]['total_cost']);
     }
 
+    public function test_a_still_draft_purchase_shows_an_estimated_landed_cost_preview(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $productA = Product::factory()->create();
+        $productB = Product::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [
+                ['product_id' => $productA->id, 'quantity' => 10, 'unit_id' => $productA->unit_id, 'unit_cost' => 10],
+                ['product_id' => $productB->id, 'quantity' => 5, 'unit_id' => $productB->unit_id, 'unit_cost' => 10],
+            ],
+            landedCosts: [['description' => 'Transport', 'amount' => 30]],
+            createdBy: $manager->id,
+        );
+
+        $response = $this->actingAs($manager)->getJson("/api/v1/purchases/{$purchase->id}")->assertOk();
+        $items = collect($response->json('data.items'))->keyBy('product_id');
+
+        // Same proportional split as the real, post-receive allocation
+        // (20/12/120 for A, 10/12/60 for B) but flagged as an estimate,
+        // since nothing has actually been received/capitalized yet.
+        $this->assertEquals(20.0, $items[$productA->id]['allocated_landed_cost']);
+        $this->assertEquals(120.0, $items[$productA->id]['total_cost']);
+        $this->assertTrue($items[$productA->id]['landed_cost_is_estimated']);
+
+        $this->assertEquals(10.0, $items[$productB->id]['allocated_landed_cost']);
+        $this->assertEquals(60.0, $items[$productB->id]['total_cost']);
+        $this->assertTrue($items[$productB->id]['landed_cost_is_estimated']);
+    }
+
     public function test_landed_cost_allocation_weighs_by_quantity_and_price_together(): void
     {
         // Item A: 100 units @ 10 (line value 1,000). Item B: 100 units @ 20

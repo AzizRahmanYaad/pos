@@ -57,17 +57,10 @@ class ReceivePurchaseAction
             // column) so landed costs added later via an Expense — after the
             // purchase was created but before it's received — are picked up.
             $landedTotal = (float) $purchase->landedCosts()->sum('amount');
-            $totalLineValue = $items->sum(fn ($item) => (float) $item->quantity * (float) $item->unit_cost);
+            $allocations = Purchase::allocateLandedCost($items, $landedTotal);
 
             foreach ($items as $item) {
-                $lineValue = (float) $item->quantity * (float) $item->unit_cost;
-
-                $allocatedLandedCost = match (true) {
-                    $totalLineValue > 0 => $landedTotal * ($lineValue / $totalLineValue),
-                    $items->count() > 0 => $landedTotal / $items->count(),
-                    default => 0.0,
-                };
-
+                $allocatedLandedCost = $allocations[$item->id];
                 $finalUnitCost = round((float) $item->unit_cost + ($allocatedLandedCost / (float) $item->quantity), 4);
 
                 $this->recordStockMovement->execute(

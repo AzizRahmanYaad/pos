@@ -33,6 +33,7 @@ export interface PurchaseItem {
     allocated_landed_cost: number;
     landed_unit_cost: number;
     total_cost: number;
+    landed_cost_is_estimated: boolean;
 }
 
 export interface PurchaseLandedCost {

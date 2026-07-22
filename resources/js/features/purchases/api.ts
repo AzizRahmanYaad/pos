@@ -30,6 +30,9 @@ export interface PurchaseItem {
     tax: number;
     line_total: number;
     received_quantity: number;
+    allocated_landed_cost: number;
+    landed_unit_cost: number;
+    total_cost: number;
 }
 
 export interface PurchaseLandedCost {

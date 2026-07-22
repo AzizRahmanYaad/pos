@@ -213,7 +213,9 @@
     "wa_message": "فاکتور خرید {{number}} از {{company}} — مجموع {{total}}",
     "receive_failed": "دریافت خرید ممکن نشد. لطفاً دوباره تلاش کنید.",
     "receive_pay_hint": "مجموع کل: {{amount}}. در صورت تمایل اکنون به تأمین‌کننده پرداخت کنید — باقی‌مانده در حساب او ثبت می‌شود.",
-    "pay_now": "پرداخت اکنون (اختیاری)"
+    "pay_now": "پرداخت اکنون (اختیاری)",
+    "landed_cost_short": "لاگت اضافی",
+    "total_cost": "قیمت تمام‌شده"
   },
   "pos_page": {
     "sale_completed": "فروش {{invoice}} تکمیل شد.",
@@ -573,6 +575,7 @@
     "available_to_return": "قابل مسترد",
     "return_quantity": "مقدار",
     "nothing_to_return": "همه اجناس این فروش قبلاً مسترد شده است.",
-    "wa_message": "فاکتور فروش {{number}} از {{company}} — مجموع {{total}}"
+    "wa_message": "فاکتور فروش {{number}} از {{company}} — مجموع {{total}}",
+    "unit_cost": "قیمت واحد"
   }
 }

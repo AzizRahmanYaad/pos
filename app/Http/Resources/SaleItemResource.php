@@ -20,7 +20,11 @@ class SaleItemResource extends JsonResource
             'refunded_quantity' => (float) $this->refunded_quantity,
             'refundable_quantity' => max(0, round((float) $this->quantity - (float) $this->refunded_quantity, 4)),
             'unit_price' => (float) $this->unit_price,
+            // The landed unit cost captured at sale time — already includes
+            // this stock's share of any purchase landed costs, since it's
+            // read straight from the product's weighted-average cost.
             'cost_price_snapshot' => (float) $this->cost_price_snapshot,
+            'total_cost' => round((float) $this->quantity * (float) $this->cost_price_snapshot, 2),
             'discount' => (float) $this->discount,
             'tax' => (float) $this->tax,
             'line_total' => (float) $this->line_total,

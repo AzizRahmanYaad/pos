@@ -276,6 +276,8 @@ export function SaleDetailPage() {
                                     <TableCell align="right">{t('fields.quantity')}</TableCell>
                                     <TableCell align="right">{t('fields.price')}</TableCell>
                                     <TableCell align="right">{t('fields.total')}</TableCell>
+                                    <TableCell align="right">{t('sales_page.unit_cost')}</TableCell>
+                                    <TableCell align="right">{t('purchases_page.total_cost')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -297,6 +299,12 @@ export function SaleDetailPage() {
                                         <TableCell align="right">{money(item.unit_price)}</TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>
                                             {money(item.line_total)}
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ color: 'text.secondary' }}>
+                                            {money(item.cost_price_snapshot)}
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 700, color: 'primary.dark' }}>
+                                            {money(item.total_cost)}
                                         </TableCell>
                                     </TableRow>
                                 ))}

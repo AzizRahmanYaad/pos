@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'purchase_id', 'product_id', 'quantity', 'unit_id', 'unit_cost',
-    'discount', 'tax', 'line_total', 'received_quantity',
+    'discount', 'tax', 'line_total', 'received_quantity', 'allocated_landed_cost',
 ])]
 class PurchaseItem extends Model
 {
@@ -21,6 +21,7 @@ class PurchaseItem extends Model
             'tax' => 'decimal:2',
             'line_total' => 'decimal:2',
             'received_quantity' => 'decimal:4',
+            'allocated_landed_cost' => 'decimal:4',
         ];
     }
 

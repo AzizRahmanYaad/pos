@@ -75,6 +75,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/purchases/{purchase}/cancel', [PurchaseController::class, 'cancel']);
         Route::apiResource('purchases', PurchaseController::class)->except(['update']);
 
+        Route::get('/sales/{sale}/pdf', [SaleController::class, 'invoicePdf']);
         Route::post('/sales/{sale}/refund', [SaleController::class, 'refund']);
         Route::apiResource('sales', SaleController::class)->only(['index', 'store', 'show']);
 

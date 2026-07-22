@@ -7,6 +7,7 @@ use App\Domain\Employees\Actions\PayPayrollRunAction;
 use App\Domain\Expenses\Actions\CreateExpenseAction;
 use App\Domain\Inventory\Actions\RecordStockMovementAction;
 use App\Domain\Sales\Actions\CreateSaleAction;
+use App\Domain\Sales\Actions\RefundSaleAction;
 use App\Models\CashAccount;
 use App\Models\Customer;
 use App\Models\Employee;
@@ -82,6 +83,55 @@ class ReportTest extends TestCase
             'operating_expenses' => 20.0,
             'payroll_cost' => 500.0,
             'net_profit' => -370.0,
+        ]);
+    }
+
+    public function test_profit_loss_nets_out_a_partial_refund_and_excludes_a_full_refund(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $cashier = User::factory()->create();
+
+        $productA = Product::factory()->create(['sale_price' => 25]);
+        app(RecordStockMovementAction::class)->execute($productA, $warehouse, StockMovement::TYPE_OPENING, 50, 10);
+        $productB = Product::factory()->create(['sale_price' => 25]);
+        app(RecordStockMovementAction::class)->execute($productB, $warehouse, StockMovement::TYPE_OPENING, 50, 10);
+
+        // Sale 1: two products, 10 units each @ 25 (cost 10) -> revenue 500, cogs 200.
+        $sale1 = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [
+                ['product_id' => $productA->id, 'quantity' => 10, 'unit_id' => $productA->unit_id, 'unit_price' => 25],
+                ['product_id' => $productB->id, 'quantity' => 10, 'unit_id' => $productB->unit_id, 'unit_price' => 25],
+            ],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 500]],
+            cashierId: $cashier->id,
+        );
+
+        // Sale 2: a separate, fully refunded sale must vanish from the report entirely.
+        $sale2 = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [['product_id' => $productA->id, 'quantity' => 4, 'unit_id' => $productA->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 100]],
+            cashierId: $cashier->id,
+        );
+
+        $itemA = $sale1->items()->where('product_id', $productA->id)->first();
+        app(RefundSaleAction::class)->execute($sale1, $cashier->id, [
+            ['sale_item_id' => $itemA->id, 'quantity' => 10],
+        ]);
+        app(RefundSaleAction::class)->execute($sale2, $cashier->id);
+
+        $response = $this->actingAs($this->manager())
+            ->getJson('/api/v1/reports/profit-loss?from='.now()->startOfMonth()->toDateString().'&to='.now()->endOfMonth()->toDateString())
+            ->assertOk();
+
+        // Only product B's 10 units survive: revenue 250, cogs 100, profit 150.
+        // Sale 1's returned product A and sale 2 (fully refunded) contribute nothing.
+        $response->assertJson([
+            'revenue' => 250.0,
+            'cogs' => 100.0,
+            'gross_profit' => 150.0,
         ]);
     }
 

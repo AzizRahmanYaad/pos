@@ -32,6 +32,7 @@ import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import ReceiptOutlinedIcon from '@mui/icons-material/ReceiptOutlined';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import LockClockOutlinedIcon from '@mui/icons-material/LockClockOutlined';
@@ -67,6 +68,7 @@ const NAV_ITEMS: NavItem[] = [
     { to: '/', labelKey: 'nav.dashboard', icon: <DashboardOutlinedIcon />, permission: 'reports.view' },
     { to: '/users', labelKey: 'nav.users', icon: <ManageAccountsOutlinedIcon />, permission: 'users.manage' },
     { to: '/pos', labelKey: 'nav.pos', icon: <PointOfSaleOutlinedIcon />, permission: 'pos.access' },
+    { to: '/sales', labelKey: 'nav.sales', icon: <ReceiptOutlinedIcon />, permission: 'pos.access' },
     { to: '/products', labelKey: 'nav.products', icon: <Inventory2OutlinedIcon />, permission: 'products.manage' },
     { to: '/stocks', labelKey: 'nav.stocks', icon: <WarehouseOutlinedIcon />, permission: 'inventory.manage' },
     { to: '/customers', labelKey: 'nav.customers', icon: <PeopleOutlineIcon />, permission: 'sales.manage' },

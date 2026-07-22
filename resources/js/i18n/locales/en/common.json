@@ -39,7 +39,8 @@
     "no": "No",
     "loading": "Loading...",
     "walk_in": "Walk-in",
-    "none": "—"
+    "none": "—",
+    "all": "All"
   },
   "auth": {
     "email": "Email",
@@ -122,7 +123,8 @@
     "completed": "Completed",
     "refunded": "Refunded",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "partially_refunded": "Partially refunded"
   },
   "payment_methods": {
     "cash": "Cash",
@@ -549,5 +551,28 @@
     "status_ok": "In stock",
     "status_low": "Low stock",
     "status_out": "Out of stock"
+  },
+  "sales_page": {
+    "subtitle": "Every sale made across the shop, with invoices, filters, and returns.",
+    "search_placeholder": "Search by invoice number or customer…",
+    "count": "{{count}} sales",
+    "from_date": "From date",
+    "to_date": "To date",
+    "clear_filters": "Clear filters",
+    "view": "View details",
+    "no_sales": "No sales found.",
+    "return": "Return",
+    "return_sale": "Return sale",
+    "return_sale_title": "Return items — {{invoice}}",
+    "return_whole_confirm": "Return the entire sale \"{{invoice}}\"? Stock, cash, and the customer's balance will all be reversed.",
+    "return_partial_hint": "Select the items and quantities being returned — the rest of the sale stays as-is. Stock, cash, and profit are adjusted for only what's returned.",
+    "return_failed": "Could not process the return. Please try again.",
+    "cashier": "Cashier",
+    "payments": "Payments",
+    "returned_qty": "Returned: {{qty}}",
+    "available_to_return": "Available to return",
+    "return_quantity": "Quantity",
+    "nothing_to_return": "Everything on this sale has already been returned.",
+    "wa_message": "Sale invoice {{number}} from {{company}} — total {{total}}"
   }
 }

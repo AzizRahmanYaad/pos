@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Products;
 
+use App\Domain\Purchases\Actions\CreatePurchaseAction;
+use App\Domain\Purchases\Actions\ReceivePurchaseAction;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -138,6 +141,58 @@ class ProductManagementTest extends TestCase
 
         $response->assertCreated();
         $this->assertEquals(60.0, (float) $response->json('data.sale_price'));
+    }
+
+    public function test_manager_can_update_a_products_details(): void
+    {
+        $unit = Unit::factory()->create();
+        $category = Category::factory()->create();
+        $product = Product::factory()->create(['name' => 'Old name', 'sku' => 'OLD-SKU']);
+
+        $response = $this->actingAs($this->manager)->putJson("/api/v1/products/{$product->id}", [
+            'name' => 'New name',
+            'sku' => 'NEW-SKU',
+            'category_id' => $category->id,
+            'unit_id' => $unit->id,
+            'reorder_level' => 15,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.name', 'New name')
+            ->assertJsonPath('data.sku', 'NEW-SKU');
+        $this->assertEquals(15.0, (float) $product->fresh()->reorder_level);
+    }
+
+    public function test_manager_can_delete_a_product_with_no_history(): void
+    {
+        $product = Product::factory()->create();
+
+        $this->actingAs($this->manager)
+            ->deleteJson("/api/v1/products/{$product->id}")
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('products', ['id' => $product->id]);
+    }
+
+    public function test_deleting_a_product_with_transaction_history_is_rejected(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $this->manager->id,
+        );
+        app(ReceivePurchaseAction::class)->execute($purchase, $this->manager->id);
+
+        $this->actingAs($this->manager)
+            ->deleteJson("/api/v1/products/{$product->id}")
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('products', ['id' => $product->id]);
     }
 
     public function test_duplicate_sku_is_rejected(): void

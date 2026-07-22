@@ -28,16 +28,25 @@ import {
     Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { isAxiosError } from 'axios';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune';
 import SellOutlinedIcon from '@mui/icons-material/SellOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AutoModeOutlinedIcon from '@mui/icons-material/AutoModeOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useTranslation } from 'react-i18next';
-import { fetchProductsPage, downloadProductListPdf, type ProductListItem } from '@/features/products/api';
+import {
+    fetchProductsPage,
+    downloadProductListPdf,
+    deleteProduct,
+    type ProductListItem,
+} from '@/features/products/api';
 import { createStockAdjustment } from '@/features/inventory/api';
 import { AddProductDialog } from '@/features/products/AddProductDialog';
+import { EditProductDialog } from '@/features/products/EditProductDialog';
 import { EditPricingDialog } from '@/features/products/EditPricingDialog';
 import { Can } from '@/components/Can';
 import { ReportActions } from '@/components/ReportActions';
@@ -81,10 +90,27 @@ export function ProductsListPage() {
     const [addOpen, setAddOpen] = useState(false);
     const [adjusting, setAdjusting] = useState<ProductListItem | null>(null);
     const [pricingProduct, setPricingProduct] = useState<ProductListItem | null>(null);
+    const [editingProduct, setEditingProduct] = useState<ProductListItem | null>(null);
+    const [deleting, setDeleting] = useState<ProductListItem | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
     const [warehouseId, setWarehouseId] = useState<number | ''>('');
     const [quantity, setQuantity] = useState('');
     const [reason, setReason] = useState('');
     const [error, setError] = useState<string | null>(null);
+
+    const deleteMutation = useMutation({
+        mutationFn: (product: ProductListItem) => deleteProduct(product.id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products-page'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            setDeleting(null);
+            setDeleteError(null);
+        },
+        onError: (err) => {
+            const message = isAxiosError(err) ? err.response?.data?.message : undefined;
+            setDeleteError(message || t('products_page.delete_failed'));
+        },
+    });
 
     const mutation = useMutation({
         mutationFn: createStockAdjustment,
@@ -318,14 +344,36 @@ export function ProductsListPage() {
                                         </TableCell>
                                         <Can permission="products.manage">
                                             <TableCell align="right">
-                                                <Tooltip title={t('products_page.edit_pricing')}>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => setPricingProduct(product)}
-                                                    >
-                                                        <SellOutlinedIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
+                                                <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                                                    <Tooltip title={t('products_page.edit_product')}>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => setEditingProduct(product)}
+                                                        >
+                                                            <EditOutlinedIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title={t('products_page.edit_pricing')}>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => setPricingProduct(product)}
+                                                        >
+                                                            <SellOutlinedIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                    <Tooltip title={t('products_page.delete_product')}>
+                                                        <IconButton
+                                                            size="small"
+                                                            color="error"
+                                                            onClick={() => {
+                                                                setDeleteError(null);
+                                                                setDeleting(product);
+                                                            }}
+                                                        >
+                                                            <DeleteOutlineIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Stack>
                                             </TableCell>
                                         </Can>
                                         <Can permission="inventory.manage">
@@ -377,7 +425,32 @@ export function ProductsListPage() {
 
             <AddProductDialog open={addOpen} onClose={() => setAddOpen(false)} />
 
+            <EditProductDialog product={editingProduct} onClose={() => setEditingProduct(null)} />
+
             <EditPricingDialog product={pricingProduct} onClose={() => setPricingProduct(null)} />
+
+            <Dialog open={deleting !== null} onClose={() => setDeleting(null)} maxWidth="xs" fullWidth>
+                <DialogTitle>{t('products_page.delete_product')}</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} sx={{ mt: 1 }}>
+                        {deleteError && <Alert severity="error">{deleteError}</Alert>}
+                        <Typography>
+                            {t('products_page.delete_confirm', { name: deleting?.name })}
+                        </Typography>
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setDeleting(null)}>{t('actions.cancel')}</Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => deleting && deleteMutation.mutate(deleting)}
+                    >
+                        {t('actions.delete')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <Dialog open={adjusting !== null} onClose={closeDialog} fullWidth maxWidth="xs">
                 <DialogTitle>{t('products_page.adjust_stock_title', { name: adjusting?.name })}</DialogTitle>

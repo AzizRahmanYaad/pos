@@ -141,6 +141,32 @@ export async function updateProductPricing(
     return data.data;
 }
 
+export interface UpdateProductPayload {
+    sku?: string;
+    barcode?: string | null;
+    name?: string;
+    category_id?: number | null;
+    unit_id?: number;
+    type?: 'standard' | 'service' | 'raw_material';
+    default_cost?: number;
+    tax_rate?: number;
+    reorder_level?: number;
+    track_inventory?: boolean;
+    is_active?: boolean;
+}
+
+export async function updateProduct(
+    id: number,
+    payload: UpdateProductPayload,
+): Promise<ProductListItem> {
+    const { data } = await apiClient.put<{ data: ProductListItem }>(`/products/${id}`, payload);
+    return data.data;
+}
+
+export async function deleteProduct(id: number): Promise<void> {
+    await apiClient.delete(`/products/${id}`);
+}
+
 export async function downloadProductListPdf(
     search?: string,
 ): Promise<{ url: string; filename: string; blob: Blob }> {

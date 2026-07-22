@@ -176,7 +176,13 @@
     "current_cost": "Current average cost",
     "resulting_price": "Resulting sale price",
     "pricing_save_failed": "Could not update pricing. Please check the values and try again.",
-    "auto_priced_tooltip": "Auto-priced at {{margin}}% margin over cost"
+    "auto_priced_tooltip": "Auto-priced at {{margin}}% margin over cost",
+    "edit_product": "Edit product",
+    "edit_product_title": "Edit product — {{name}}",
+    "delete_product": "Delete product",
+    "delete_confirm": "Delete \"{{name}}\"? This cannot be undone.",
+    "delete_failed": "Could not delete the product. Please try again.",
+    "update_failed": "Could not save the changes. Check the details and try again."
   },
   "purchases_page": {
     "title": "New Purchase",

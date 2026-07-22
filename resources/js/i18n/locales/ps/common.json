@@ -323,7 +323,9 @@
     "wa_expenses_by_category": "د کټګورۍ له مخې لګښتونه د {{company}} ({{period}})",
     "wa_inventory": "د ذخیرې ارزونه د {{company}} — ټول {{total}}",
     "wa_receivables": "د مطالباتو راپور د {{company}} — ټول {{total}}",
-    "wa_payables": "د ورکړې وړ راپور د {{company}} — ټول {{total}}"
+    "wa_payables": "د ورکړې وړ راپور د {{company}} — ټول {{total}}",
+    "operating_expenses_by_category": "د کټګورۍ له مخې عملیاتي لګښتونه",
+    "total_operating_expenses": "ټول عملیاتي لګښتونه"
   },
   "dashboard_page": {
     "today_sales": "د نن پلورنې",

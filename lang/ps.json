@@ -63,6 +63,7 @@
     "November": "نومبر",
     "October": "اکتوبر",
     "Operating expenses": "عملیاتي لګښتونه",
+    "Operating expenses by category": "د کټګورۍ له مخې عملیاتي لګښتونه",
     "Outstanding advances": "پاتې پیش‌ورکړې",
     "Page": "مخ",
     "Paid": "تادیه شوی",
@@ -94,6 +95,7 @@
     "Total": "ټول",
     "Total Credit": "ټول پورلرونکی",
     "Total Debit": "ټول پوروړی",
+    "Total operating expenses": "ټول عملیاتي لګښتونه",
     "Unit cost": "د واحد لګښت",
     "Warehouse": "ګدام",
     "of": "له"

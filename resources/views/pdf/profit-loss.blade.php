@@ -4,6 +4,8 @@
     $sym = $settings->currency_symbol ?: '';
     $money = fn ($v) => number_format((float) $v, 2) . ($sym ? ' ' . $sym : '');
     $netPositive = (float) $data['net_profit'] >= 0;
+    $categories = $data['operating_expenses_by_category'] ?? [];
+    $maxCategoryTotal = collect($categories)->max('total') ?: 1;
 @endphp
 <!DOCTYPE html>
 <html>
@@ -23,6 +25,14 @@
         tr.subtotal td { font-weight: bold; background: #f8faf9; border-top: 1px solid #cfe0d9; }
         tr.deduction td.label { color: #6b7280; }
         tr.deduction td.num { color: #b3261e; }
+        tr.section-header td { font-weight: bold; color: #10493c; padding-bottom: 3px; border-bottom: none; }
+        tr.section-header td.num { color: #6b7280; font-weight: normal; font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px; }
+        tr.category-row td { padding: 5px 10px 5px 26px; font-size: 10px; color: #4b5563; border-bottom: none; }
+        tr.category-row td.num { color: #b3261e; }
+        tr.category-row .bar-track { background: #f1f5f3; border-radius: 3px; height: 5px; margin-top: 3px; width: 92%; }
+        tr.category-row .bar-fill { background: #c9a227; border-radius: 3px; height: 5px; }
+        tr.section-total td { font-weight: bold; border-top: 1px solid #e5e7eb; color: #374151; }
+        tr.section-total td.num { color: #b3261e; }
         tr.net td { border-top: 3px double #10493c; font-weight: bold; font-size: 15px; padding-top: 12px; }
         tr.net td.num.positive { color: #1e6f5c; }
         tr.net td.num.negative { color: #b3261e; }
@@ -57,10 +67,31 @@
             <td>{{ __('Gross profit') }}</td>
             <td class="num">{{ $money($data['gross_profit']) }}</td>
         </tr>
-        <tr class="deduction">
-            <td class="label">{{ __('Operating expenses') }}</td>
+
+        <tr class="section-header">
+            <td>{{ __('Operating expenses by category') }}</td>
+            <td class="num">{{ __('Amount') }}</td>
+        </tr>
+        @forelse ($categories as $category)
+            <tr class="category-row">
+                <td>
+                    {{ $category['category'] }}
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width: {{ $maxCategoryTotal > 0 ? round(($category['total'] / $maxCategoryTotal) * 100) : 0 }}%;"></div>
+                    </div>
+                </td>
+                <td class="num">−{{ $money($category['total']) }}</td>
+            </tr>
+        @empty
+            <tr class="category-row">
+                <td colspan="2" style="color:#9ca3af;font-style:italic;">{{ __('No expenses in this period') }}</td>
+            </tr>
+        @endforelse
+        <tr class="section-total">
+            <td>{{ __('Total operating expenses') }}</td>
             <td class="num">−{{ $money($data['operating_expenses']) }}</td>
         </tr>
+
         <tr class="deduction">
             <td class="label">{{ __('Payroll cost') }}</td>
             <td class="num">−{{ $money($data['payroll_cost']) }}</td>

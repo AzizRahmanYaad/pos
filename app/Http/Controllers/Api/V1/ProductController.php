@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Inventory\Actions\ApplyAutoPricingAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Products\StoreProductRequest;
 use App\Http\Requests\Products\UpdateProductRequest;
@@ -82,9 +83,10 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(StoreProductRequest $request): ProductResource
+    public function store(StoreProductRequest $request, ApplyAutoPricingAction $applyAutoPricing): ProductResource
     {
         $product = Product::create($request->validated());
+        $applyAutoPricing->execute($product);
 
         return new ProductResource($product->load(['category', 'unit', 'stocks.warehouse']));
     }
@@ -96,9 +98,10 @@ class ProductController extends Controller
         return new ProductResource($product->load(['category', 'unit', 'stocks.warehouse']));
     }
 
-    public function update(UpdateProductRequest $request, Product $product): ProductResource
+    public function update(UpdateProductRequest $request, Product $product, ApplyAutoPricingAction $applyAutoPricing): ProductResource
     {
         $product->update($request->validated());
+        $applyAutoPricing->execute($product);
 
         return new ProductResource($product->load(['category', 'unit', 'stocks.warehouse']));
     }

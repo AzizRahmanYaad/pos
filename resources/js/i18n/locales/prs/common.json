@@ -165,7 +165,18 @@
     "search_placeholder": "جستجو بر اساس نام، کد یا بارکد…",
     "count": "{{count}} محصول",
     "no_products": "محصولی یافت نشد.",
-    "wa_message": "کتلاگ محصولات از {{company}}"
+    "wa_message": "کتلاگ محصولات از {{company}}",
+    "pricing_mode": "شیوه قیمت‌گذاری",
+    "pricing_fixed": "قیمت ثابت",
+    "pricing_margin": "سود خودکار از قیمت خرید",
+    "margin_percent": "فیصدی سود",
+    "margin_hint": "قیمت فروش به صورت خودکار از آخرین قیمت خرید با این فیصدی سود محاسبه می‌شود.",
+    "edit_pricing": "ویرایش قیمت",
+    "edit_pricing_title": "قیمت‌گذاری — {{name}}",
+    "current_cost": "میانگین قیمت خرید فعلی",
+    "resulting_price": "قیمت فروش نهایی",
+    "pricing_save_failed": "ذخیره قیمت‌گذاری ممکن نشد. لطفاً مقادیر را بررسی کرده و دوباره تلاش کنید.",
+    "auto_priced_tooltip": "قیمت خودکار با {{margin}}% سود بالای قیمت خرید"
   },
   "purchases_page": {
     "title": "خریداری جدید",

@@ -165,7 +165,18 @@
     "search_placeholder": "د نوم، کوډ یا بارکوډ له مخې ولټوئ…",
     "count": "{{count}} محصولات",
     "no_products": "هیڅ محصول ونه موندل شو.",
-    "wa_message": "د محصولاتو کتلاګ د {{company}} څخه"
+    "wa_message": "د محصولاتو کتلاګ د {{company}} څخه",
+    "pricing_mode": "د بیې ټاکنه",
+    "pricing_fixed": "ثابته بیه",
+    "pricing_margin": "له لګښت څخه خپلواک ګټه",
+    "margin_percent": "د ګټې سلنه",
+    "margin_hint": "د پلورنې بیه به په خپلواک ډول د وروستي پیرودنې لګښت پر بنسټ او دې ګټې سلنې سره تازه شي.",
+    "edit_pricing": "د بیې سمون",
+    "edit_pricing_title": "بیه ټاکنه — {{name}}",
+    "current_cost": "اوسنی اوسط لګښت",
+    "resulting_price": "وروستۍ پلورنې بیه",
+    "pricing_save_failed": "د بیې ټاکنه خوندي نشوه. مهرباني وکړئ ارزښتونه وګورئ او بیا هڅه وکړئ.",
+    "auto_priced_tooltip": "پر لګښت باندې د {{margin}}٪ ګټې سره خپلواک بیه ټاکل شوې"
   },
   "purchases_page": {
     "title": "نوې پیرودنه",

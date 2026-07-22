@@ -165,7 +165,18 @@
     "search_placeholder": "Search by name, SKU, or barcode…",
     "count": "{{count}} products",
     "no_products": "No products found.",
-    "wa_message": "Product catalogue from {{company}}"
+    "wa_message": "Product catalogue from {{company}}",
+    "pricing_mode": "Pricing mode",
+    "pricing_fixed": "Fixed price",
+    "pricing_margin": "Auto margin from cost",
+    "margin_percent": "Margin %",
+    "margin_hint": "The sale price will auto-update from the latest purchase cost using this margin.",
+    "edit_pricing": "Edit pricing",
+    "edit_pricing_title": "Pricing — {{name}}",
+    "current_cost": "Current average cost",
+    "resulting_price": "Resulting sale price",
+    "pricing_save_failed": "Could not update pricing. Please check the values and try again.",
+    "auto_priced_tooltip": "Auto-priced at {{margin}}% margin over cost"
   },
   "purchases_page": {
     "title": "New Purchase",

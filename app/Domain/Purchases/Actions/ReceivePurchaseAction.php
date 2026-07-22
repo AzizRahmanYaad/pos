@@ -2,6 +2,7 @@
 
 namespace App\Domain\Purchases\Actions;
 
+use App\Domain\Inventory\Actions\ApplyAutoPricingAction;
 use App\Domain\Inventory\Actions\RecordStockMovementAction;
 use App\Domain\Ledger\Actions\PostLedgerEntryAction;
 use App\Domain\PeriodClosing\Services\PeriodGuard;
@@ -17,6 +18,7 @@ class ReceivePurchaseAction
         private readonly RecordStockMovementAction $recordStockMovement,
         private readonly PostLedgerEntryAction $postLedgerEntry,
         private readonly PeriodGuard $periodGuard,
+        private readonly ApplyAutoPricingAction $applyAutoPricing,
     ) {}
 
     /**
@@ -71,6 +73,13 @@ class ReceivePurchaseAction
 
                 $item->update(['received_quantity' => $item->quantity]);
             }
+
+            // Every product whose cost this purchase just changed gets its
+            // sale price recalculated if it's on margin-based pricing —
+            // fixed-price products are left untouched.
+            $items->unique('product_id')->each(
+                fn ($item) => $this->applyAutoPricing->execute($item->product)
+            );
 
             if ((float) $purchase->grand_total > 0) {
                 $this->postLedgerEntry->execute(

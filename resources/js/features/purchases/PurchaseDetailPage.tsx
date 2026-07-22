@@ -63,6 +63,8 @@ export function PurchaseDetailPage() {
     const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: ['purchase', id] });
         queryClient.invalidateQueries({ queryKey: ['purchases-page'] });
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: ['products-page'] });
     };
     const receiveMutation = useMutation({ mutationFn: () => receivePurchase(id), onSuccess: invalidate });
     const cancelMutation = useMutation({ mutationFn: () => cancelPurchase(id), onSuccess: invalidate });

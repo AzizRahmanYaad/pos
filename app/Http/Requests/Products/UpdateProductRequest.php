@@ -31,6 +31,8 @@ class UpdateProductRequest extends FormRequest
                 Product::TYPE_STANDARD, Product::TYPE_SERVICE, Product::TYPE_RAW_MATERIAL,
             ])],
             'sale_price' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'pricing_mode' => ['sometimes', 'required', Rule::in([Product::PRICING_FIXED, Product::PRICING_MARGIN])],
+            'margin_percent' => ['nullable', 'numeric', 'min:0', 'max:1000', 'required_if:pricing_mode,margin'],
             'default_cost' => ['sometimes', 'required', 'numeric', 'min:0'],
             'tax_rate' => ['sometimes', 'required', 'numeric', 'min:0', 'max:100'],
             'reorder_level' => ['sometimes', 'required', 'numeric', 'min:0'],

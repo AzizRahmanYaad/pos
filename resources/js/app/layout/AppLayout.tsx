@@ -27,6 +27,7 @@ import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import PointOfSaleOutlinedIcon from '@mui/icons-material/PointOfSaleOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
@@ -40,13 +41,16 @@ import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlin
 import LogoutIcon from '@mui/icons-material/Logout';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
-import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom';
+import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
+import HighlightOffOutlinedIcon from '@mui/icons-material/HighlightOffOutlined';
+import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LogoMark } from '@/components/AppLogo';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Can } from '@/components/Can';
 import { useAuthStore } from '@/store/authStore';
 import { fetchBusinessSettings } from '@/features/settings/api';
+import { fetchStockAlerts } from '@/features/inventory/api';
 
 const DRAWER_WIDTH = 244;
 const COLLAPSED_WIDTH = 76;
@@ -64,6 +68,7 @@ const NAV_ITEMS: NavItem[] = [
     { to: '/users', labelKey: 'nav.users', icon: <ManageAccountsOutlinedIcon />, permission: 'users.manage' },
     { to: '/pos', labelKey: 'nav.pos', icon: <PointOfSaleOutlinedIcon />, permission: 'pos.access' },
     { to: '/products', labelKey: 'nav.products', icon: <Inventory2OutlinedIcon />, permission: 'products.manage' },
+    { to: '/stocks', labelKey: 'nav.stocks', icon: <WarehouseOutlinedIcon />, permission: 'inventory.manage' },
     { to: '/customers', labelKey: 'nav.customers', icon: <PeopleOutlineIcon />, permission: 'sales.manage' },
     { to: '/suppliers', labelKey: 'nav.suppliers', icon: <LocalShippingOutlinedIcon />, permission: 'purchases.manage' },
     { to: '/purchases', labelKey: 'nav.purchases', icon: <ShoppingCartOutlinedIcon />, permission: 'purchases.manage' },
@@ -89,16 +94,29 @@ export function AppLayout() {
     const { t } = useTranslation();
     const theme = useTheme();
     const location = useLocation();
+    const navigate = useNavigate();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileOpen, setMobileOpen] = useState(false);
     const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSE_KEY) === '1');
     const [fullscreen, setFullscreen] = useState(false);
     const [profileEl, setProfileEl] = useState<null | HTMLElement>(null);
+    const [notifEl, setNotifEl] = useState<null | HTMLElement>(null);
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
+    const canViewStock = useAuthStore((state) => state.can('inventory.manage'));
 
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
     const companyName = settings?.company_name || t('app_name');
+
+    const { data: stockAlerts } = useQuery({
+        queryKey: ['stock-alerts'],
+        queryFn: fetchStockAlerts,
+        enabled: canViewStock,
+        refetchInterval: 60_000,
+    });
+    const alertCount = stockAlerts?.length ?? 0;
+    const openNotifications = (e: MouseEvent<HTMLElement>) => setNotifEl(e.currentTarget);
+    const closeNotifications = () => setNotifEl(null);
 
     const openProfile = (e: MouseEvent<HTMLElement>) => setProfileEl(e.currentTarget);
     const closeProfile = () => setProfileEl(null);
@@ -230,12 +248,78 @@ export function AppLayout() {
                         </IconButton>
                     </Tooltip>
                     <Tooltip title={t('nav_header.notifications')}>
-                        <IconButton size="small" sx={{ color: 'text.secondary' }}>
-                            <Badge badgeContent={0} color="primary" showZero>
+                        <IconButton size="small" onClick={openNotifications} sx={{ color: 'text.secondary' }}>
+                            <Badge badgeContent={alertCount} color="error" max={99}>
                                 <NotificationsNoneOutlinedIcon fontSize="small" />
                             </Badge>
                         </IconButton>
                     </Tooltip>
+                    <Menu
+                        anchorEl={notifEl}
+                        open={Boolean(notifEl)}
+                        onClose={closeNotifications}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        PaperProps={{ sx: { width: 340, maxHeight: 420 } }}
+                    >
+                        <Box sx={{ px: 2, py: 1.25 }}>
+                            <Typography variant="subtitle2" fontWeight={700}>
+                                {t('nav_header.stock_alerts')}
+                            </Typography>
+                        </Box>
+                        <Divider />
+                        {!canViewStock || alertCount === 0 ? (
+                            <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+                                <Typography variant="body2" color="text.secondary">
+                                    {t('nav_header.no_alerts')}
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <>
+                                {stockAlerts?.map((alert) => (
+                                    <MenuItem
+                                        key={alert.id}
+                                        onClick={() => {
+                                            closeNotifications();
+                                            navigate('/stocks');
+                                        }}
+                                        sx={{ whiteSpace: 'normal', alignItems: 'flex-start', py: 1 }}
+                                    >
+                                        <ListItemIcon sx={{ mt: 0.25 }}>
+                                            {alert.status === 'out' ? (
+                                                <HighlightOffOutlinedIcon fontSize="small" color="error" />
+                                            ) : (
+                                                <ReportProblemOutlinedIcon fontSize="small" color="warning" />
+                                            )}
+                                        </ListItemIcon>
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                            <Typography variant="body2" fontWeight={600} noWrap>
+                                                {alert.name}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {alert.status === 'out'
+                                                    ? t('nav_header.out_of_stock_alert')
+                                                    : t('nav_header.low_stock_alert', {
+                                                          qty: alert.total_stock,
+                                                          reorder: alert.reorder_level,
+                                                      })}
+                                            </Typography>
+                                        </Box>
+                                    </MenuItem>
+                                ))}
+                                <Divider />
+                                <MenuItem
+                                    onClick={() => {
+                                        closeNotifications();
+                                        navigate('/stocks');
+                                    }}
+                                    sx={{ justifyContent: 'center', color: 'primary.main', fontWeight: 600 }}
+                                >
+                                    {t('nav_header.view_all_stock')}
+                                </MenuItem>
+                            </>
+                        )}
+                    </Menu>
 
                     <LanguageSwitcher />
 

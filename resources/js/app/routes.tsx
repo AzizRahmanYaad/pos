@@ -3,6 +3,7 @@ import { AppLayout } from '@/app/layout/AppLayout';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ProductsListPage } from '@/features/products/ProductsListPage';
+import { StocksPage } from '@/features/inventory/StocksPage';
 import { CustomersListPage } from '@/features/customers/CustomersListPage';
 import { SuppliersListPage } from '@/features/suppliers/SuppliersListPage';
 import { PurchasesListPage } from '@/features/purchases/PurchasesListPage';
@@ -59,6 +60,7 @@ export const router = createBrowserRouter([
                     { path: 'users', element: guarded('users.manage', <UsersPage />) },
                     { path: 'pos', element: guarded('pos.access', <PosPage />) },
                     { path: 'products', element: guarded('products.manage', <ProductsListPage />) },
+                    { path: 'stocks', element: guarded('inventory.manage', <StocksPage />) },
                     { path: 'customers', element: guarded('sales.manage', <CustomersListPage />) },
                     { path: 'customers/:id/ledger', element: guarded('sales.manage', <PartyLedgerPage kind="customer" />) },
                     { path: 'suppliers', element: guarded('purchases.manage', <SuppliersListPage />) },

@@ -15,7 +15,8 @@
     "period_closing": "Clearance",
     "reports": "Reports",
     "settings": "Settings",
-    "users": "User Management"
+    "users": "User Management",
+    "stocks": "Stocks"
   },
   "actions": {
     "save": "Save",
@@ -435,7 +436,12 @@
     "expand_menu": "Expand menu",
     "collapse_menu": "Collapse menu",
     "fullscreen": "Full screen",
-    "exit_fullscreen": "Exit full screen"
+    "exit_fullscreen": "Exit full screen",
+    "stock_alerts": "Stock alerts",
+    "no_alerts": "No stock alerts right now",
+    "out_of_stock_alert": "Out of stock",
+    "low_stock_alert": "{{qty}} left, reorder at {{reorder}}",
+    "view_all_stock": "View all stock"
   },
   "calendar": {
     "gregorian": "Gregorian",
@@ -443,5 +449,25 @@
     "year": "Year",
     "month": "Month",
     "day": "Day"
+  },
+  "stocks_page": {
+    "title": "Stocks",
+    "subtitle": "Available stock across all warehouses and items that need reordering",
+    "tracked_products": "Tracked products",
+    "low_stock": "Low stock",
+    "out_of_stock": "Out of stock",
+    "stock_value": "Stock value",
+    "search_placeholder": "Search by name, SKU or barcode…",
+    "all_warehouses": "All warehouses",
+    "filter_all": "All",
+    "filter_low": "Low stock",
+    "filter_out": "Out of stock",
+    "by_warehouse": "By warehouse",
+    "reorder_level": "Reorder level",
+    "available_stock": "Available stock",
+    "no_stock": "No stock records match your filters",
+    "status_ok": "In stock",
+    "status_low": "Low stock",
+    "status_out": "Out of stock"
   }
 }

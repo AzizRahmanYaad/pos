@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Alert,
+    Box,
     Button,
     Checkbox,
     Dialog,
@@ -16,6 +17,7 @@ import {
     Stack,
     TextField,
     Tooltip,
+    Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
@@ -48,6 +50,8 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
     const [unitId, setUnitId] = useState<number | ''>('');
     const [type, setType] = useState<(typeof PRODUCT_TYPES)[number]>('standard');
     const [salePrice, setSalePrice] = useState('');
+    const [pricingMode, setPricingMode] = useState<'fixed' | 'margin'>('fixed');
+    const [marginPercent, setMarginPercent] = useState('');
     const [defaultCost, setDefaultCost] = useState('');
     const [taxRate, setTaxRate] = useState('0');
     const [reorderLevel, setReorderLevel] = useState('0');
@@ -67,6 +71,8 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
         setUnitId('');
         setType('standard');
         setSalePrice('');
+        setPricingMode('fixed');
+        setMarginPercent('');
         setDefaultCost('');
         setTaxRate('0');
         setReorderLevel('0');
@@ -89,6 +95,8 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                 unit_id: unitId as number,
                 type,
                 sale_price: Number(salePrice),
+                pricing_mode: pricingMode,
+                margin_percent: pricingMode === 'margin' ? Number(marginPercent || 0) : undefined,
                 default_cost: Number(defaultCost || 0),
                 tax_rate: Number(taxRate || 0),
                 reorder_level: Number(reorderLevel || 0),
@@ -123,7 +131,12 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
         },
     });
 
-    const canSave = name !== '' && sku !== '' && unitId !== '' && salePrice !== '';
+    const canSave =
+        name !== '' &&
+        sku !== '' &&
+        unitId !== '' &&
+        salePrice !== '' &&
+        (pricingMode === 'fixed' || marginPercent !== '');
 
     return (
         <>
@@ -254,6 +267,41 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                                     fullWidth
                                 />
                             </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    select
+                                    label={t('products_page.pricing_mode')}
+                                    value={pricingMode}
+                                    onChange={(e) => setPricingMode(e.target.value as 'fixed' | 'margin')}
+                                    fullWidth
+                                >
+                                    <MenuItem value="fixed">{t('products_page.pricing_fixed')}</MenuItem>
+                                    <MenuItem value="margin">{t('products_page.pricing_margin')}</MenuItem>
+                                </TextField>
+                            </Grid>
+                            {pricingMode === 'margin' && (
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        label={t('products_page.margin_percent')}
+                                        type="number"
+                                        value={marginPercent}
+                                        onChange={(e) => setMarginPercent(e.target.value)}
+                                        InputProps={{
+                                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                                        }}
+                                        fullWidth
+                                    />
+                                </Grid>
+                            )}
+                            {pricingMode === 'margin' && (
+                                <Grid item xs={12}>
+                                    <Box sx={{ px: 0.5 }}>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {t('products_page.margin_hint')}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                            )}
                             <Grid item xs={6} sm={3}>
                                 <TextField
                                     label={t('products_page.tax_rate')}

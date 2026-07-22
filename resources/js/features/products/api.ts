@@ -18,6 +18,8 @@ export interface ProductListItem {
     unit_short_name: string;
     type: string;
     sale_price: number;
+    pricing_mode: 'fixed' | 'margin';
+    margin_percent: number | null;
     default_cost: number;
     tax_rate: number;
     reorder_level: number;
@@ -25,6 +27,7 @@ export interface ProductListItem {
     is_active: boolean;
     stocks: ProductStock[];
     total_stock: number;
+    average_cost: number;
 }
 
 interface PaginatedResponse<T> {
@@ -110,6 +113,8 @@ export interface CreateProductPayload {
     unit_id: number;
     type: 'standard' | 'service' | 'raw_material';
     sale_price: number;
+    pricing_mode?: 'fixed' | 'margin';
+    margin_percent?: number;
     default_cost: number;
     tax_rate: number;
     reorder_level: number;
@@ -119,6 +124,20 @@ export interface CreateProductPayload {
 
 export async function createProduct(payload: CreateProductPayload): Promise<ProductListItem> {
     const { data } = await apiClient.post<{ data: ProductListItem }>('/products', payload);
+    return data.data;
+}
+
+export interface UpdatePricingPayload {
+    pricing_mode: 'fixed' | 'margin';
+    margin_percent?: number | null;
+    sale_price?: number;
+}
+
+export async function updateProductPricing(
+    id: number,
+    payload: UpdatePricingPayload,
+): Promise<ProductListItem> {
+    const { data } = await apiClient.put<{ data: ProductListItem }>(`/products/${id}`, payload);
     return data.data;
 }
 

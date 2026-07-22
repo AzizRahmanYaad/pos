@@ -30,12 +30,15 @@ import {
 import { alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune';
+import SellOutlinedIcon from '@mui/icons-material/SellOutlined';
+import AutoModeOutlinedIcon from '@mui/icons-material/AutoModeOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useTranslation } from 'react-i18next';
 import { fetchProductsPage, downloadProductListPdf, type ProductListItem } from '@/features/products/api';
 import { createStockAdjustment } from '@/features/inventory/api';
 import { AddProductDialog } from '@/features/products/AddProductDialog';
+import { EditPricingDialog } from '@/features/products/EditPricingDialog';
 import { Can } from '@/components/Can';
 import { ReportActions } from '@/components/ReportActions';
 import { fetchBusinessSettings } from '@/features/settings/api';
@@ -77,6 +80,7 @@ export function ProductsListPage() {
 
     const [addOpen, setAddOpen] = useState(false);
     const [adjusting, setAdjusting] = useState<ProductListItem | null>(null);
+    const [pricingProduct, setPricingProduct] = useState<ProductListItem | null>(null);
     const [warehouseId, setWarehouseId] = useState<number | ''>('');
     const [quantity, setQuantity] = useState('');
     const [reason, setReason] = useState('');
@@ -195,6 +199,9 @@ export function ProductsListPage() {
                                 <TableCell align="right">{t('fields.stock')}</TableCell>
                                 <TableCell align="right">{t('fields.price')}</TableCell>
                                 <TableCell>{t('fields.status')}</TableCell>
+                                <Can permission="products.manage">
+                                    <TableCell align="right"> </TableCell>
+                                </Can>
                                 <Can permission="inventory.manage">
                                     <TableCell align="right"> </TableCell>
                                 </Can>
@@ -203,7 +210,7 @@ export function ProductsListPage() {
                         <TableBody>
                             {isLoading && (
                                 <TableRow>
-                                    <TableCell colSpan={6}>
+                                    <TableCell colSpan={7}>
                                         <Box sx={{ py: 4, textAlign: 'center' }}>
                                             <CircularProgress size={28} />
                                         </Box>
@@ -282,9 +289,20 @@ export function ProductsListPage() {
                                             )}
                                         </TableCell>
                                         <TableCell align="right">
-                                            <Typography variant="body2" fontWeight={700} color="primary.main">
-                                                {product.sale_price.toFixed(2)}
-                                            </Typography>
+                                            <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
+                                                {product.pricing_mode === 'margin' && (
+                                                    <Tooltip
+                                                        title={t('products_page.auto_priced_tooltip', {
+                                                            margin: product.margin_percent,
+                                                        })}
+                                                    >
+                                                        <AutoModeOutlinedIcon fontSize="small" color="primary" />
+                                                    </Tooltip>
+                                                )}
+                                                <Typography variant="body2" fontWeight={700} color="primary.main">
+                                                    {product.sale_price.toFixed(2)}
+                                                </Typography>
+                                            </Stack>
                                         </TableCell>
                                         <TableCell>
                                             <Chip
@@ -298,6 +316,18 @@ export function ProductsListPage() {
                                                 }
                                             />
                                         </TableCell>
+                                        <Can permission="products.manage">
+                                            <TableCell align="right">
+                                                <Tooltip title={t('products_page.edit_pricing')}>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => setPricingProduct(product)}
+                                                    >
+                                                        <SellOutlinedIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </TableCell>
+                                        </Can>
                                         <Can permission="inventory.manage">
                                             <TableCell align="right">
                                                 <Tooltip title={t('actions.adjust')}>
@@ -315,7 +345,7 @@ export function ProductsListPage() {
                             })}
                             {data && data.data.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={6}>
+                                    <TableCell colSpan={7}>
                                         <Box sx={{ py: 6, textAlign: 'center' }}>
                                             <Inventory2OutlinedIcon
                                                 sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }}
@@ -346,6 +376,8 @@ export function ProductsListPage() {
             </Paper>
 
             <AddProductDialog open={addOpen} onClose={() => setAddOpen(false)} />
+
+            <EditPricingDialog product={pricingProduct} onClose={() => setPricingProduct(null)} />
 
             <Dialog open={adjusting !== null} onClose={closeDialog} fullWidth maxWidth="xs">
                 <DialogTitle>{t('products_page.adjust_stock_title', { name: adjusting?.name })}</DialogTitle>

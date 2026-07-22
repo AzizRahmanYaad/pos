@@ -100,6 +100,46 @@ class ProductManagementTest extends TestCase
         $this->assertDatabaseHas('product_stocks', ['product_id' => $productB->id, 'warehouse_id' => $warehouse->id]);
     }
 
+    public function test_updating_a_product_to_margin_pricing_recalculates_sale_price_immediately(): void
+    {
+        $product = Product::factory()->create([
+            'sale_price' => 122,
+            'default_cost' => 78,
+            'pricing_mode' => Product::PRICING_FIXED,
+        ]);
+
+        $response = $this->actingAs($this->manager)->putJson("/api/v1/products/{$product->id}", [
+            'pricing_mode' => Product::PRICING_MARGIN,
+            'margin_percent' => 25,
+        ]);
+
+        // No stock movements yet, so cost basis falls back to default_cost (78);
+        // price should become 78 * 1.25 = 97.5 right away, not wait for a purchase.
+        $response->assertOk();
+        $this->assertEquals(97.5, (float) $product->fresh()->sale_price);
+    }
+
+    public function test_creating_a_product_with_margin_pricing_computes_initial_sale_price(): void
+    {
+        $unit = Unit::factory()->create();
+
+        $response = $this->actingAs($this->manager)->postJson('/api/v1/products', [
+            'sku' => 'SKU-MARGIN',
+            'name' => 'Margin Product',
+            'unit_id' => $unit->id,
+            'type' => Product::TYPE_STANDARD,
+            'sale_price' => 1,
+            'pricing_mode' => Product::PRICING_MARGIN,
+            'margin_percent' => 50,
+            'default_cost' => 40,
+            'tax_rate' => 0,
+            'reorder_level' => 0,
+        ]);
+
+        $response->assertCreated();
+        $this->assertEquals(60.0, (float) $response->json('data.sale_price'));
+    }
+
     public function test_duplicate_sku_is_rejected(): void
     {
         $unit = Unit::factory()->create();

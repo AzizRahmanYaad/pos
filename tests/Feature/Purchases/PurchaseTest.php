@@ -93,6 +93,62 @@ class PurchaseTest extends TestCase
         $this->assertEquals(-150.0, $supplier->fresh()->currentBalance());
     }
 
+    public function test_receiving_a_purchase_recalculates_sale_price_for_margin_priced_products(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create([
+            'sale_price' => 12,
+            'pricing_mode' => Product::PRICING_MARGIN,
+            'margin_percent' => 20,
+        ]);
+        $user = User::factory()->create();
+
+        // First purchase: 1 unit @ 10 -> average cost 10 -> price = 10 * 1.2 = 12.
+        $purchase1 = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $user->id,
+        );
+        app(ReceivePurchaseAction::class)->execute($purchase1, $user->id);
+
+        $this->assertEquals(12.0, (float) $product->fresh()->sale_price);
+
+        // Second purchase: 1 more unit @ 13, blended with the existing unit
+        // still on hand -> average (10+13)/2 = 11.5 -> price = 11.5 * 1.2 = 13.8.
+        $purchase2 = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_cost' => 13]],
+            landedCosts: [],
+            createdBy: $user->id,
+        );
+        app(ReceivePurchaseAction::class)->execute($purchase2, $user->id);
+
+        $this->assertEquals(13.8, (float) $product->fresh()->sale_price);
+    }
+
+    public function test_receiving_a_purchase_does_not_change_price_for_fixed_priced_products(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create([
+            'sale_price' => 20,
+            'pricing_mode' => Product::PRICING_FIXED,
+        ]);
+        $user = User::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_cost' => 999]],
+            landedCosts: [],
+            createdBy: $user->id,
+        );
+        app(ReceivePurchaseAction::class)->execute($purchase, $user->id);
+
+        $this->assertEquals(20.0, (float) $product->fresh()->sale_price);
+    }
+
     public function test_receiving_an_already_received_purchase_throws(): void
     {
         $supplier = Supplier::factory()->create();

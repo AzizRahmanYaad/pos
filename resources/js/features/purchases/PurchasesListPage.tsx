@@ -27,8 +27,15 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
-import { fetchPurchasesPage, receivePurchase, cancelPurchase } from '@/features/purchases/api';
+import {
+    fetchPurchasesPage,
+    receivePurchase,
+    cancelPurchase,
+    type PurchaseListItem,
+} from '@/features/purchases/api';
+import { PaymentDialog } from '@/features/payments/PaymentDialog';
 
 const STATUS_COLOR: Record<string, 'default' | 'success' | 'error'> = {
     draft: 'default',
@@ -67,6 +74,8 @@ export function PurchasesListPage() {
     };
     const receiveMutation = useMutation({ mutationFn: receivePurchase, onSuccess: invalidate });
     const cancelMutation = useMutation({ mutationFn: cancelPurchase, onSuccess: invalidate });
+
+    const [paying, setPaying] = useState<PurchaseListItem | null>(null);
 
     return (
         <Box>
@@ -204,6 +213,17 @@ export function PurchasesListPage() {
                                                 </Tooltip>
                                             </>
                                         )}
+                                        {purchase.status === 'received' && purchase.due_amount > 0.001 && (
+                                            <Tooltip title={t('actions.pay')}>
+                                                <IconButton
+                                                    size="small"
+                                                    color="success"
+                                                    onClick={() => setPaying(purchase)}
+                                                >
+                                                    <PaymentsOutlinedIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -238,6 +258,20 @@ export function PurchasesListPage() {
                     rowsPerPageOptions={[10, 20, 50]}
                 />
             </Paper>
+
+            {paying && (
+                <PaymentDialog
+                    open
+                    onClose={() => setPaying(null)}
+                    partyType="supplier"
+                    partyId={paying.supplier_id}
+                    partyName={paying.supplier_name}
+                    invalidateQueryKey={['purchases-page', 'purchase', 'suppliers-page']}
+                    referenceType="purchase"
+                    referenceId={paying.id}
+                    dueAmount={paying.due_amount}
+                />
+            )}
         </Box>
     );
 }

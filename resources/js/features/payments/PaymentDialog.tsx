@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Alert,
@@ -7,9 +7,11 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    InputAdornment,
     MenuItem,
     Stack,
     TextField,
+    Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
@@ -21,12 +23,27 @@ interface PaymentDialogProps {
     partyType: 'customer' | 'supplier';
     partyId: number;
     partyName: string;
-    invalidateQueryKey: string;
+    invalidateQueryKey: string | string[];
+    /** Ties the payment to a specific purchase/sale so its paid/due amounts update. */
+    referenceType?: 'purchase' | 'sale';
+    referenceId?: number;
+    /** Outstanding balance on the reference — prefills the amount and shows a hint. */
+    dueAmount?: number;
 }
 
 const METHODS: RecordPaymentPayload['method'][] = ['cash', 'card', 'mobile_wallet', 'bank'];
 
-export function PaymentDialog({ open, onClose, partyType, partyId, partyName, invalidateQueryKey }: PaymentDialogProps) {
+export function PaymentDialog({
+    open,
+    onClose,
+    partyType,
+    partyId,
+    partyName,
+    invalidateQueryKey,
+    referenceType,
+    referenceId,
+    dueAmount,
+}: PaymentDialogProps) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const { data: cashAccounts } = useQuery({ queryKey: ['cash-accounts'], queryFn: fetchCashAccounts });
@@ -39,10 +56,20 @@ export function PaymentDialog({ open, onClose, partyType, partyId, partyName, in
 
     const direction = partyType === 'customer' ? 'in' : 'out';
 
+    useEffect(() => {
+        if (open) {
+            setAmount(dueAmount && dueAmount > 0 ? String(dueAmount) : '');
+            setDescription('');
+            setError(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
+
     const mutation = useMutation({
         mutationFn: recordPayment,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [invalidateQueryKey] });
+            const keys = Array.isArray(invalidateQueryKey) ? invalidateQueryKey : [invalidateQueryKey];
+            keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
             setAmount('');
             setDescription('');
             setError(null);
@@ -61,6 +88,8 @@ export function PaymentDialog({ open, onClose, partyType, partyId, partyName, in
             cash_account_id: cashAccountId,
             method,
             description: description || undefined,
+            reference_type: referenceType,
+            reference_id: referenceId,
         });
     };
 
@@ -72,6 +101,16 @@ export function PaymentDialog({ open, onClose, partyType, partyId, partyName, in
             <DialogContent>
                 <Stack spacing={2} sx={{ mt: 1 }}>
                     {error && <Alert severity="error">{error}</Alert>}
+                    {dueAmount !== undefined && dueAmount > 0 && (
+                        <Typography variant="caption" color="text.secondary">
+                            {t('payments_dialog.amount_due', {
+                                amount: dueAmount.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                }),
+                            })}
+                        </Typography>
+                    )}
                     <TextField
                         label={t('fields.amount')}
                         type="number"
@@ -79,6 +118,22 @@ export function PaymentDialog({ open, onClose, partyType, partyId, partyName, in
                         onChange={(e) => setAmount(e.target.value)}
                         fullWidth
                         autoFocus
+                        InputProps={
+                            dueAmount !== undefined && dueAmount > 0
+                                ? {
+                                      endAdornment: (
+                                          <InputAdornment position="end">
+                                              <Button
+                                                  size="small"
+                                                  onClick={() => setAmount(String(dueAmount))}
+                                              >
+                                                  {t('payments_dialog.pay_full')}
+                                              </Button>
+                                          </InputAdornment>
+                                      ),
+                                  }
+                                : undefined
+                        }
                     />
                     <TextField
                         select

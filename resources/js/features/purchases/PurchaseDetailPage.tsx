@@ -28,6 +28,7 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
 import {
     cancelPurchase,
@@ -38,6 +39,7 @@ import {
 import { fetchParty } from '@/features/parties/ledgerApi';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { formatDate } from '@/lib/calendar';
+import { PaymentDialog } from '@/features/payments/PaymentDialog';
 
 const STATUS_COLOR: Record<string, 'default' | 'success' | 'error'> = {
     draft: 'default',
@@ -52,6 +54,7 @@ export function PurchaseDetailPage() {
     const queryClient = useQueryClient();
     const id = Number(useParams().id);
     const [busyPdf, setBusyPdf] = useState(false);
+    const [paying, setPaying] = useState(false);
 
     const { data: purchase, isLoading } = useQuery({
         queryKey: ['purchase', id],
@@ -217,6 +220,16 @@ export function PurchaseDetailPage() {
                         </Button>
                     </>
                 )}
+                {purchase.status === 'received' && purchase.due_amount > 0.001 && (
+                    <Button
+                        variant="contained"
+                        color="success"
+                        startIcon={<PaymentsOutlinedIcon />}
+                        onClick={() => setPaying(true)}
+                    >
+                        {t('actions.pay')}
+                    </Button>
+                )}
             </Stack>
 
             <Grid container spacing={2.5}>
@@ -272,6 +285,9 @@ export function PurchaseDetailPage() {
                                 value={money(purchase.grand_total)}
                                 bold
                             />
+                            {purchase.paid_amount > 0 && (
+                                <TotalRow label={t('fields.paid')} value={money(purchase.paid_amount)} />
+                            )}
                             <TotalRow label={t('fields.due')} value={money(purchase.due_amount)} />
                         </Grid>
                     </Paper>
@@ -316,6 +332,20 @@ export function PurchaseDetailPage() {
                     </Paper>
                 </Grid>
             </Grid>
+
+            {paying && (
+                <PaymentDialog
+                    open
+                    onClose={() => setPaying(false)}
+                    partyType="supplier"
+                    partyId={purchase.supplier_id}
+                    partyName={purchase.supplier_name}
+                    invalidateQueryKey={['purchase', 'purchases-page', 'suppliers-page']}
+                    referenceType="purchase"
+                    referenceId={purchase.id}
+                    dueAmount={purchase.due_amount}
+                />
+            )}
         </Box>
     );
 }

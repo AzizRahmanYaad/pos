@@ -109,7 +109,8 @@
     "value": "ارزش",
     "salary_type_monthly": "ماهوار",
     "salary_type_daily": "روزانه",
-    "hire_date": "تاریخ استخدام"
+    "hire_date": "تاریخ استخدام",
+    "paid": "پرداخت شده"
   },
   "status": {
     "draft": "پیش‌نویس",
@@ -365,7 +366,9 @@
   },
   "payments_dialog": {
     "receive_payment": "دریافت پرداخت",
-    "save_failed": "پرداخت ثبت نشد."
+    "save_failed": "پرداخت ثبت نشد.",
+    "amount_due": "مبلغ باقی‌مانده: {{amount}}",
+    "pay_full": "پرداخت کامل"
   },
   "settings_page": {
     "company_name": "نام شرکت",

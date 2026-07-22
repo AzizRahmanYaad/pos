@@ -109,7 +109,8 @@
     "value": "Value",
     "salary_type_monthly": "monthly",
     "salary_type_daily": "daily",
-    "hire_date": "Hire date"
+    "hire_date": "Hire date",
+    "paid": "Paid"
   },
   "status": {
     "draft": "Draft",
@@ -365,7 +366,9 @@
   },
   "payments_dialog": {
     "receive_payment": "Receive payment",
-    "save_failed": "Could not record payment."
+    "save_failed": "Could not record payment.",
+    "amount_due": "Amount due: {{amount}}",
+    "pay_full": "Pay full"
   },
   "settings_page": {
     "company_name": "Company name",

@@ -93,6 +93,41 @@ class PurchaseTest extends TestCase
         $this->assertEquals(-150.0, $supplier->fresh()->currentBalance());
     }
 
+    public function test_landed_cost_allocation_weighs_by_quantity_and_price_together(): void
+    {
+        // Item A: 100 units @ 10 (line value 1,000). Item B: 100 units @ 20
+        // (line value 2,000, twice A's). Landed cost of 2,000 must split
+        // 1/3 to A and 2/3 to B — i.e. by each item's share of total line
+        // value, not divided equally per item and not by quantity alone.
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $productA = Product::factory()->create();
+        $productB = Product::factory()->create();
+        $user = User::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [
+                ['product_id' => $productA->id, 'quantity' => 100, 'unit_id' => $productA->unit_id, 'unit_cost' => 10],
+                ['product_id' => $productB->id, 'quantity' => 100, 'unit_id' => $productB->unit_id, 'unit_cost' => 20],
+            ],
+            landedCosts: [
+                ['description' => 'Freight', 'amount' => 2000],
+            ],
+            createdBy: $user->id,
+        );
+
+        app(ReceivePurchaseAction::class)->execute($purchase, $user->id);
+
+        // A: allocated = 2000 * (1000/3000) = 666.6667; unit cost = 10 + 6.6667 = 16.6667.
+        $stockA = $productA->stocks()->where('warehouse_id', $warehouse->id)->first();
+        $this->assertEqualsWithDelta(16.6667, (float) $stockA->average_cost, 0.001);
+
+        // B: allocated = 2000 * (2000/3000) = 1333.3333; unit cost = 20 + 13.3333 = 33.3333.
+        $stockB = $productB->stocks()->where('warehouse_id', $warehouse->id)->first();
+        $this->assertEqualsWithDelta(33.3333, (float) $stockB->average_cost, 0.001);
+    }
+
     public function test_receiving_a_purchase_recalculates_sale_price_for_margin_priced_products(): void
     {
         $supplier = Supplier::factory()->create();

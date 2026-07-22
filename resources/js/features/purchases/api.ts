@@ -112,8 +112,8 @@ export async function fetchPurchase(id: number): Promise<PurchaseDetail> {
     return data.data;
 }
 
-export async function createPurchase(payload: CreatePurchasePayload) {
-    const { data } = await apiClient.post('/purchases', payload);
+export async function createPurchase(payload: CreatePurchasePayload): Promise<PurchaseDetail> {
+    const { data } = await apiClient.post<{ data: PurchaseDetail }>('/purchases', payload);
     return data.data;
 }
 

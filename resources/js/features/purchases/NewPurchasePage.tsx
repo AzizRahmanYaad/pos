@@ -12,12 +12,15 @@ import {
     Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchSuppliers } from '@/features/suppliers/api';
 import { fetchWarehouses } from '@/features/warehouses/api';
 import { fetchProducts } from '@/features/products/api';
 import { createPurchase, type PurchaseItemPayload } from '@/features/purchases/api';
+import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { fetchExpenseCategories, createExpenseCategory, createExpense } from '@/features/expenses/api';
 import { DualDateField } from '@/components/DualDateField';
 
 function todayIso(): string {
@@ -39,19 +42,67 @@ export function NewPurchasePage() {
     const { data: suppliers } = useQuery({ queryKey: ['suppliers'], queryFn: fetchSuppliers });
     const { data: warehouses } = useQuery({ queryKey: ['warehouses'], queryFn: fetchWarehouses });
     const { data: products } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
+    const { data: cashAccounts } = useQuery({ queryKey: ['cash-accounts'], queryFn: fetchCashAccounts });
+    const { data: categories } = useQuery({ queryKey: ['expense-categories'], queryFn: fetchExpenseCategories });
 
     const [supplierId, setSupplierId] = useState<number | ''>('');
     const [warehouseId, setWarehouseId] = useState<number | ''>('');
     const [purchaseDate, setPurchaseDate] = useState<string>(todayIso());
     const [landedCostAmount, setLandedCostAmount] = useState('');
     const [landedCostDescription, setLandedCostDescription] = useState('');
+    const [landedCostCategoryId, setLandedCostCategoryId] = useState<number | ''>('');
+    const [landedCostCashAccountId, setLandedCostCashAccountId] = useState<number | ''>('');
+    const [newCategoryName, setNewCategoryName] = useState('');
     const [items, setItems] = useState<ItemRow[]>([]);
     const [error, setError] = useState<string | null>(null);
 
+    const categoryMutation = useMutation({
+        mutationFn: createExpenseCategory,
+        onSuccess: (category) => {
+            queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
+            setLandedCostCategoryId(category.id);
+            setNewCategoryName('');
+        },
+    });
+
+    const landedCostFilled = landedCostAmount !== '';
+    const landedCostValid = !landedCostFilled || (landedCostCategoryId !== '' && landedCostCashAccountId !== '');
+
     const mutation = useMutation({
-        mutationFn: createPurchase,
+        mutationFn: async () => {
+            const purchase = await createPurchase({
+                supplier_id: supplierId as number,
+                warehouse_id: warehouseId as number,
+                purchase_date: purchaseDate || todayIso(),
+                items: items.map(({ product_id, quantity, unit_id, unit_cost }) => ({
+                    product_id,
+                    quantity,
+                    unit_id,
+                    unit_cost,
+                })),
+                landed_costs: [],
+            });
+
+            // The landed cost becomes a real, paid expense — categorized and
+            // debited from the chosen cash resource — rather than a bare
+            // number with no accounting trail. It's linked to this purchase
+            // so it's still allocated across the items once received.
+            if (landedCostFilled && landedCostCategoryId && landedCostCashAccountId) {
+                await createExpense({
+                    expense_category_id: landedCostCategoryId,
+                    cash_account_id: landedCostCashAccountId,
+                    amount: Number(landedCostAmount),
+                    description: landedCostDescription || undefined,
+                    is_landed_cost: true,
+                    purchase_id: purchase.id,
+                });
+            }
+
+            return purchase;
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['expenses'] });
             navigate('/purchases');
         },
         onError: () => setError(t('purchases_page.create_failed')),
@@ -75,22 +126,8 @@ export function NewPurchasePage() {
     const total = items.reduce((sum, row) => sum + row.quantity * row.unit_cost, 0);
 
     const submit = () => {
-        if (!supplierId || !warehouseId || items.length === 0) return;
-        mutation.mutate({
-            supplier_id: supplierId,
-            warehouse_id: warehouseId,
-            purchase_date: purchaseDate || todayIso(),
-            items: items.map(({ product_id, quantity, unit_id, unit_cost }) => ({
-                product_id,
-                quantity,
-                unit_id,
-                unit_cost,
-            })),
-            landed_costs:
-                landedCostAmount && landedCostDescription
-                    ? [{ description: landedCostDescription, amount: Number(landedCostAmount) }]
-                    : [],
-        });
+        if (!supplierId || !warehouseId || items.length === 0 || !landedCostValid) return;
+        mutation.mutate();
     };
 
     return (
@@ -179,20 +216,68 @@ export function NewPurchasePage() {
                     </Button>
 
                     <Typography variant="h6">{t('purchases_page.landed_cost')}</Typography>
-                    <Stack direction="row" spacing={2}>
+                    <Typography variant="caption" color="text.secondary">
+                        {t('purchases_page.landed_cost_expense_hint')}
+                    </Typography>
+                    <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap alignItems="flex-start">
                         <TextField
                             label={t('purchases_page.landed_cost_description')}
                             value={landedCostDescription}
                             onChange={(e) => setLandedCostDescription(e.target.value)}
-                            sx={{ minWidth: 240 }}
+                            sx={{ minWidth: 220 }}
                         />
                         <TextField
                             label={t('fields.amount')}
                             type="number"
                             value={landedCostAmount}
                             onChange={(e) => setLandedCostAmount(e.target.value)}
-                            sx={{ width: 160 }}
+                            sx={{ width: 140 }}
                         />
+                        <TextField
+                            select
+                            label={t('fields.category')}
+                            value={landedCostCategoryId}
+                            onChange={(e) => setLandedCostCategoryId(Number(e.target.value))}
+                            sx={{ minWidth: 200 }}
+                            error={landedCostFilled && landedCostCategoryId === ''}
+                        >
+                            {categories?.map((c) => (
+                                <MenuItem key={c.id} value={c.id}>
+                                    {c.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField
+                            select
+                            label={t('fields.cash_account')}
+                            value={landedCostCashAccountId}
+                            onChange={(e) => setLandedCostCashAccountId(Number(e.target.value))}
+                            sx={{ minWidth: 200 }}
+                            error={landedCostFilled && landedCostCashAccountId === ''}
+                        >
+                            {cashAccounts?.map((a) => (
+                                <MenuItem key={a.id} value={a.id}>
+                                    {a.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    </Stack>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <TextField
+                            size="small"
+                            label={t('expenses_page.new_category')}
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            sx={{ minWidth: 200 }}
+                        />
+                        <Button
+                            size="small"
+                            startIcon={<AddIcon />}
+                            disabled={!newCategoryName || categoryMutation.isPending}
+                            onClick={() => categoryMutation.mutate(newCategoryName)}
+                        >
+                            {t('actions.add')}
+                        </Button>
                     </Stack>
 
                     <Typography variant="subtitle1">{t('fields.subtotal')}: {total.toFixed(2)}</Typography>
@@ -201,7 +286,13 @@ export function NewPurchasePage() {
                         <Button
                             variant="contained"
                             onClick={submit}
-                            disabled={mutation.isPending || !supplierId || !warehouseId || items.length === 0}
+                            disabled={
+                                mutation.isPending ||
+                                !supplierId ||
+                                !warehouseId ||
+                                items.length === 0 ||
+                                !landedCostValid
+                            }
                         >
                             {t('actions.save')}
                         </Button>

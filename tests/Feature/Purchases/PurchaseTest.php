@@ -5,6 +5,7 @@ namespace Tests\Feature\Purchases;
 use App\Domain\Purchases\Actions\CreatePurchaseAction;
 use App\Domain\Purchases\Actions\ReceivePurchaseAction;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
+use App\Models\CashAccount;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Supplier;
@@ -126,6 +127,134 @@ class PurchaseTest extends TestCase
         // B: allocated = 2000 * (2000/3000) = 1333.3333; unit cost = 20 + 13.3333 = 33.3333.
         $stockB = $productB->stocks()->where('warehouse_id', $warehouse->id)->first();
         $this->assertEqualsWithDelta(33.3333, (float) $stockB->average_cost, 0.001);
+    }
+
+    public function test_receiving_a_purchase_can_settle_the_supplier_in_full_at_the_same_time(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $cashAccount = CashAccount::factory()->create(['opening_balance' => 500]);
+        $user = User::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 10, 'unit_id' => $product->unit_id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $user->id,
+        );
+
+        $received = app(ReceivePurchaseAction::class)->execute($purchase, $user->id, [
+            'amount' => 100,
+            'cash_account_id' => $cashAccount->id,
+            'method' => 'cash',
+        ]);
+
+        $this->assertEquals(100.0, (float) $received->paid_amount);
+        $this->assertEquals(0.0, (float) $received->due_amount);
+        $this->assertEquals(0.0, $supplier->fresh()->currentBalance());
+        $this->assertEquals(400.0, $cashAccount->fresh()->currentBalance());
+    }
+
+    public function test_receiving_a_purchase_can_settle_the_supplier_partially_at_the_same_time(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $user = User::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 10, 'unit_id' => $product->unit_id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $user->id,
+        );
+
+        $received = app(ReceivePurchaseAction::class)->execute($purchase, $user->id, [
+            'amount' => 40,
+            'cash_account_id' => $cashAccount->id,
+            'method' => 'bank',
+        ]);
+
+        // Grand total 100, paid 40 up front -> 60 remains owed to the supplier.
+        $this->assertEquals(40.0, (float) $received->paid_amount);
+        $this->assertEquals(60.0, (float) $received->due_amount);
+        $this->assertEquals(-60.0, $supplier->fresh()->currentBalance());
+    }
+
+    public function test_receiving_a_purchase_with_no_payment_leaves_the_full_amount_owed(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $user = User::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 10, 'unit_id' => $product->unit_id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $user->id,
+        );
+
+        $received = app(ReceivePurchaseAction::class)->execute($purchase, $user->id, null);
+
+        $this->assertEquals(0.0, (float) $received->paid_amount);
+        $this->assertEquals(100.0, (float) $received->due_amount);
+        $this->assertEquals(-100.0, $supplier->fresh()->currentBalance());
+    }
+
+    public function test_manager_can_receive_and_pay_a_purchase_via_api(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 10, 'unit_id' => $product->unit_id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $manager->id,
+        );
+
+        $response = $this->actingAs($manager)->postJson("/api/v1/purchases/{$purchase->id}/receive", [
+            'payment' => [
+                'amount' => 70,
+                'cash_account_id' => $cashAccount->id,
+                'method' => 'mobile_wallet',
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.paid_amount', 70)
+            ->assertJsonPath('data.due_amount', 30);
+    }
+
+    public function test_receiving_with_a_payment_amount_but_no_cash_account_is_rejected(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 10, 'unit_id' => $product->unit_id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $manager->id,
+        );
+
+        $this->actingAs($manager)->postJson("/api/v1/purchases/{$purchase->id}/receive", [
+            'payment' => ['amount' => 70],
+        ])->assertUnprocessable();
     }
 
     public function test_receiving_a_purchase_recalculates_sale_price_for_margin_priced_products(): void

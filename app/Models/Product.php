@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'sku', 'barcode', 'name', 'category_id', 'unit_id', 'type',
-    'sale_price', 'pricing_mode', 'margin_percent', 'margin_basis', 'default_cost', 'tax_rate', 'reorder_level',
+    'sale_price', 'pricing_mode', 'margin_percent', 'margin_basis', 'default_cost', 'reorder_level',
     'track_inventory', 'attributes', 'is_active',
 ])]
 class Product extends Model
@@ -42,7 +42,6 @@ class Product extends Model
             'sale_price' => 'decimal:2',
             'margin_percent' => 'decimal:2',
             'default_cost' => 'decimal:2',
-            'tax_rate' => 'decimal:2',
             'reorder_level' => 'decimal:2',
             'track_inventory' => 'boolean',
             'attributes' => 'array',

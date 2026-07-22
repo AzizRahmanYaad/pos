@@ -42,8 +42,6 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
     const [categoryId, setCategoryId] = useState<number | ''>('');
     const [unitId, setUnitId] = useState<number | ''>('');
     const [type, setType] = useState<(typeof PRODUCT_TYPES)[number]>('standard');
-    const [defaultCost, setDefaultCost] = useState('');
-    const [taxRate, setTaxRate] = useState('0');
     const [reorderLevel, setReorderLevel] = useState('0');
     const [trackInventory, setTrackInventory] = useState(true);
     const [isActive, setIsActive] = useState(true);
@@ -57,8 +55,6 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
             setCategoryId(product.category_id ?? '');
             setUnitId(product.unit_id);
             setType(product.type as (typeof PRODUCT_TYPES)[number]);
-            setDefaultCost(String(product.default_cost));
-            setTaxRate(String(product.tax_rate));
             setReorderLevel(String(product.reorder_level));
             setTrackInventory(product.track_inventory);
             setIsActive(product.is_active);
@@ -75,8 +71,6 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
                 category_id: categoryId === '' ? null : categoryId,
                 unit_id: unitId as number,
                 type,
-                default_cost: Number(defaultCost || 0),
-                tax_rate: Number(taxRate || 0),
                 reorder_level: Number(reorderLevel || 0),
                 track_inventory: type === 'service' ? false : trackInventory,
                 is_active: isActive,
@@ -174,24 +168,6 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
                                     </MenuItem>
                                 ))}
                             </TextField>
-                        </Grid>
-                        <Grid item xs={6} sm={3}>
-                            <TextField
-                                label={t('fields.unit_cost')}
-                                type="number"
-                                value={defaultCost}
-                                onChange={(e) => setDefaultCost(e.target.value)}
-                                fullWidth
-                            />
-                        </Grid>
-                        <Grid item xs={6} sm={3}>
-                            <TextField
-                                label={t('products_page.tax_rate')}
-                                type="number"
-                                value={taxRate}
-                                onChange={(e) => setTaxRate(e.target.value)}
-                                fullWidth
-                            />
                         </Grid>
                         <Grid item xs={6} sm={3}>
                             <TextField

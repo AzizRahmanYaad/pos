@@ -22,7 +22,6 @@ export interface ProductListItem {
     margin_percent: number | null;
     margin_basis: 'markup' | 'profit';
     default_cost: number;
-    tax_rate: number;
     reorder_level: number;
     track_inventory: boolean;
     is_active: boolean;
@@ -113,12 +112,6 @@ export interface CreateProductPayload {
     category_id?: number | null;
     unit_id: number;
     type: 'standard' | 'service' | 'raw_material';
-    sale_price: number;
-    pricing_mode?: 'fixed' | 'margin';
-    margin_percent?: number;
-    margin_basis?: 'markup' | 'profit';
-    default_cost: number;
-    tax_rate: number;
     reorder_level: number;
     track_inventory: boolean;
     is_active: boolean;
@@ -151,8 +144,6 @@ export interface UpdateProductPayload {
     category_id?: number | null;
     unit_id?: number;
     type?: 'standard' | 'service' | 'raw_material';
-    default_cost?: number;
-    tax_rate?: number;
     reorder_level?: number;
     track_inventory?: boolean;
     is_active?: boolean;

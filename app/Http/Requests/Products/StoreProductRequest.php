@@ -28,7 +28,7 @@ class StoreProductRequest extends FormRequest
             'type' => ['required', Rule::in([
                 Product::TYPE_STANDARD, Product::TYPE_SERVICE, Product::TYPE_RAW_MATERIAL,
             ])],
-            'sale_price' => ['required', 'numeric', 'min:0'],
+            'sale_price' => ['nullable', 'numeric', 'min:0'],
             'pricing_mode' => ['nullable', Rule::in([Product::PRICING_FIXED, Product::PRICING_MARGIN])],
             'margin_basis' => ['nullable', Rule::in([Product::MARGIN_BASIS_MARKUP, Product::MARGIN_BASIS_PROFIT])],
             'margin_percent' => [
@@ -41,8 +41,7 @@ class StoreProductRequest extends FormRequest
                     }
                 },
             ],
-            'default_cost' => ['required', 'numeric', 'min:0'],
-            'tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'default_cost' => ['nullable', 'numeric', 'min:0'],
             'reorder_level' => ['required', 'numeric', 'min:0'],
             'track_inventory' => ['boolean'],
             'attributes' => ['nullable', 'array'],

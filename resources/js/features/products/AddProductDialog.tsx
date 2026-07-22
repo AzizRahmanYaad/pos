@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Alert,
-    Box,
     Button,
     Checkbox,
     Dialog,
@@ -17,7 +16,6 @@ import {
     Stack,
     TextField,
     Tooltip,
-    Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
@@ -49,12 +47,6 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
     const [categoryId, setCategoryId] = useState<number | ''>('');
     const [unitId, setUnitId] = useState<number | ''>('');
     const [type, setType] = useState<(typeof PRODUCT_TYPES)[number]>('standard');
-    const [salePrice, setSalePrice] = useState('');
-    const [pricingMode, setPricingMode] = useState<'fixed' | 'margin'>('fixed');
-    const [marginBasis, setMarginBasis] = useState<'markup' | 'profit'>('markup');
-    const [marginPercent, setMarginPercent] = useState('');
-    const [defaultCost, setDefaultCost] = useState('');
-    const [taxRate, setTaxRate] = useState('0');
     const [reorderLevel, setReorderLevel] = useState('0');
     const [trackInventory, setTrackInventory] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -71,12 +63,6 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
         setCategoryId('');
         setUnitId('');
         setType('standard');
-        setSalePrice('');
-        setPricingMode('fixed');
-        setMarginBasis('markup');
-        setMarginPercent('');
-        setDefaultCost('');
-        setTaxRate('0');
         setReorderLevel('0');
         setTrackInventory(true);
         setError(null);
@@ -96,12 +82,6 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                 category_id: categoryId === '' ? undefined : categoryId,
                 unit_id: unitId as number,
                 type,
-                sale_price: Number(salePrice),
-                pricing_mode: pricingMode,
-                margin_percent: pricingMode === 'margin' ? Number(marginPercent || 0) : undefined,
-                margin_basis: pricingMode === 'margin' ? marginBasis : undefined,
-                default_cost: Number(defaultCost || 0),
-                tax_rate: Number(taxRate || 0),
                 reorder_level: Number(reorderLevel || 0),
                 track_inventory: type === 'service' ? false : trackInventory,
                 is_active: true,
@@ -134,18 +114,7 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
         },
     });
 
-    const profitTooHigh =
-        pricingMode === 'margin' &&
-        marginBasis === 'profit' &&
-        marginPercent !== '' &&
-        Number(marginPercent) >= 100;
-
-    const canSave =
-        name !== '' &&
-        sku !== '' &&
-        unitId !== '' &&
-        salePrice !== '' &&
-        (pricingMode === 'fixed' || (marginPercent !== '' && !profitTooHigh));
+    const canSave = name !== '' && sku !== '' && unitId !== '';
 
     return (
         <>
@@ -154,6 +123,9 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         {error && <Alert severity="error">{error}</Alert>}
+                        <Alert severity="info" variant="outlined">
+                            {t('products_page.price_after_create_hint')}
+                        </Alert>
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
                                 <TextField
@@ -257,92 +229,6 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                                         </MenuItem>
                                     ))}
                                 </TextField>
-                            </Grid>
-                            <Grid item xs={6} sm={3}>
-                                <TextField
-                                    label={t('fields.price')}
-                                    type="number"
-                                    value={salePrice}
-                                    onChange={(e) => setSalePrice(e.target.value)}
-                                    fullWidth
-                                />
-                            </Grid>
-                            <Grid item xs={6} sm={3}>
-                                <TextField
-                                    label={t('fields.unit_cost')}
-                                    type="number"
-                                    value={defaultCost}
-                                    onChange={(e) => setDefaultCost(e.target.value)}
-                                    fullWidth
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select
-                                    label={t('products_page.pricing_mode')}
-                                    value={pricingMode}
-                                    onChange={(e) => setPricingMode(e.target.value as 'fixed' | 'margin')}
-                                    fullWidth
-                                >
-                                    <MenuItem value="fixed">{t('products_page.pricing_fixed')}</MenuItem>
-                                    <MenuItem value="margin">{t('products_page.pricing_margin')}</MenuItem>
-                                </TextField>
-                            </Grid>
-                            {pricingMode === 'margin' && (
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        select
-                                        label={t('products_page.margin_basis')}
-                                        value={marginBasis}
-                                        onChange={(e) => setMarginBasis(e.target.value as 'markup' | 'profit')}
-                                        fullWidth
-                                    >
-                                        <MenuItem value="markup">{t('products_page.margin_basis_markup')}</MenuItem>
-                                        <MenuItem value="profit">{t('products_page.margin_basis_profit')}</MenuItem>
-                                    </TextField>
-                                </Grid>
-                            )}
-                            {pricingMode === 'margin' && (
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        label={
-                                            marginBasis === 'profit'
-                                                ? t('products_page.profit_percent')
-                                                : t('products_page.margin_percent')
-                                        }
-                                        type="number"
-                                        value={marginPercent}
-                                        onChange={(e) => setMarginPercent(e.target.value)}
-                                        error={profitTooHigh}
-                                        helperText={
-                                            profitTooHigh ? t('products_page.profit_percent_too_high') : undefined
-                                        }
-                                        InputProps={{
-                                            endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                                        }}
-                                        fullWidth
-                                    />
-                                </Grid>
-                            )}
-                            {pricingMode === 'margin' && (
-                                <Grid item xs={12}>
-                                    <Box sx={{ px: 0.5 }}>
-                                        <Typography variant="caption" color="text.secondary">
-                                            {marginBasis === 'profit'
-                                                ? t('products_page.profit_hint')
-                                                : t('products_page.margin_hint')}
-                                        </Typography>
-                                    </Box>
-                                </Grid>
-                            )}
-                            <Grid item xs={6} sm={3}>
-                                <TextField
-                                    label={t('products_page.tax_rate')}
-                                    type="number"
-                                    value={taxRate}
-                                    onChange={(e) => setTaxRate(e.target.value)}
-                                    fullWidth
-                                />
                             </Grid>
                             <Grid item xs={6} sm={3}>
                                 <TextField

@@ -6,7 +6,6 @@ import {
     Box,
     Button,
     Chip,
-    CircularProgress,
     Divider,
     Grid,
     IconButton,
@@ -30,6 +29,8 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
+import { BrandSpinner } from '@/components/BrandSpinner';
+import { LoadingButton } from '@/components/LoadingButton';
 import { cancelPurchase, downloadPurchaseInvoicePdf, fetchPurchase } from '@/features/purchases/api';
 import { fetchParty } from '@/features/parties/ledgerApi';
 import { fetchBusinessSettings } from '@/features/settings/api';
@@ -129,11 +130,7 @@ export function PurchaseDetailPage() {
     };
 
     if (isLoading || !purchase) {
-        return (
-            <Box sx={{ py: 6, textAlign: 'center' }}>
-                <CircularProgress />
-            </Box>
-        );
+        return <BrandSpinner fullPage minHeight={280} label={t('common.loading')} />;
     }
 
     return (
@@ -204,15 +201,15 @@ export function PurchaseDetailPage() {
                         >
                             {t('actions.receive')}
                         </Button>
-                        <Button
+                        <LoadingButton
                             variant="outlined"
                             color="error"
                             startIcon={<CancelOutlinedIcon />}
-                            disabled={cancelMutation.isPending}
+                            loading={cancelMutation.isPending}
                             onClick={() => cancelMutation.mutate()}
                         >
                             {t('actions.cancel')}
-                        </Button>
+                        </LoadingButton>
                     </>
                 )}
                 {purchase.status === 'received' && purchase.due_amount > 0.001 && (

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import i18n from '@/i18n/i18n';
+import { useRequestLoadingStore } from '@/lib/loadingStore';
 
 export const apiClient = axios.create({
     baseURL: '/api/v1',
@@ -12,16 +13,26 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
     config.headers['X-Locale'] = i18n.language?.split('-')[0] ?? 'en';
+    useRequestLoadingStore.getState().start();
     return config;
 });
 
 export async function ensureCsrfCookie() {
-    await axios.get('/sanctum/csrf-cookie', { baseURL: '/', withCredentials: true });
+    useRequestLoadingStore.getState().start();
+    try {
+        await axios.get('/sanctum/csrf-cookie', { baseURL: '/', withCredentials: true });
+    } finally {
+        useRequestLoadingStore.getState().finish();
+    }
 }
 
 apiClient.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        useRequestLoadingStore.getState().finish();
+        return response;
+    },
     (error) => {
+        useRequestLoadingStore.getState().finish();
         if (error.response?.status === 401) {
             window.dispatchEvent(new CustomEvent('pos:unauthorized'));
         }

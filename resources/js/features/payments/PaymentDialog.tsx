@@ -16,6 +16,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 import { recordPayment, type RecordPaymentPayload } from '@/features/payments/api';
+import { LoadingButton } from '@/components/LoadingButton';
 
 interface PaymentDialogProps {
     open: boolean;
@@ -171,13 +172,14 @@ export function PaymentDialog({
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>{t('actions.cancel')}</Button>
-                <Button
+                <LoadingButton
                     variant="contained"
                     onClick={submit}
-                    disabled={mutation.isPending || !amount || !cashAccountId}
+                    loading={mutation.isPending}
+                    disabled={!amount || !cashAccountId}
                 >
                     {t('actions.save')}
-                </Button>
+                </LoadingButton>
             </DialogActions>
         </Dialog>
     );

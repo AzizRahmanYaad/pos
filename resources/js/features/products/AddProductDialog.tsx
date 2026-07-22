@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import {
     createCategory,
     createProduct,
@@ -257,13 +258,14 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={close}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={!canSave || saveMutation.isPending}
+                        loading={saveMutation.isPending}
+                        disabled={!canSave}
                         onClick={() => saveMutation.mutate()}
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
 
@@ -294,17 +296,14 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setCreating(null)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={
-                            !newName ||
-                            (creating === 'unit' && !newShortName) ||
-                            quickCreateMutation.isPending
-                        }
+                        loading={quickCreateMutation.isPending}
+                        disabled={!newName || (creating === 'unit' && !newShortName)}
                         onClick={() => quickCreateMutation.mutate()}
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
         </>

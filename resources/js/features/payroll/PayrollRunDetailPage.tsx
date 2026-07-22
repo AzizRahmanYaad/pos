@@ -6,7 +6,6 @@ import {
     Box,
     Button,
     Chip,
-    CircularProgress,
     IconButton,
     MenuItem,
     Paper,
@@ -28,10 +27,12 @@ import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
+import { BrandSpinner } from '@/components/BrandSpinner';
 import { fetchPayrollRun, payPayrollRun, downloadPayrollReportPdf } from '@/features/payroll/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { formatDate } from '@/lib/calendar';
+import { LoadingButton } from '@/components/LoadingButton';
 
 export function PayrollRunDetailPage() {
     const { t } = useTranslation();
@@ -112,11 +113,7 @@ export function PayrollRunDetailPage() {
     };
 
     if (isLoading || !run) {
-        return (
-            <Box sx={{ py: 6, textAlign: 'center' }}>
-                <CircularProgress />
-            </Box>
-        );
+        return <BrandSpinner fullPage minHeight={280} label={t('common.loading')} />;
     }
 
     const totalBase = run.items.reduce((s, i) => s + i.base_salary, 0);
@@ -194,14 +191,15 @@ export function PayrollRunDetailPage() {
                                 </MenuItem>
                             ))}
                         </TextField>
-                        <Button
+                        <LoadingButton
                             variant="contained"
                             color="success"
-                            disabled={!payingCashAccountId || payMutation.isPending}
+                            loading={payMutation.isPending}
+                            disabled={!payingCashAccountId}
                             onClick={() => payMutation.mutate()}
                         >
                             {t('payroll_page.pay_run')}
-                        </Button>
+                        </LoadingButton>
                     </Stack>
                 )}
             </Stack>

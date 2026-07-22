@@ -13,6 +13,7 @@ import {
     Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import {
     fetchBusinessSettings,
     updateBusinessSettings,
@@ -159,13 +160,13 @@ function BusinessSettingsForm() {
                     </Grid>
                 </Grid>
                 <Box>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={mutation.isPending}
+                        loading={mutation.isPending}
                         onClick={() => mutation.mutate(form)}
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </Box>
             </Stack>
         </Paper>
@@ -231,13 +232,14 @@ function ChangePasswordForm() {
                     fullWidth
                 />
                 <Box>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={mutation.isPending || !currentPassword || !password || password !== passwordConfirmation}
+                        loading={mutation.isPending}
+                        disabled={!currentPassword || !password || password !== passwordConfirmation}
                         onClick={submit}
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </Box>
             </Stack>
         </Paper>

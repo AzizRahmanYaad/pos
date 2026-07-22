@@ -28,6 +28,7 @@ import {
     Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import { LoadingButton } from '@/components/LoadingButton';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
@@ -400,13 +401,14 @@ export function ExpensesPage() {
                                 onChange={(e) => setNewCategoryName(e.target.value)}
                                 fullWidth
                             />
-                            <Button
+                            <LoadingButton
                                 size="small"
-                                disabled={!newCategoryName || categoryMutation.isPending}
+                                loading={categoryMutation.isPending}
+                                disabled={!newCategoryName}
                                 onClick={() => categoryMutation.mutate(newCategoryName)}
                             >
                                 {t('actions.add')}
-                            </Button>
+                            </LoadingButton>
                         </Stack>
                         <TextField
                             select
@@ -462,13 +464,14 @@ export function ExpensesPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDialogOpen(false)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
                         onClick={submit}
-                        disabled={mutation.isPending || !categoryId || !cashAccountId || !amount}
+                        loading={mutation.isPending}
+                        disabled={!categoryId || !cashAccountId || !amount}
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
         </Box>

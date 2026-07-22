@@ -35,6 +35,7 @@ import { fetchPayrollRunsPage, createPayrollRun } from '@/features/payroll/api';
 import { fetchEmployees } from '@/features/employees/api';
 import { DualDateField } from '@/components/DualDateField';
 import { formatDate } from '@/lib/calendar';
+import { LoadingButton } from '@/components/LoadingButton';
 
 function todayIso(): string {
     const now = new Date();
@@ -350,13 +351,14 @@ export function PayrollPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setNewOpen(false)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={!employeeId || !date || createMutation.isPending}
+                        loading={createMutation.isPending}
+                        disabled={!employeeId || !date}
                         onClick={() => createMutation.mutate()}
                     >
                         {t('payroll_page.execute')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
         </Box>

@@ -4,8 +4,6 @@ import {
     Alert,
     Avatar,
     Box,
-    Button,
-    CircularProgress,
     Divider,
     IconButton,
     InputAdornment,
@@ -14,6 +12,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
+import { LoadingButton } from '@/components/LoadingButton';
 import { alpha, useTheme } from '@mui/material/styles';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import { LogoMark } from '@/components/AppLogo';
@@ -298,11 +297,11 @@ export function LoginPage() {
                                         ),
                                     }}
                                 />
-                                <Button
+                                <LoadingButton
                                     type="submit"
                                     variant="contained"
                                     size="large"
-                                    disabled={submitting}
+                                    loading={submitting}
                                     fullWidth
                                     sx={{
                                         py: 1.5,
@@ -318,14 +317,9 @@ export function LoginPage() {
                                             boxShadow: `0 16px 28px -10px ${alpha(theme.palette.primary.main, 0.7)}`,
                                         },
                                     }}
-                                    startIcon={
-                                        submitting ? (
-                                            <CircularProgress size={18} color="inherit" />
-                                        ) : undefined
-                                    }
                                 >
                                     {submitting ? t('auth.signing_in') : t('auth.sign_in')}
-                                </Button>
+                                </LoadingButton>
                             </Stack>
                         </Box>
 

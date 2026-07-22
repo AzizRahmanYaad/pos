@@ -38,6 +38,7 @@ import AutoModeOutlinedIcon from '@mui/icons-material/AutoModeOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import {
     fetchProductsPage,
     downloadProductListPdf,
@@ -457,14 +458,14 @@ export function ProductsListPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDeleting(null)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
                         color="error"
-                        disabled={deleteMutation.isPending}
+                        loading={deleteMutation.isPending}
                         onClick={() => deleting && deleteMutation.mutate(deleting)}
                     >
                         {t('actions.delete')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
 
@@ -504,13 +505,14 @@ export function ProductsListPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={closeDialog}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
                         onClick={submitAdjustment}
-                        disabled={mutation.isPending || !quantity || !reason}
+                        loading={mutation.isPending}
+                        disabled={!quantity || !reason}
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
         </Box>

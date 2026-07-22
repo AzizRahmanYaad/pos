@@ -6,7 +6,6 @@ import {
     Box,
     Button,
     Chip,
-    CircularProgress,
     Divider,
     Grid,
     IconButton,
@@ -28,6 +27,7 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { useTranslation } from 'react-i18next';
+import { BrandSpinner } from '@/components/BrandSpinner';
 import { downloadSaleInvoicePdf, fetchSale } from '@/features/sales/api';
 import { fetchParty } from '@/features/parties/ledgerApi';
 import { fetchBusinessSettings } from '@/features/settings/api';
@@ -117,11 +117,7 @@ export function SaleDetailPage() {
     };
 
     if (isLoading || !sale) {
-        return (
-            <Box sx={{ py: 6, textAlign: 'center' }}>
-                <CircularProgress />
-            </Box>
-        );
+        return <BrandSpinner fullPage minHeight={280} label={t('common.loading')} />;
     }
 
     const canReturn = sale.status === 'completed' || sale.status === 'partially_refunded';

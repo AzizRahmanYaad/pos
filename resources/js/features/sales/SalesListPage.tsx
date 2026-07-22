@@ -32,6 +32,7 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import { fetchSalesPage, refundSale, type SaleListItem } from '@/features/sales/api';
 import { DualDateField } from '@/components/DualDateField';
 
@@ -281,14 +282,14 @@ export function SalesListPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setReturning(null)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
                         color="error"
-                        disabled={returnMutation.isPending}
+                        loading={returnMutation.isPending}
                         onClick={() => returning && returnMutation.mutate(returning)}
                     >
                         {t('sales_page.return')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
         </Box>

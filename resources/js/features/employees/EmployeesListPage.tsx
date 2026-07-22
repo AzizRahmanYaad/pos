@@ -27,6 +27,7 @@ import {
     Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import { LoadingButton } from '@/components/LoadingButton';
 import { useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
@@ -287,9 +288,10 @@ export function EmployeesListPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setAddOpen(false)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={!name || !salaryAmount || createMutation.isPending}
+                        loading={createMutation.isPending}
+                        disabled={!name || !salaryAmount}
                         onClick={() =>
                             createMutation.mutate({
                                 name,
@@ -301,7 +303,7 @@ export function EmployeesListPage() {
                         }
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
 
@@ -340,13 +342,14 @@ export function EmployeesListPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setAdvancing(null)}>{t('actions.cancel')}</Button>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={!advanceAmount || !advanceCashAccountId || advanceMutation.isPending}
+                        loading={advanceMutation.isPending}
+                        disabled={!advanceAmount || !advanceCashAccountId}
                         onClick={() => advanceMutation.mutate()}
                     >
                         {t('actions.save')}
-                    </Button>
+                    </LoadingButton>
                 </DialogActions>
             </Dialog>
         </Box>

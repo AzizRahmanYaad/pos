@@ -6,7 +6,6 @@ import {
     Box,
     Button,
     Chip,
-    CircularProgress,
     Divider,
     Grid,
     IconButton,
@@ -27,6 +26,7 @@ import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import { useTranslation } from 'react-i18next';
+import { BrandSpinner } from '@/components/BrandSpinner';
 import {
     fetchEmployee,
     fetchEmployeeLedger,
@@ -105,11 +105,7 @@ export function EmployeeDetailPage() {
     };
 
     if (isLoading || !employee) {
-        return (
-            <Box sx={{ py: 6, textAlign: 'center' }}>
-                <CircularProgress />
-            </Box>
-        );
+        return <BrandSpinner fullPage minHeight={280} label={t('common.loading')} />;
     }
 
     return (

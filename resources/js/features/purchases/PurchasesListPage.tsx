@@ -203,7 +203,12 @@ export function PurchasesListPage() {
                                                         disabled={cancelMutation.isPending}
                                                         onClick={() => cancelMutation.mutate(purchase.id)}
                                                     >
-                                                        <CancelOutlinedIcon fontSize="small" />
+                                                        {cancelMutation.isPending &&
+                                                        cancelMutation.variables === purchase.id ? (
+                                                            <CircularProgress size={16} color="inherit" />
+                                                        ) : (
+                                                            <CancelOutlinedIcon fontSize="small" />
+                                                        )}
                                                     </IconButton>
                                                 </Tooltip>
                                             </>

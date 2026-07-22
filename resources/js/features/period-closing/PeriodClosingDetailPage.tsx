@@ -6,7 +6,6 @@ import {
     Box,
     Button,
     Chip,
-    CircularProgress,
     Divider,
     Grid,
     IconButton,
@@ -26,10 +25,12 @@ import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import { useTranslation } from 'react-i18next';
+import { BrandSpinner } from '@/components/BrandSpinner';
 import { fetchPeriodClosing, reopenPeriod, type PeriodClosingSnapshotDto } from '@/features/period-closing/api';
 import { Can } from '@/components/Can';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { formatDate } from '@/lib/calendar';
+import { LoadingButton } from '@/components/LoadingButton';
 
 const TYPE_ICON: Record<string, React.ReactNode> = {
     customer_balance: <PeopleOutlineIcon fontSize="small" />,
@@ -91,11 +92,7 @@ export function PeriodClosingDetailPage() {
     const activities = closing?.activities ?? [];
 
     if (isLoading || !closing) {
-        return (
-            <Box sx={{ py: 6, textAlign: 'center' }}>
-                <CircularProgress />
-            </Box>
-        );
+        return <BrandSpinner fullPage minHeight={280} label={t('common.loading')} />;
     }
 
     return (
@@ -126,15 +123,15 @@ export function PeriodClosingDetailPage() {
             {closing.status === 'closed' && (
                 <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                     <Can permission="period-closing.reopen">
-                        <Button
+                        <LoadingButton
                             variant="outlined"
                             color="warning"
                             startIcon={<LockOpenOutlinedIcon />}
-                            disabled={reopenMutation.isPending}
+                            loading={reopenMutation.isPending}
                             onClick={() => reopenMutation.mutate()}
                         >
                             {t('period_closing_page.reopen')}
-                        </Button>
+                        </LoadingButton>
                     </Can>
                 </Stack>
             )}

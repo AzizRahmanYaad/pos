@@ -46,9 +46,11 @@ import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined
 import HighlightOffOutlinedIcon from '@mui/icons-material/HighlightOffOutlined';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { alpha } from '@mui/material/styles';
 import { LogoMark } from '@/components/AppLogo';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Can } from '@/components/Can';
+import { BrandSpinner } from '@/components/BrandSpinner';
 import { useAuthStore } from '@/store/authStore';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { fetchStockAlerts } from '@/features/inventory/api';
@@ -103,9 +105,20 @@ export function AppLayout() {
     const [fullscreen, setFullscreen] = useState(false);
     const [profileEl, setProfileEl] = useState<null | HTMLElement>(null);
     const [notifEl, setNotifEl] = useState<null | HTMLElement>(null);
+    const [loggingOut, setLoggingOut] = useState(false);
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
     const canViewStock = useAuthStore((state) => state.can('inventory.manage'));
+
+    const handleLogout = async () => {
+        closeProfile();
+        setLoggingOut(true);
+        try {
+            await logout();
+        } catch {
+            setLoggingOut(false);
+        }
+    };
 
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
     const companyName = settings?.company_name || t('app_name');
@@ -354,12 +367,7 @@ export function AppLayout() {
                                     </ListItemIcon>
                                     {t('nav.settings')}
                                 </MenuItem>
-                                <MenuItem
-                                    onClick={() => {
-                                        closeProfile();
-                                        logout();
-                                    }}
-                                >
+                                <MenuItem onClick={handleLogout} disabled={loggingOut}>
                                     <ListItemIcon>
                                         <LogoutIcon fontSize="small" />
                                     </ListItemIcon>
@@ -408,6 +416,23 @@ export function AppLayout() {
                 <Toolbar />
                 <Outlet />
             </Box>
+
+            {loggingOut && (
+                <Box
+                    sx={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: (t) => t.zIndex.modal + 10,
+                        bgcolor: alpha(theme.palette.background.default, 0.9),
+                        backdropFilter: 'blur(2px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                >
+                    <BrandSpinner size={72} label={t('auth.signing_out')} />
+                </Box>
+            )}
         </Box>
     );
 }

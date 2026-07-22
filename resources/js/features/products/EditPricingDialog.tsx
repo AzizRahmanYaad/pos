@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
 import { updateProductPricing, type ProductListItem } from '@/features/products/api';
 import { fetchBusinessSettings } from '@/features/settings/api';
 
@@ -179,13 +180,14 @@ export function EditPricingDialog({ product, onClose }: EditPricingDialogProps) 
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>{t('actions.cancel')}</Button>
-                <Button
+                <LoadingButton
                     variant="contained"
-                    disabled={!canSave || saveMutation.isPending}
+                    loading={saveMutation.isPending}
+                    disabled={!canSave}
                     onClick={() => saveMutation.mutate()}
                 >
                     {t('actions.save')}
-                </Button>
+                </LoadingButton>
             </DialogActions>
         </Dialog>
     );

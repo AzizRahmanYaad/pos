@@ -43,7 +43,6 @@ class UpdateProductRequest extends FormRequest
                 },
             ],
             'default_cost' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'tax_rate' => ['sometimes', 'required', 'numeric', 'min:0', 'max:100'],
             'reorder_level' => ['sometimes', 'required', 'numeric', 'min:0'],
             'track_inventory' => ['sometimes', 'boolean'],
             'attributes' => ['nullable', 'array'],

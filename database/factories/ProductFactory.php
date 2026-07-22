@@ -26,7 +26,6 @@ class ProductFactory extends Factory
             'type' => Product::TYPE_STANDARD,
             'sale_price' => $this->faker->randomFloat(2, 1, 500),
             'default_cost' => $this->faker->randomFloat(2, 1, 300),
-            'tax_rate' => 0,
             'reorder_level' => 5,
             'track_inventory' => true,
             'is_active' => true,

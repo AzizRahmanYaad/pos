@@ -266,14 +266,27 @@ export function ProductsListPage() {
                                                     <Typography variant="body2" fontWeight={600}>
                                                         {product.name}
                                                     </Typography>
-                                                    <Stack direction="row" spacing={1} alignItems="center">
+                                                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                                                         <Typography variant="caption" color="text.secondary">
                                                             {product.sku}
                                                         </Typography>
                                                         {product.barcode && (
-                                                            <Tooltip title={product.barcode}>
-                                                                <QrCode2Icon
-                                                                    sx={{ fontSize: 14, color: 'text.disabled' }}
+                                                            <Tooltip title={t('products_page.barcode')}>
+                                                                <Chip
+                                                                    size="small"
+                                                                    variant="outlined"
+                                                                    icon={<QrCode2Icon sx={{ fontSize: '16px !important' }} />}
+                                                                    label={product.barcode}
+                                                                    sx={{
+                                                                        height: 22,
+                                                                        fontFamily: 'monospace',
+                                                                        fontWeight: 700,
+                                                                        fontSize: 12,
+                                                                        letterSpacing: 0.5,
+                                                                        borderColor: 'divider',
+                                                                        bgcolor: 'action.hover',
+                                                                        '& .MuiChip-label': { px: 0.75 },
+                                                                    }}
                                                                 />
                                                             </Tooltip>
                                                         )}

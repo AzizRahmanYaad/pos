@@ -23,8 +23,16 @@ export interface PayrollRunDto {
     total_net_pay: number;
 }
 
-interface CollectionResponse<T> {
-    data: T[];
+export interface PageMeta {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
+export interface PayrollRunPage {
+    data: PayrollRunDto[];
+    meta: PageMeta;
 }
 
 export interface PayrollRunFilters {
@@ -33,15 +41,19 @@ export interface PayrollRunFilters {
     employeeId?: number;
 }
 
-export async function fetchPayrollRuns(filters: PayrollRunFilters = {}): Promise<PayrollRunDto[]> {
-    const { data } = await apiClient.get<CollectionResponse<PayrollRunDto>>('/payroll-runs', {
+export async function fetchPayrollRunsPage(
+    params: { page: number; perPage: number } & PayrollRunFilters,
+): Promise<PayrollRunPage> {
+    const { data } = await apiClient.get<PayrollRunPage>('/payroll-runs', {
         params: {
-            ...(filters.from ? { from: filters.from } : {}),
-            ...(filters.to ? { to: filters.to } : {}),
-            ...(filters.employeeId ? { employee_id: filters.employeeId } : {}),
+            page: params.page,
+            per_page: params.perPage,
+            ...(params.from ? { from: params.from } : {}),
+            ...(params.to ? { to: params.to } : {}),
+            ...(params.employeeId ? { employee_id: params.employeeId } : {}),
         },
     });
-    return data.data;
+    return data;
 }
 
 export async function fetchPayrollRun(id: number): Promise<PayrollRunDto> {

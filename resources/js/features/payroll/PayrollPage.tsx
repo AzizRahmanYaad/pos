@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Alert,
     Avatar,
@@ -20,6 +20,7 @@ import {
     TableCell,
     TableContainer,
     TableHead,
+    TablePagination,
     TableRow,
     TextField,
     Tooltip,
@@ -30,7 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
-import { fetchPayrollRuns, createPayrollRun } from '@/features/payroll/api';
+import { fetchPayrollRunsPage, createPayrollRun } from '@/features/payroll/api';
 import { fetchEmployees } from '@/features/employees/api';
 import { DualDateField } from '@/components/DualDateField';
 import { formatDate } from '@/lib/calendar';
@@ -45,18 +46,29 @@ export function PayrollPage() {
     const theme = useTheme();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [page, setPage] = useState(0);
+    const [perPage, setPerPage] = useState(10);
     const [fromFilter, setFromFilter] = useState('');
     const [toFilter, setToFilter] = useState('');
     const [employeeFilter, setEmployeeFilter] = useState<number | ''>('');
     const filters = { from: fromFilter || undefined, to: toFilter || undefined, employeeId: employeeFilter || undefined };
 
-    const { data: runs, isLoading } = useQuery({
-        queryKey: ['payroll-runs', filters],
-        queryFn: () => fetchPayrollRuns(filters),
+    const { data, isLoading } = useQuery({
+        queryKey: ['payroll-runs', page, perPage, filters],
+        queryFn: () => fetchPayrollRunsPage({ page: page + 1, perPage, ...filters }),
+        placeholderData: keepPreviousData,
     });
+    const runs = data?.data;
     const { data: employees } = useQuery({ queryKey: ['employees'], queryFn: () => fetchEmployees() });
 
     const hasFilters = Boolean(fromFilter || toFilter || employeeFilter);
+
+    const resetFilters = () => {
+        setFromFilter('');
+        setToFilter('');
+        setEmployeeFilter('');
+        setPage(0);
+    };
 
     const [newOpen, setNewOpen] = useState(false);
     const [employeeId, setEmployeeId] = useState<number | ''>('');
@@ -120,7 +132,10 @@ export function PayrollPage() {
                         size="small"
                         label={t('nav.employees')}
                         value={employeeFilter}
-                        onChange={(e) => setEmployeeFilter(e.target.value === '' ? '' : Number(e.target.value))}
+                        onChange={(e) => {
+                            setEmployeeFilter(e.target.value === '' ? '' : Number(e.target.value));
+                            setPage(0);
+                        }}
                         sx={{ minWidth: 200 }}
                     >
                         <MenuItem value="">{t('payroll_page.all_employees')}</MenuItem>
@@ -130,18 +145,24 @@ export function PayrollPage() {
                             </MenuItem>
                         ))}
                     </TextField>
-                    <DualDateField label={t('fields.from')} value={fromFilter} onChange={setFromFilter} />
-                    <DualDateField label={t('fields.to')} value={toFilter} onChange={setToFilter} />
+                    <DualDateField
+                        label={t('fields.from')}
+                        value={fromFilter}
+                        onChange={(v) => {
+                            setFromFilter(v);
+                            setPage(0);
+                        }}
+                    />
+                    <DualDateField
+                        label={t('fields.to')}
+                        value={toFilter}
+                        onChange={(v) => {
+                            setToFilter(v);
+                            setPage(0);
+                        }}
+                    />
                     {hasFilters && (
-                        <Button
-                            size="small"
-                            color="inherit"
-                            onClick={() => {
-                                setFromFilter('');
-                                setToFilter('');
-                                setEmployeeFilter('');
-                            }}
-                        >
+                        <Button size="small" color="inherit" onClick={resetFilters}>
                             {t('expenses_page.clear_dates')}
                         </Button>
                     )}
@@ -249,6 +270,19 @@ export function PayrollPage() {
                         </TableBody>
                     </Table>
                 </TableContainer>
+
+                <TablePagination
+                    component="div"
+                    count={data?.meta.total ?? 0}
+                    page={page}
+                    onPageChange={(_, newPage) => setPage(newPage)}
+                    rowsPerPage={perPage}
+                    onRowsPerPageChange={(e) => {
+                        setPerPage(Number(e.target.value));
+                        setPage(0);
+                    }}
+                    rowsPerPageOptions={[10, 20, 50]}
+                />
             </Paper>
 
             <Dialog open={newOpen} onClose={() => setNewOpen(false)} fullWidth maxWidth="xs">

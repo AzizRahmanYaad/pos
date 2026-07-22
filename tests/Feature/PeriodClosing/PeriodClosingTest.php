@@ -187,6 +187,30 @@ class PeriodClosingTest extends TestCase
         $this->assertEquals(PeriodClosing::STATUS_REOPENED, $reopened->status);
     }
 
+    public function test_period_closing_detail_exposes_activity_log_for_close_and_reopen(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create(['name' => 'Manager Mona']);
+        $manager->assignRole('manager');
+        $admin = User::factory()->create(['name' => 'Admin Ali']);
+        $admin->assignRole('admin');
+
+        $closeResponse = $this->actingAs($manager)->postJson('/api/v1/period-closings', [
+            'period_type' => 'daily',
+            'period_start' => '2026-01-01',
+            'period_end' => '2026-01-01',
+        ])->assertCreated();
+        $id = $closeResponse->json('data.id');
+
+        $this->actingAs($admin)->postJson("/api/v1/period-closings/{$id}/reopen")->assertOk();
+
+        $response = $this->actingAs($admin)->getJson("/api/v1/period-closings/{$id}")->assertOk();
+        $activities = collect($response->json('data.activities'));
+
+        $this->assertTrue($activities->contains(fn ($a) => $a['description'] === 'period_closed' && $a['causer_name'] === 'Manager Mona'));
+        $this->assertTrue($activities->contains(fn ($a) => $a['description'] === 'period_reopened' && $a['causer_name'] === 'Admin Ali'));
+    }
+
     public function test_manager_can_close_period_but_only_admin_can_reopen(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

@@ -22,6 +22,7 @@ class PeriodClosingResource extends JsonResource
             'status' => $this->status,
             'notes' => $this->notes,
             'snapshots' => PeriodClosingSnapshotResource::collection($this->whenLoaded('snapshots')),
+            'activities' => ActivityLogResource::collection($this->whenLoaded('activities')),
         ];
     }
 }

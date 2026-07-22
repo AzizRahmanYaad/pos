@@ -29,7 +29,7 @@ class PayrollRunController extends Controller
             ->orderByDesc('period_year')
             ->orderByDesc('period_month')
             ->orderByDesc('id')
-            ->get();
+            ->paginate(request()->integer('per_page', 10));
 
         return PayrollRunResource::collection($runs);
     }

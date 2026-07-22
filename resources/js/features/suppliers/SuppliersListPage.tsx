@@ -7,6 +7,7 @@ import {
     Button,
     Chip,
     CircularProgress,
+    Grid,
     IconButton,
     InputAdornment,
     Paper,
@@ -22,17 +23,20 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
+import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { fetchSuppliersPage, type SupplierListItem } from '@/features/suppliers/api';
+import { fetchSuppliersPage, fetchSupplierSummary, type SupplierListItem } from '@/features/suppliers/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
 import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
+import { fetchBusinessSettings } from '@/features/settings/api';
 
 const AVATAR_COLORS = ['#1e6f5c', '#2b8a72', '#b8901f', '#3b7ea1', '#7d5ba6', '#a15b3b'];
 
@@ -48,6 +52,7 @@ function initials(name: string): string {
 
 export function SuppliersListPage() {
     const { t } = useTranslation();
+    const theme = useTheme();
     const navigate = useNavigate();
 
     const [page, setPage] = useState(0);
@@ -68,6 +73,13 @@ export function SuppliersListPage() {
         queryFn: () => fetchSuppliersPage({ page: page + 1, perPage, search: search || undefined }),
         placeholderData: keepPreviousData,
     });
+
+    const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
+    const sym = settings?.currency_symbol ?? '';
+    const money = (v: number) =>
+        `${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${sym ? ` ${sym}` : ''}`;
+
+    const { data: summary } = useQuery({ queryKey: ['suppliers-summary'], queryFn: fetchSupplierSummary });
 
     const [addOpen, setAddOpen] = useState(false);
     const [paying, setPaying] = useState<SupplierListItem | null>(null);
@@ -98,6 +110,65 @@ export function SuppliersListPage() {
                     </Button>
                 </Can>
             </Box>
+
+            <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+                <Grid item xs={12} sm={6}>
+                    <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, height: '100%' }}>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Box
+                                sx={{
+                                    width: 42,
+                                    height: 42,
+                                    borderRadius: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: alpha(theme.palette.error.main, 0.12),
+                                    color: theme.palette.error.main,
+                                }}
+                            >
+                                <TrendingDownOutlinedIcon />
+                            </Box>
+                            <Box>
+                                <Typography variant="h5" fontWeight={800}>
+                                    {money(summary?.payable ?? 0)}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {t('suppliers_page.total_payable')}
+                                </Typography>
+                            </Box>
+                        </Stack>
+                    </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, height: '100%' }}>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Box
+                                sx={{
+                                    width: 42,
+                                    height: 42,
+                                    borderRadius: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: alpha(theme.palette.success.main, 0.12),
+                                    color: theme.palette.success.main,
+                                }}
+                            >
+                                <TrendingUpOutlinedIcon />
+                            </Box>
+                            <Box>
+                                <Typography variant="h5" fontWeight={800}>
+                                    {money(summary?.advance ?? 0)}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {t('suppliers_page.total_advance')}
+                                </Typography>
+                            </Box>
+                        </Stack>
+                    </Paper>
+                </Grid>
+            </Grid>
 
             {isError && <Alert severity="error">{t('common.loading')}</Alert>}
 

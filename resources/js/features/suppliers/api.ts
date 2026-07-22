@@ -59,3 +59,13 @@ export async function createSupplier(payload: CreateSupplierPayload): Promise<Su
     const { data } = await apiClient.post<{ data: SupplierListItem }>('/suppliers', payload);
     return data.data;
 }
+
+export interface SupplierSummary {
+    payable: number;
+    advance: number;
+}
+
+export async function fetchSupplierSummary(): Promise<SupplierSummary> {
+    const { data } = await apiClient.get<{ data: SupplierSummary }>('/suppliers/summary');
+    return data.data;
+}

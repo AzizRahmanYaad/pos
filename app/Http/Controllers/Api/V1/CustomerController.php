@@ -30,6 +30,25 @@ class CustomerController extends Controller
         );
     }
 
+    /**
+     * Aggregate customer balances: how much customers owe the shop
+     * (receivable) versus how much the shop owes customers back in
+     * advances/credit — embedded as a stat header on the customers list.
+     */
+    public function summary()
+    {
+        $this->authorize('viewAny', Customer::class);
+
+        $balances = Customer::query()->get()->map(fn (Customer $customer) => (float) $customer->currentBalance());
+
+        return response()->json([
+            'data' => [
+                'receivable' => round($balances->filter(fn ($b) => $b > 0)->sum(), 2),
+                'advance' => round($balances->filter(fn ($b) => $b < 0)->sum(fn ($b) => -$b), 2),
+            ],
+        ]);
+    }
+
     public function listPdf(\App\Support\ListReportPdf $pdf)
     {
         $this->authorize('viewAny', Customer::class);

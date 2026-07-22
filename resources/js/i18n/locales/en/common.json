@@ -425,7 +425,9 @@
     "search_placeholder": "Search by name or phone…",
     "count": "{{count}} customers",
     "no_customers": "No customers found.",
-    "wa_message": "Customer directory from {{company}}"
+    "wa_message": "Customer directory from {{company}}",
+    "total_receivable": "Total receivable — customers owe us",
+    "total_we_owe": "We owe customers (advance/credit)"
   },
   "ledger": {
     "title": "Ledger — {{name}}",
@@ -472,7 +474,9 @@
     "subtitle": "Your suppliers with live balances and full transaction ledgers.",
     "search_placeholder": "Search by name or phone…",
     "count": "{{count}} suppliers",
-    "no_suppliers": "No suppliers found."
+    "no_suppliers": "No suppliers found.",
+    "total_payable": "Total payable — we owe suppliers",
+    "total_advance": "Our advance with suppliers"
   },
   "nav_header": {
     "messages": "Messages",

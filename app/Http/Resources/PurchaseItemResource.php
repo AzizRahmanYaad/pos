@@ -33,6 +33,7 @@ class PurchaseItemResource extends JsonResource
             'allocated_landed_cost' => round($allocatedLandedCost, 2),
             'landed_unit_cost' => round($landedUnitCost, 4),
             'total_cost' => round($quantity * $landedUnitCost, 2),
+            'landed_cost_is_estimated' => false,
         ];
     }
 }

@@ -64,4 +64,30 @@ class Purchase extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /**
+     * Allocate a landed-cost total across a set of purchase items,
+     * proportional to each item's line value (quantity x unit_cost) —
+     * falling back to an equal split only when every item is free. Shared
+     * by ReceivePurchaseAction (the real, persisted allocation) and the
+     * resource layer (a live preview for a still-draft purchase), so both
+     * always agree on the same numbers.
+     *
+     * @param  \Illuminate\Support\Collection<int, PurchaseItem>  $items
+     * @return array<int, float> item id => allocated landed cost
+     */
+    public static function allocateLandedCost($items, float $landedTotal): array
+    {
+        $totalLineValue = $items->sum(fn (PurchaseItem $item) => (float) $item->quantity * (float) $item->unit_cost);
+
+        return $items->mapWithKeys(function (PurchaseItem $item) use ($items, $landedTotal, $totalLineValue) {
+            $lineValue = (float) $item->quantity * (float) $item->unit_cost;
+
+            return [$item->id => match (true) {
+                $totalLineValue > 0 => $landedTotal * ($lineValue / $totalLineValue),
+                $items->count() > 0 => $landedTotal / $items->count(),
+                default => 0.0,
+            }];
+        })->all();
+    }
 }

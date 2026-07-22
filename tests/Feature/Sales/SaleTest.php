@@ -155,6 +155,102 @@ class SaleTest extends TestCase
         $this->assertEquals(Sale::STATUS_REFUNDED, $sale->fresh()->status);
     }
 
+    public function test_refunding_a_single_item_out_of_a_multi_item_sale_only_affects_that_item(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $customer = Customer::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $productA = $this->stockedProduct($warehouse);
+        $productB = $this->stockedProduct($warehouse);
+        $user = User::factory()->create();
+
+        $sale = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'customer_id' => $customer->id],
+            items: [
+                ['product_id' => $productA->id, 'quantity' => 2, 'unit_id' => $productA->unit_id, 'unit_price' => 25],
+                ['product_id' => $productB->id, 'quantity' => 2, 'unit_id' => $productB->unit_id, 'unit_price' => 25],
+            ],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 40]],
+            cashierId: $user->id,
+        );
+
+        // grand_total 100 (50 + 50), paid 40, due 60.
+        $itemA = $sale->items()->where('product_id', $productA->id)->first();
+
+        $refunded = app(RefundSaleAction::class)->execute($sale, $user->id, [
+            ['sale_item_id' => $itemA->id, 'quantity' => 2],
+        ]);
+
+        // Refund value = 50 (all of item A) -> fraction of grand_total = 0.5.
+        // Stock started at 50, sold 2 (-> 48), refund of 2 brings A back to 50;
+        // B was never refunded, so it stays at its post-sale level of 48.
+        $this->assertEquals(50.0, (float) $productA->stocks()->where('warehouse_id', $warehouse->id)->first()->quantity);
+        $this->assertEquals(48.0, (float) $productB->stocks()->where('warehouse_id', $warehouse->id)->first()->quantity);
+        $this->assertEquals(20.0, $cashAccount->fresh()->currentBalance()); // 40 paid - 20 refunded (50% of 40)
+        $this->assertEquals(30.0, $customer->fresh()->currentBalance()); // 60 due - 30 forgiven (50% of 60)
+        $this->assertEquals(Sale::STATUS_PARTIALLY_REFUNDED, $refunded->status);
+        $this->assertEquals(20.0, (float) $refunded->paid_amount);
+        $this->assertEquals(30.0, (float) $refunded->due_amount);
+
+        // Returning the second item completes the refund.
+        $itemB = $sale->items()->where('product_id', $productB->id)->first();
+        $fullyRefunded = app(RefundSaleAction::class)->execute($refunded, $user->id, [
+            ['sale_item_id' => $itemB->id, 'quantity' => 2],
+        ]);
+
+        $this->assertEquals(Sale::STATUS_REFUNDED, $fullyRefunded->status);
+        $this->assertEquals(0.0, $cashAccount->fresh()->currentBalance());
+        $this->assertEquals(0.0, $customer->fresh()->currentBalance());
+    }
+
+    public function test_refunding_more_than_the_remaining_quantity_is_rejected(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $product = $this->stockedProduct($warehouse);
+        $user = User::factory()->create();
+
+        $sale = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [['product_id' => $product->id, 'quantity' => 2, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 50]],
+            cashierId: $user->id,
+        );
+        $item = $sale->items()->first();
+
+        $this->expectException(\App\Domain\Sales\Exceptions\InvalidRefundException::class);
+        app(RefundSaleAction::class)->execute($sale, $user->id, [
+            ['sale_item_id' => $item->id, 'quantity' => 3],
+        ]);
+    }
+
+    public function test_manager_can_partially_refund_a_sale_via_api(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $product = $this->stockedProduct($warehouse);
+
+        $sale = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [['product_id' => $product->id, 'quantity' => 4, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 100]],
+            cashierId: $manager->id,
+        );
+        $item = $sale->items()->first();
+
+        $response = $this->actingAs($manager)->postJson("/api/v1/sales/{$sale->id}/refund", [
+            'items' => [
+                ['sale_item_id' => $item->id, 'quantity' => 1],
+            ],
+        ]);
+
+        $response->assertOk()->assertJsonPath('data.status', Sale::STATUS_PARTIALLY_REFUNDED);
+    }
+
     public function test_cannot_refund_an_already_refunded_sale(): void
     {
         $warehouse = Warehouse::factory()->create();
@@ -248,6 +344,59 @@ class SaleTest extends TestCase
 
         $this->actingAs($cashierA)->getJson("/api/v1/sales/{$saleB->id}")->assertForbidden();
         $this->actingAs($cashierB)->getJson("/api/v1/sales/{$saleB->id}")->assertOk();
+    }
+
+    public function test_sale_invoice_pdf_renders(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $product = $this->stockedProduct($warehouse);
+
+        $sale = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id],
+            items: [['product_id' => $product->id, 'quantity' => 2, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 50]],
+            cashierId: $manager->id,
+        );
+
+        $response = $this->actingAs($manager)->get("/api/v1/sales/{$sale->id}/pdf");
+
+        $response->assertOk();
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+    }
+
+    public function test_sales_list_can_be_filtered_by_date_range(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $product = $this->stockedProduct($warehouse);
+
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => now()->subDays(10)],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 25]],
+            cashierId: $manager->id,
+        );
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_price' => 25]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 25]],
+            cashierId: $manager->id,
+        );
+
+        $response = $this->actingAs($manager)->getJson(
+            '/api/v1/sales?filter[from]='.now()->subDays(2)->toDateString().'&filter[to]='.now()->toDateString()
+        )->assertOk();
+
+        $this->assertCount(1, $response->json('data'));
     }
 
     public function test_manager_sees_all_sales_regardless_of_cashier(): void

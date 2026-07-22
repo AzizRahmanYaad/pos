@@ -23,6 +23,8 @@ class Sale extends Model
 
     public const STATUS_REFUNDED = 'refunded';
 
+    public const STATUS_PARTIALLY_REFUNDED = 'partially_refunded';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     protected function casts(): array

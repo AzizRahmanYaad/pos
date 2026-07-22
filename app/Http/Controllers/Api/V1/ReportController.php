@@ -177,9 +177,11 @@ class ReportController extends Controller
     {
         [$from, $to] = $this->resolveRange($request);
 
-        $revenue = (float) $this->completedSaleItems($from, $to)->sum('sale_items.line_total');
+        $revenue = (float) $this->completedSaleItems($from, $to)
+            ->selectRaw('COALESCE(SUM(sale_items.line_total * (sale_items.quantity - sale_items.refunded_quantity) / sale_items.quantity), 0) as total')
+            ->value('total');
         $cogs = (float) $this->completedSaleItems($from, $to)
-            ->selectRaw('COALESCE(SUM(sale_items.quantity * sale_items.cost_price_snapshot), 0) as total')
+            ->selectRaw('COALESCE(SUM((sale_items.quantity - sale_items.refunded_quantity) * sale_items.cost_price_snapshot), 0) as total')
             ->value('total');
 
         $expensesByCategory = Expense::query()
@@ -235,20 +237,25 @@ class ReportController extends Controller
             ]);
     }
 
+    /**
+     * Per-sale net totals (grand_total minus whatever was returned),
+     * grouped by day or month — a partially refunded sale contributes only
+     * what's left of it, and a fully refunded one contributes nothing.
+     */
     private function salesSummaryRows(Request $request)
     {
         [$from, $to] = $this->resolveRange($request);
         $byMonth = $request->query('group_by') === 'month';
 
-        return Sale::query()
-            ->where('status', Sale::STATUS_COMPLETED)
-            ->whereBetween('sale_date', [$from, $to])
-            ->get(['sale_date', 'grand_total'])
-            ->groupBy(fn (Sale $sale) => $sale->sale_date->format($byMonth ? 'Y-m' : 'Y-m-d'))
-            ->map(fn ($sales, $period) => [
+        return $this->completedSaleItems($from, $to)
+            ->selectRaw('sales.id as sale_id, sales.sale_date as sale_date, SUM(sale_items.line_total * (sale_items.quantity - sale_items.refunded_quantity) / sale_items.quantity) as net_total')
+            ->groupBy('sales.id', 'sales.sale_date')
+            ->get()
+            ->groupBy(fn ($row) => Carbon::parse($row->sale_date)->format($byMonth ? 'Y-m' : 'Y-m-d'))
+            ->map(fn ($rows, $period) => [
                 'period' => $period,
-                'sale_count' => $sales->count(),
-                'total' => round((float) $sales->sum('grand_total'), 2),
+                'sale_count' => $rows->count(),
+                'total' => round((float) $rows->sum('net_total'), 2),
             ])
             ->sortBy('period')
             ->values();
@@ -319,12 +326,20 @@ class ReportController extends Controller
         ]);
     }
 
+    /**
+     * Sale items belonging to a sale that still has real revenue in it —
+     * completed sales and partially refunded ones (whatever wasn't
+     * returned still counts). Fully refunded sales are excluded entirely.
+     * Callers must weigh line_total/quantity by the item's own
+     * (quantity - refunded_quantity) so a partial return nets out exactly
+     * the returned share, not the whole line.
+     */
     private function completedSaleItems(Carbon $from, Carbon $to)
     {
         return SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->when(TenantContext::id(), fn ($query, $tenantId) => $query->where('sales.tenant_id', $tenantId))
-            ->where('sales.status', Sale::STATUS_COMPLETED)
+            ->whereIn('sales.status', [Sale::STATUS_COMPLETED, Sale::STATUS_PARTIALLY_REFUNDED])
             ->whereBetween('sales.sale_date', [$from, $to]);
     }
 

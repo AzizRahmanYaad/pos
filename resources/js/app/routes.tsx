@@ -10,6 +10,8 @@ import { PurchasesListPage } from '@/features/purchases/PurchasesListPage';
 import { NewPurchasePage } from '@/features/purchases/NewPurchasePage';
 import { PurchaseDetailPage } from '@/features/purchases/PurchaseDetailPage';
 import { PosPage } from '@/features/pos/PosPage';
+import { SalesListPage } from '@/features/sales/SalesListPage';
+import { SaleDetailPage } from '@/features/sales/SaleDetailPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 import { EmployeesListPage } from '@/features/employees/EmployeesListPage';
 import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage';
@@ -60,6 +62,8 @@ export const router = createBrowserRouter([
                     { index: true, element: <HomeRoute /> },
                     { path: 'users', element: guarded('users.manage', <UsersPage />) },
                     { path: 'pos', element: guarded('pos.access', <PosPage />) },
+                    { path: 'sales', element: guarded('pos.access', <SalesListPage />) },
+                    { path: 'sales/:id', element: guarded('pos.access', <SaleDetailPage />) },
                     { path: 'products', element: guarded('products.manage', <ProductsListPage />) },
                     { path: 'stocks', element: guarded('inventory.manage', <StocksPage />) },
                     { path: 'customers', element: guarded('sales.manage', <CustomersListPage />) },

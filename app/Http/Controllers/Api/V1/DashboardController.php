@@ -17,21 +17,21 @@ class DashboardController extends Controller
     public function summary()
     {
         $today = now()->startOfDay();
-        $todaySales = Sale::query()
-            ->where('status', Sale::STATUS_COMPLETED)
-            ->whereDate('sale_date', $today);
-
-        $todaySalesTotal = (float) (clone $todaySales)->sum('grand_total');
-        $todaySalesCount = (clone $todaySales)->count();
-
         $tenantId = TenantContext::id();
 
-        $todayCogs = (float) SaleItem::query()
+        $todaySaleItems = SaleItem::query()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->when($tenantId, fn ($query) => $query->where('sales.tenant_id', $tenantId))
-            ->where('sales.status', Sale::STATUS_COMPLETED)
-            ->whereDate('sales.sale_date', $today)
-            ->selectRaw('COALESCE(SUM(sale_items.quantity * sale_items.cost_price_snapshot), 0) as total')
+            ->whereIn('sales.status', [Sale::STATUS_COMPLETED, Sale::STATUS_PARTIALLY_REFUNDED])
+            ->whereDate('sales.sale_date', $today);
+
+        $todaySalesTotal = (float) (clone $todaySaleItems)
+            ->selectRaw('COALESCE(SUM(sale_items.line_total * (sale_items.quantity - sale_items.refunded_quantity) / sale_items.quantity), 0) as total')
+            ->value('total');
+        $todaySalesCount = (clone $todaySaleItems)->distinct('sales.id')->count('sales.id');
+
+        $todayCogs = (float) (clone $todaySaleItems)
+            ->selectRaw('COALESCE(SUM((sale_items.quantity - sale_items.refunded_quantity) * sale_items.cost_price_snapshot), 0) as total')
             ->value('total');
 
         $todayProfit = $todaySalesTotal - $todayCogs;
@@ -50,12 +50,17 @@ class DashboardController extends Controller
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->join('products', 'products.id', '=', 'sale_items.product_id')
             ->when($tenantId, fn ($query) => $query->where('sales.tenant_id', $tenantId))
-            ->where('sales.status', Sale::STATUS_COMPLETED)
+            ->whereIn('sales.status', [Sale::STATUS_COMPLETED, Sale::STATUS_PARTIALLY_REFUNDED])
             ->where('sales.sale_date', '>=', now()->subDays(30))
             ->groupBy('products.id', 'products.name')
-            ->orderByDesc(DB::raw('SUM(sale_items.line_total)'))
+            ->orderByDesc(DB::raw('SUM(sale_items.line_total * (sale_items.quantity - sale_items.refunded_quantity) / sale_items.quantity)'))
             ->limit(5)
-            ->select('products.id', 'products.name', DB::raw('SUM(sale_items.quantity) as quantity_sold'), DB::raw('SUM(sale_items.line_total) as revenue'))
+            ->select(
+                'products.id',
+                'products.name',
+                DB::raw('SUM(sale_items.quantity - sale_items.refunded_quantity) as quantity_sold'),
+                DB::raw('SUM(sale_items.line_total * (sale_items.quantity - sale_items.refunded_quantity) / sale_items.quantity) as revenue'),
+            )
             ->get()
             ->map(fn ($row) => [
                 'product_id' => $row->id,
@@ -75,7 +80,7 @@ class DashboardController extends Controller
 
         $recentSales = Sale::query()
             ->with(['customer', 'cashier'])
-            ->where('status', Sale::STATUS_COMPLETED)
+            ->whereIn('status', [Sale::STATUS_COMPLETED, Sale::STATUS_PARTIALLY_REFUNDED, Sale::STATUS_REFUNDED])
             ->latest('sale_date')
             ->limit(5)
             ->get();

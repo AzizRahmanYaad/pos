@@ -6,6 +6,7 @@ use App\Domain\Inventory\Exceptions\InsufficientStockException;
 use App\Domain\PeriodClosing\Exceptions\InvalidPeriodClosingException;
 use App\Domain\PeriodClosing\Exceptions\PeriodClosedException;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
+use App\Domain\Sales\Exceptions\InvalidRefundException;
 use App\Domain\Sales\Exceptions\InvalidSalePaymentException;
 use App\Domain\Sales\Exceptions\SaleAlreadyProcessedException;
 use App\Http\Middleware\EnsureAccessNotExpired;
@@ -54,6 +55,10 @@ return Application::configure(basePath: dirname(__DIR__))
             : null);
 
         $exceptions->render(fn (InvalidSalePaymentException $e, Request $request) => $request->is('api/*')
+            ? response()->json(['message' => $e->getMessage()], 422)
+            : null);
+
+        $exceptions->render(fn (InvalidRefundException $e, Request $request) => $request->is('api/*')
             ? response()->json(['message' => $e->getMessage()], 422)
             : null);
 

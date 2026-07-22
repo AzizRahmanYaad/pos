@@ -6,7 +6,7 @@
     "inventory": "موجودی",
     "purchases": "خریداری‌ها",
     "pos": "فروشگاه",
-    "sales": "فروش‌ها",
+    "sales": "فروشات",
     "customers": "مشتریان",
     "suppliers": "تهیه کنندگان",
     "expenses": "مصارف",
@@ -39,7 +39,8 @@
     "no": "نخیر",
     "loading": "در حال بارگذاری...",
     "walk_in": "مشتری عادی",
-    "none": "—"
+    "none": "—",
+    "all": "همه"
   },
   "auth": {
     "email": "ایمیل",
@@ -122,7 +123,8 @@
     "completed": "تکمیل شده",
     "refunded": "عودت داده شده",
     "active": "فعال",
-    "inactive": "غیرفعال"
+    "inactive": "غیرفعال",
+    "partially_refunded": "قسمی برگشت داده شده"
   },
   "payment_methods": {
     "cash": "نقد",
@@ -549,5 +551,28 @@
     "status_ok": "موجود",
     "status_low": "موجودی کم",
     "status_out": "ناموجود"
+  },
+  "sales_page": {
+    "subtitle": "همه فروشات دکان، همراه با فاکتور، فلتر و مسترد کالا.",
+    "search_placeholder": "جستجو با شماره فاکتور یا نام مشتری…",
+    "count": "{{count}} فروش",
+    "from_date": "از تاریخ",
+    "to_date": "تا تاریخ",
+    "clear_filters": "پاک کردن فلترها",
+    "view": "دیدن جزئیات",
+    "no_sales": "هیچ فروشی یافت نشد.",
+    "return": "مسترد",
+    "return_sale": "مسترد فروش",
+    "return_sale_title": "مسترد اجناس — {{invoice}}",
+    "return_whole_confirm": "آیا تمام فروش «{{invoice}}» مسترد شود؟ موجودی انبار، پول نقد و بیلانس مشتری همه برگشت داده می‌شود.",
+    "return_partial_hint": "اجناس و مقدار مورد نظر برای مسترد را انتخاب کنید — باقی فروش بدون تغییر می‌ماند. موجودی، پول نقد و سود فقط به اندازه مسترد شده تعدیل می‌شود.",
+    "return_failed": "پردازش مسترد ممکن نشد. لطفاً دوباره تلاش کنید.",
+    "cashier": "صندوقدار",
+    "payments": "پرداخت‌ها",
+    "returned_qty": "مسترد شده: {{qty}}",
+    "available_to_return": "قابل مسترد",
+    "return_quantity": "مقدار",
+    "nothing_to_return": "همه اجناس این فروش قبلاً مسترد شده است.",
+    "wa_message": "فاکتور فروش {{number}} از {{company}} — مجموع {{total}}"
   }
 }

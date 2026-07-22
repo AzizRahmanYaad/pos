@@ -99,9 +99,17 @@ Route::prefix('v1')->group(function () {
         Route::middleware('permission:reports.view')->group(function () {
             Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
             Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
+            Route::get('/reports/profit-loss/pdf', [ReportController::class, 'profitLossPdf']);
             Route::get('/reports/inventory-valuation', [ReportController::class, 'inventoryValuation']);
+            Route::get('/reports/inventory-valuation/pdf', [ReportController::class, 'inventoryValuationPdf']);
             Route::get('/reports/sales-summary', [ReportController::class, 'salesSummary']);
+            Route::get('/reports/sales-summary/pdf', [ReportController::class, 'salesSummaryPdf']);
             Route::get('/reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
+            Route::get('/reports/expenses-by-category/pdf', [ReportController::class, 'expensesByCategoryPdf']);
+            Route::get('/reports/receivables', [ReportController::class, 'receivables']);
+            Route::get('/reports/receivables/pdf', [ReportController::class, 'receivablesPdf']);
+            Route::get('/reports/payables', [ReportController::class, 'payables']);
+            Route::get('/reports/payables/pdf', [ReportController::class, 'payablesPdf']);
         });
     });
 });

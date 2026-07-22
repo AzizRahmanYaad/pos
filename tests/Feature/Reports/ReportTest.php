@@ -8,10 +8,12 @@ use App\Domain\Expenses\Actions\CreateExpenseAction;
 use App\Domain\Inventory\Actions\RecordStockMovementAction;
 use App\Domain\Sales\Actions\CreateSaleAction;
 use App\Models\CashAccount;
+use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\ExpenseCategory;
 use App\Models\Product;
 use App\Models\StockMovement;
+use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
 use Database\Seeders\BusinessSettingsSeeder;
@@ -153,5 +155,53 @@ class ReportTest extends TestCase
         $this->actingAs($cashier)
             ->getJson('/api/v1/reports/profit-loss')
             ->assertForbidden();
+    }
+
+    public function test_receivables_lists_only_customers_who_owe_the_shop(): void
+    {
+        Customer::factory()->create(['name' => 'Owes Us', 'opening_balance' => 300, 'opening_balance_type' => 'debit']);
+        Customer::factory()->create(['name' => 'Settled', 'opening_balance' => 0]);
+
+        $response = $this->actingAs($this->manager())->getJson('/api/v1/reports/receivables')->assertOk();
+
+        $response->assertJsonFragment(['name' => 'Owes Us', 'balance' => 300.0]);
+        $response->assertJsonMissing(['name' => 'Settled']);
+        $this->assertEquals(300.0, $response->json('total'));
+    }
+
+    public function test_payables_lists_only_suppliers_the_shop_owes(): void
+    {
+        Supplier::factory()->create(['name' => 'We Owe', 'opening_balance' => 400, 'opening_balance_type' => 'credit']);
+        Supplier::factory()->create(['name' => 'No Balance', 'opening_balance' => 0]);
+
+        $response = $this->actingAs($this->manager())->getJson('/api/v1/reports/payables')->assertOk();
+
+        $response->assertJsonFragment(['name' => 'We Owe', 'balance' => 400.0]);
+        $response->assertJsonMissing(['name' => 'No Balance']);
+        $this->assertEquals(400.0, $response->json('total'));
+    }
+
+    public function test_all_report_pdfs_render_valid_documents(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        app(RecordStockMovementAction::class)->execute($product, $warehouse, StockMovement::TYPE_OPENING, 5, 10);
+        Customer::factory()->create(['opening_balance' => 100, 'opening_balance_type' => 'debit']);
+        Supplier::factory()->create(['opening_balance' => 50, 'opening_balance_type' => 'credit']);
+
+        $manager = $this->manager();
+
+        foreach ([
+            '/api/v1/reports/profit-loss/pdf',
+            '/api/v1/reports/inventory-valuation/pdf',
+            '/api/v1/reports/sales-summary/pdf',
+            '/api/v1/reports/expenses-by-category/pdf',
+            '/api/v1/reports/receivables/pdf',
+            '/api/v1/reports/payables/pdf',
+        ] as $url) {
+            $response = $this->actingAs($manager)->get($url)->assertOk();
+            $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+            $this->assertStringStartsWith('%PDF-', $response->getContent());
+        }
     }
 }

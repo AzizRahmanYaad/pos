@@ -304,7 +304,26 @@
   "reports_page": {
     "report_label": "راپور",
     "profit_loss": "ګټه او تاوان",
-    "inventory_valuation": "د زېرمې ارزښت"
+    "inventory_valuation": "د زېرمې ارزښت",
+    "subtitle": "د ټول کاروبار مالي راپورونه — چاپیدونکي، ډاونلوډ کیدونکي، او د واتساپ له لارې د شریکولو وړ",
+    "sales_summary": "د پلور لنډیز",
+    "expenses_by_category": "د کټګورۍ له مخې لګښتونه",
+    "receivables": "مطالبات",
+    "payables": "د ورکړې وړ",
+    "customer": "پیرودونکی",
+    "supplier": "عرضه کوونکی",
+    "by_day": "ورځنی",
+    "by_month": "میاشتنی",
+    "no_data": "د دې انتخاب لپاره معلومات نشته",
+    "period": "دوره",
+    "sale_count": "پلورنې",
+    "net_loss": "خالص تاوان",
+    "wa_profit_loss": "د ګټې او تاوان صورت د {{company}} — خالص {{net}}",
+    "wa_sales_summary": "د پلور لنډیز د {{company}} ({{period}})",
+    "wa_expenses_by_category": "د کټګورۍ له مخې لګښتونه د {{company}} ({{period}})",
+    "wa_inventory": "د ذخیرې ارزونه د {{company}} — ټول {{total}}",
+    "wa_receivables": "د مطالباتو راپور د {{company}} — ټول {{total}}",
+    "wa_payables": "د ورکړې وړ راپور د {{company}} — ټول {{total}}"
   },
   "dashboard_page": {
     "today_sales": "د نن پلورنې",

@@ -8,6 +8,8 @@ export interface RecordPaymentPayload {
     cash_account_id: number;
     method: 'cash' | 'card' | 'mobile_wallet' | 'bank';
     description?: string;
+    reference_type?: 'purchase' | 'sale';
+    reference_id?: number;
 }
 
 export async function recordPayment(payload: RecordPaymentPayload) {

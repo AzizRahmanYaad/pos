@@ -127,6 +127,44 @@ class PaymentTest extends TestCase
         $response->assertCreated()->assertJsonPath('data.amount', 50);
     }
 
+    public function test_manager_can_pay_a_supplier_against_a_specific_purchase_via_api(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 10, 'unit_id' => $product->unit_id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $manager->id,
+        );
+        app(ReceivePurchaseAction::class)->execute($purchase, $manager->id);
+
+        $response = $this->actingAs($manager)->postJson('/api/v1/payments', [
+            'party_type' => 'supplier',
+            'party_id' => $supplier->id,
+            'direction' => 'out',
+            'amount' => 40,
+            'cash_account_id' => $cashAccount->id,
+            'method' => 'cash',
+            'reference_type' => 'purchase',
+            'reference_id' => $purchase->id,
+        ]);
+
+        $response->assertCreated();
+
+        $purchase->refresh();
+        $this->assertEquals(40.0, (float) $purchase->paid_amount);
+        $this->assertEquals(60.0, (float) $purchase->due_amount);
+        $this->assertEquals(-60.0, $supplier->fresh()->currentBalance());
+    }
+
     public function test_cashier_cannot_record_standalone_payment(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

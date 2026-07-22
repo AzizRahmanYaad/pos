@@ -216,7 +216,8 @@
     "pay_now": "Pay now (optional)",
     "landed_cost_short": "Landed cost",
     "total_cost": "Total cost",
-    "landed_cost_estimated_hint": "Estimated — the final amount is set once this purchase is received."
+    "landed_cost_estimated_hint": "Estimated — the final amount is set once this purchase is received.",
+    "landed_cost_expense_hint": "Adding a landed cost here creates a categorized expense paid from the cash resource you choose — it will show up in Expenses and be split across the items above when this purchase is received."
   },
   "pos_page": {
     "sale_completed": "Sale {{invoice}} completed.",

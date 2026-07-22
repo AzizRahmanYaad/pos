@@ -51,6 +51,7 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
     const [type, setType] = useState<(typeof PRODUCT_TYPES)[number]>('standard');
     const [salePrice, setSalePrice] = useState('');
     const [pricingMode, setPricingMode] = useState<'fixed' | 'margin'>('fixed');
+    const [marginBasis, setMarginBasis] = useState<'markup' | 'profit'>('markup');
     const [marginPercent, setMarginPercent] = useState('');
     const [defaultCost, setDefaultCost] = useState('');
     const [taxRate, setTaxRate] = useState('0');
@@ -72,6 +73,7 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
         setType('standard');
         setSalePrice('');
         setPricingMode('fixed');
+        setMarginBasis('markup');
         setMarginPercent('');
         setDefaultCost('');
         setTaxRate('0');
@@ -97,6 +99,7 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                 sale_price: Number(salePrice),
                 pricing_mode: pricingMode,
                 margin_percent: pricingMode === 'margin' ? Number(marginPercent || 0) : undefined,
+                margin_basis: pricingMode === 'margin' ? marginBasis : undefined,
                 default_cost: Number(defaultCost || 0),
                 tax_rate: Number(taxRate || 0),
                 reorder_level: Number(reorderLevel || 0),
@@ -131,12 +134,18 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
         },
     });
 
+    const profitTooHigh =
+        pricingMode === 'margin' &&
+        marginBasis === 'profit' &&
+        marginPercent !== '' &&
+        Number(marginPercent) >= 100;
+
     const canSave =
         name !== '' &&
         sku !== '' &&
         unitId !== '' &&
         salePrice !== '' &&
-        (pricingMode === 'fixed' || marginPercent !== '');
+        (pricingMode === 'fixed' || (marginPercent !== '' && !profitTooHigh));
 
     return (
         <>
@@ -282,10 +291,32 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                             {pricingMode === 'margin' && (
                                 <Grid item xs={12} sm={6}>
                                     <TextField
-                                        label={t('products_page.margin_percent')}
+                                        select
+                                        label={t('products_page.margin_basis')}
+                                        value={marginBasis}
+                                        onChange={(e) => setMarginBasis(e.target.value as 'markup' | 'profit')}
+                                        fullWidth
+                                    >
+                                        <MenuItem value="markup">{t('products_page.margin_basis_markup')}</MenuItem>
+                                        <MenuItem value="profit">{t('products_page.margin_basis_profit')}</MenuItem>
+                                    </TextField>
+                                </Grid>
+                            )}
+                            {pricingMode === 'margin' && (
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        label={
+                                            marginBasis === 'profit'
+                                                ? t('products_page.profit_percent')
+                                                : t('products_page.margin_percent')
+                                        }
                                         type="number"
                                         value={marginPercent}
                                         onChange={(e) => setMarginPercent(e.target.value)}
+                                        error={profitTooHigh}
+                                        helperText={
+                                            profitTooHigh ? t('products_page.profit_percent_too_high') : undefined
+                                        }
                                         InputProps={{
                                             endAdornment: <InputAdornment position="end">%</InputAdornment>,
                                         }}
@@ -297,7 +328,9 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                                 <Grid item xs={12}>
                                     <Box sx={{ px: 0.5 }}>
                                         <Typography variant="caption" color="text.secondary">
-                                            {t('products_page.margin_hint')}
+                                            {marginBasis === 'profit'
+                                                ? t('products_page.profit_hint')
+                                                : t('products_page.margin_hint')}
                                         </Typography>
                                     </Box>
                                 </Grid>

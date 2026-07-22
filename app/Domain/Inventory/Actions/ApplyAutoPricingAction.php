@@ -25,9 +25,9 @@ class ApplyAutoPricingAction
             return;
         }
 
-        $newPrice = round($cost * (1 + ((float) $product->margin_percent) / 100), 2);
+        $newPrice = $product->computeAutoPrice($cost);
 
-        if (abs($newPrice - (float) $product->sale_price) > 0.001) {
+        if ($newPrice !== null && abs($newPrice - (float) $product->sale_price) > 0.001) {
             $product->update(['sale_price' => $newPrice]);
         }
     }

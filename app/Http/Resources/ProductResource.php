@@ -25,6 +25,7 @@ class ProductResource extends JsonResource
             'sale_price' => (float) $this->sale_price,
             'pricing_mode' => $this->pricing_mode,
             'margin_percent' => $this->margin_percent !== null ? (float) $this->margin_percent : null,
+            'margin_basis' => $this->margin_basis,
             'default_cost' => (float) $this->default_cost,
             'tax_rate' => (float) $this->tax_rate,
             'reorder_level' => (float) $this->reorder_level,

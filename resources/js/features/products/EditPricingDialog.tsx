@@ -35,6 +35,7 @@ export function EditPricingDialog({ product, onClose }: EditPricingDialogProps) 
         `${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${sym ? ` ${sym}` : ''}`;
 
     const [pricingMode, setPricingMode] = useState<'fixed' | 'margin'>('fixed');
+    const [marginBasis, setMarginBasis] = useState<'markup' | 'profit'>('markup');
     const [marginPercent, setMarginPercent] = useState('');
     const [salePrice, setSalePrice] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -42,6 +43,7 @@ export function EditPricingDialog({ product, onClose }: EditPricingDialogProps) 
     useEffect(() => {
         if (product) {
             setPricingMode(product.pricing_mode);
+            setMarginBasis(product.margin_basis ?? 'markup');
             setMarginPercent(product.margin_percent !== null ? String(product.margin_percent) : '');
             setSalePrice(String(product.sale_price));
             setError(null);
@@ -53,6 +55,7 @@ export function EditPricingDialog({ product, onClose }: EditPricingDialogProps) 
             updateProductPricing(product!.id, {
                 pricing_mode: pricingMode,
                 margin_percent: pricingMode === 'margin' ? Number(marginPercent || 0) : null,
+                margin_basis: pricingMode === 'margin' ? marginBasis : undefined,
                 sale_price: pricingMode === 'fixed' ? Number(salePrice) : undefined,
             }),
         onSuccess: () => {
@@ -65,12 +68,18 @@ export function EditPricingDialog({ product, onClose }: EditPricingDialogProps) 
 
     if (!product) return null;
 
+    const percentValue = marginPercent === '' ? null : Number(marginPercent);
+    const profitTooHigh = marginBasis === 'profit' && percentValue !== null && percentValue >= 100;
+
     const previewPrice =
-        pricingMode === 'margin' && marginPercent !== ''
-            ? product.average_cost * (1 + Number(marginPercent) / 100)
+        pricingMode === 'margin' && percentValue !== null && !profitTooHigh
+            ? marginBasis === 'profit'
+                ? product.average_cost / (1 - percentValue / 100)
+                : product.average_cost * (1 + percentValue / 100)
             : Number(salePrice || 0);
 
-    const canSave = pricingMode === 'fixed' ? salePrice !== '' : marginPercent !== '';
+    const canSave =
+        pricingMode === 'fixed' ? salePrice !== '' : marginPercent !== '' && !profitTooHigh;
 
     return (
         <Dialog open onClose={onClose} fullWidth maxWidth="xs">
@@ -118,15 +127,33 @@ export function EditPricingDialog({ product, onClose }: EditPricingDialogProps) 
                     ) : (
                         <>
                             <TextField
-                                label={t('products_page.margin_percent')}
+                                select
+                                label={t('products_page.margin_basis')}
+                                value={marginBasis}
+                                onChange={(e) => setMarginBasis(e.target.value as 'markup' | 'profit')}
+                                fullWidth
+                            >
+                                <MenuItem value="markup">{t('products_page.margin_basis_markup')}</MenuItem>
+                                <MenuItem value="profit">{t('products_page.margin_basis_profit')}</MenuItem>
+                            </TextField>
+                            <TextField
+                                label={
+                                    marginBasis === 'profit'
+                                        ? t('products_page.profit_percent')
+                                        : t('products_page.margin_percent')
+                                }
                                 type="number"
                                 value={marginPercent}
                                 onChange={(e) => setMarginPercent(e.target.value)}
+                                error={profitTooHigh}
+                                helperText={profitTooHigh ? t('products_page.profit_percent_too_high') : undefined}
                                 InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
                                 fullWidth
                             />
                             <Typography variant="caption" color="text.secondary">
-                                {t('products_page.margin_hint')}
+                                {marginBasis === 'profit'
+                                    ? t('products_page.profit_hint')
+                                    : t('products_page.margin_hint')}
                             </Typography>
                         </>
                     )}
@@ -145,7 +172,7 @@ export function EditPricingDialog({ product, onClose }: EditPricingDialogProps) 
                             {t('products_page.resulting_price')}
                         </Typography>
                         <Typography variant="h6" fontWeight={800} color="success.dark">
-                            {money(previewPrice)}
+                            {profitTooHigh ? '—' : money(previewPrice)}
                         </Typography>
                     </Box>
                 </Stack>

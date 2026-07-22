@@ -30,7 +30,17 @@ class StoreProductRequest extends FormRequest
             ])],
             'sale_price' => ['required', 'numeric', 'min:0'],
             'pricing_mode' => ['nullable', Rule::in([Product::PRICING_FIXED, Product::PRICING_MARGIN])],
-            'margin_percent' => ['nullable', 'numeric', 'min:0', 'max:1000', 'required_if:pricing_mode,margin'],
+            'margin_basis' => ['nullable', Rule::in([Product::MARGIN_BASIS_MARKUP, Product::MARGIN_BASIS_PROFIT])],
+            'margin_percent' => [
+                'nullable', 'numeric', 'min:0', 'max:1000', 'required_if:pricing_mode,margin',
+                function ($attribute, $value, $fail) {
+                    if ($value !== null
+                        && $this->input('margin_basis') === Product::MARGIN_BASIS_PROFIT
+                        && (float) $value >= 100) {
+                        $fail(__('A profit percentage of the selling price must be less than 100.'));
+                    }
+                },
+            ],
             'default_cost' => ['required', 'numeric', 'min:0'],
             'tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
             'reorder_level' => ['required', 'numeric', 'min:0'],

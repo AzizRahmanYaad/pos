@@ -323,7 +323,9 @@
     "wa_expenses_by_category": "Expenses by category from {{company}} ({{period}})",
     "wa_inventory": "Inventory valuation from {{company}} — total {{total}}",
     "wa_receivables": "Receivables report from {{company}} — total {{total}}",
-    "wa_payables": "Payables report from {{company}} — total {{total}}"
+    "wa_payables": "Payables report from {{company}} — total {{total}}",
+    "operating_expenses_by_category": "Operating expenses by category",
+    "total_operating_expenses": "Total operating expenses"
   },
   "dashboard_page": {
     "today_sales": "Today's sales",

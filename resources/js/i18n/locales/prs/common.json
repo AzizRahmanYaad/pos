@@ -323,7 +323,9 @@
     "wa_expenses_by_category": "مصارف بر اساس کتگوری از {{company}} ({{period}})",
     "wa_inventory": "ارزیابی موجودی از {{company}} — مجموع {{total}}",
     "wa_receivables": "گزارش مطالبات از {{company}} — مجموع {{total}}",
-    "wa_payables": "گزارش قابل پرداخت‌ها از {{company}} — مجموع {{total}}"
+    "wa_payables": "گزارش قابل پرداخت‌ها از {{company}} — مجموع {{total}}",
+    "operating_expenses_by_category": "مصارف عملیاتی بر اساس کتگوری",
+    "total_operating_expenses": "مجموع مصارف عملیاتی"
   },
   "dashboard_page": {
     "today_sales": "فروش امروز",

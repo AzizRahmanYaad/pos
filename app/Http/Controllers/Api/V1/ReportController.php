@@ -171,7 +171,7 @@ class ReportController extends Controller
     }
 
     /**
-     * @return array{from:string,to:string,revenue:float,cogs:float,gross_profit:float,operating_expenses:float,payroll_cost:float,net_profit:float}
+     * @return array{from:string,to:string,revenue:float,cogs:float,gross_profit:float,operating_expenses:float,operating_expenses_by_category:array<int,array{category:string,total:float}>,payroll_cost:float,net_profit:float}
      */
     private function computeProfitLoss(Request $request): array
     {
@@ -182,10 +182,18 @@ class ReportController extends Controller
             ->selectRaw('COALESCE(SUM(sale_items.quantity * sale_items.cost_price_snapshot), 0) as total')
             ->value('total');
 
-        $operatingExpenses = (float) Expense::query()
+        $expensesByCategory = Expense::query()
+            ->join('expense_categories', 'expense_categories.id', '=', 'expenses.expense_category_id')
             ->whereBetween('expense_date', [$from, $to])
             ->where('is_landed_cost', false)
-            ->sum('amount');
+            ->selectRaw('expense_categories.name as category, SUM(expenses.amount) as total')
+            ->groupBy('expense_categories.name')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($row) => ['category' => $row->category, 'total' => round((float) $row->total, 2)])
+            ->values();
+
+        $operatingExpenses = (float) $expensesByCategory->sum('total');
 
         $payrollCost = (float) PayrollItem::query()
             ->whereHas('payrollRun', function ($query) use ($from, $to) {
@@ -203,6 +211,7 @@ class ReportController extends Controller
             'cogs' => round($cogs, 2),
             'gross_profit' => round($grossProfit, 2),
             'operating_expenses' => round($operatingExpenses, 2),
+            'operating_expenses_by_category' => $expensesByCategory->all(),
             'payroll_cost' => round($payrollCost, 2),
             'net_profit' => round($netProfit, 2),
         ];

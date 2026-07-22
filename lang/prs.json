@@ -63,6 +63,7 @@
     "November": "نومبر",
     "October": "اکتوبر",
     "Operating expenses": "مصارف عملیاتی",
+    "Operating expenses by category": "مصارف عملیاتی بر اساس کتگوری",
     "Outstanding advances": "پیش‌پرداخت باقی‌مانده",
     "Page": "صفحه",
     "Paid": "پرداخت شده",
@@ -94,6 +95,7 @@
     "Total": "مجموع",
     "Total Credit": "مجموع بستانکار",
     "Total Debit": "مجموع بدهکار",
+    "Total operating expenses": "مجموع مصارف عملیاتی",
     "Unit cost": "قیمت فی واحد",
     "Warehouse": "گدام",
     "of": "از"

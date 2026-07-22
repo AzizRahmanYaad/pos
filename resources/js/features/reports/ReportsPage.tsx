@@ -18,7 +18,7 @@ import {
     ToggleButtonGroup,
     Typography,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import {
     fetchProfitLoss,
@@ -203,7 +203,7 @@ export function ReportsPage() {
             )}
 
             {!isLoading && tab === 'profit-loss' && pnl && (
-                <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, maxWidth: 520 }}>
+                <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, maxWidth: 640 }}>
                     <Typography variant="overline" color="text.secondary" dir="ltr" sx={{ display: 'block', mb: 1 }}>
                         {pnl.from} — {pnl.to}
                     </Typography>
@@ -211,7 +211,58 @@ export function ReportsPage() {
                         <PnlRow label={t('fields.revenue')} value={money(pnl.revenue)} />
                         <PnlRow label={t('fields.cogs')} value={`−${money(pnl.cogs)}`} muted />
                         <PnlRow label={t('fields.gross_profit')} value={money(pnl.gross_profit)} bold divider />
-                        <PnlRow label={t('fields.operating_expenses')} value={`−${money(pnl.operating_expenses)}`} muted />
+                    </Stack>
+
+                    <Box sx={{ mt: 2.5, mb: 2, p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.text.primary, 0.03) }}>
+                        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+                            {t('reports_page.operating_expenses_by_category')}
+                        </Typography>
+                        {pnl.operating_expenses_by_category.length === 0 ? (
+                            <Typography variant="body2" color="text.secondary">
+                                {t('reports_page.no_data')}
+                            </Typography>
+                        ) : (
+                            <Stack spacing={1.25}>
+                                {pnl.operating_expenses_by_category.map((row) => {
+                                    const max = pnl.operating_expenses_by_category[0]?.total || 1;
+                                    return (
+                                        <Box key={row.category}>
+                                            <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                                                <Typography variant="body2">{row.category}</Typography>
+                                                <Typography variant="body2" fontWeight={600} color="error.main">
+                                                    −{money(row.total)}
+                                                </Typography>
+                                            </Stack>
+                                            <Box sx={{ height: 6, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+                                                <Box
+                                                    sx={{
+                                                        height: '100%',
+                                                        borderRadius: 3,
+                                                        bgcolor: 'primary.main',
+                                                        width: `${(row.total / max) * 100}%`,
+                                                    }}
+                                                />
+                                            </Box>
+                                        </Box>
+                                    );
+                                })}
+                            </Stack>
+                        )}
+                        <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            sx={{ mt: 1.5, pt: 1.25, borderTop: '1px solid', borderColor: 'divider' }}
+                        >
+                            <Typography variant="body2" fontWeight={700}>
+                                {t('reports_page.total_operating_expenses')}
+                            </Typography>
+                            <Typography variant="body2" fontWeight={700} color="error.main">
+                                −{money(pnl.operating_expenses)}
+                            </Typography>
+                        </Stack>
+                    </Box>
+
+                    <Stack spacing={1.25}>
                         <PnlRow label={t('fields.payroll_cost')} value={`−${money(pnl.payroll_cost)}`} muted />
                         <PnlRow
                             label={pnl.net_profit >= 0 ? t('fields.net_profit') : t('reports_page.net_loss')}

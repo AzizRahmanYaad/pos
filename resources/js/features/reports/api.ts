@@ -18,6 +18,11 @@ export interface DashboardSummary {
     }[];
 }
 
+export interface ProfitLossExpenseCategory {
+    category: string;
+    total: number;
+}
+
 export interface ProfitLoss {
     from: string;
     to: string;
@@ -25,6 +30,7 @@ export interface ProfitLoss {
     cogs: number;
     gross_profit: number;
     operating_expenses: number;
+    operating_expenses_by_category: ProfitLossExpenseCategory[];
     payroll_cost: number;
     net_profit: number;
 }

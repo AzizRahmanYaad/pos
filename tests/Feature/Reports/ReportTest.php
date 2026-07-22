@@ -85,6 +85,54 @@ class ReportTest extends TestCase
         ]);
     }
 
+    public function test_profit_loss_classifies_operating_expenses_by_category(): void
+    {
+        $cashAccount = CashAccount::factory()->create();
+        $cashier = User::factory()->create();
+
+        $rent = ExpenseCategory::factory()->create(['name' => 'Rent', 'is_landed_cost_type' => false]);
+        $utilities = ExpenseCategory::factory()->create(['name' => 'Utilities', 'is_landed_cost_type' => false]);
+        $landedCostCategory = ExpenseCategory::factory()->create(['name' => 'Freight', 'is_landed_cost_type' => true]);
+
+        app(CreateExpenseAction::class)->execute([
+            'expense_category_id' => $rent->id,
+            'cash_account_id' => $cashAccount->id,
+            'amount' => 100,
+            'expense_date' => now(),
+            'is_landed_cost' => false,
+        ], $cashier->id);
+
+        app(CreateExpenseAction::class)->execute([
+            'expense_category_id' => $utilities->id,
+            'cash_account_id' => $cashAccount->id,
+            'amount' => 40,
+            'expense_date' => now(),
+            'is_landed_cost' => false,
+        ], $cashier->id);
+
+        // Landed costs must be excluded from operating expenses entirely.
+        app(CreateExpenseAction::class)->execute([
+            'expense_category_id' => $landedCostCategory->id,
+            'cash_account_id' => $cashAccount->id,
+            'amount' => 999,
+            'expense_date' => now(),
+            'is_landed_cost' => true,
+        ], $cashier->id);
+
+        $response = $this->actingAs($this->manager())
+            ->getJson('/api/v1/reports/profit-loss?from='.now()->startOfMonth()->toDateString().'&to='.now()->endOfMonth()->toDateString())
+            ->assertOk();
+
+        $this->assertEquals(140.0, $response->json('operating_expenses'));
+
+        $byCategory = collect($response->json('operating_expenses_by_category'));
+        $this->assertCount(2, $byCategory);
+        $this->assertEquals('Rent', $byCategory->first()['category']); // sorted descending by total
+        $this->assertEquals(100.0, $byCategory->first()['total']);
+        $this->assertEquals(40.0, $byCategory->firstWhere('category', 'Utilities')['total']);
+        $this->assertFalse($byCategory->contains('category', 'Freight'));
+    }
+
     public function test_inventory_valuation_sums_quantity_times_average_cost(): void
     {
         $warehouse = Warehouse::factory()->create();

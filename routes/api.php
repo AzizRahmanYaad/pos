@@ -55,12 +55,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/inventory/stock/summary', [StockController::class, 'summary']);
         Route::get('/inventory/stock/alerts', [StockController::class, 'alerts']);
 
+        Route::get('/customers/summary', [CustomerController::class, 'summary']);
         Route::get('/customers/report/pdf', [CustomerController::class, 'listPdf']);
         Route::get('/customers/{customer}/ledger', [CustomerController::class, 'ledger']);
         Route::get('/customers/{customer}/ledger/pdf', [CustomerController::class, 'ledgerPdf']);
         Route::post('/customers/{customer}/ledger/clear', [CustomerController::class, 'clearLedger']);
         Route::apiResource('customers', CustomerController::class);
 
+        Route::get('/suppliers/summary', [SupplierController::class, 'summary']);
         Route::get('/suppliers/{supplier}/ledger', [SupplierController::class, 'ledger']);
         Route::get('/suppliers/{supplier}/ledger/pdf', [SupplierController::class, 'ledgerPdf']);
         Route::post('/suppliers/{supplier}/ledger/clear', [SupplierController::class, 'clearLedger']);

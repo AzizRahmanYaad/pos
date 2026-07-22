@@ -7,6 +7,7 @@ import {
     Button,
     Chip,
     CircularProgress,
+    Grid,
     IconButton,
     InputAdornment,
     Paper,
@@ -22,14 +23,21 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
+import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { fetchCustomersPage, downloadCustomerListPdf, type CustomerListItem } from '@/features/customers/api';
+import {
+    fetchCustomersPage,
+    fetchCustomerSummary,
+    downloadCustomerListPdf,
+    type CustomerListItem,
+} from '@/features/customers/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
 import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
@@ -50,6 +58,7 @@ function initials(name: string): string {
 
 export function CustomersListPage() {
     const { t } = useTranslation();
+    const theme = useTheme();
     const navigate = useNavigate();
 
     const [page, setPage] = useState(0);
@@ -73,6 +82,11 @@ export function CustomersListPage() {
 
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
     const companyName = settings?.company_name ?? '';
+    const sym = settings?.currency_symbol ?? '';
+    const money = (v: number) =>
+        `${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${sym ? ` ${sym}` : ''}`;
+
+    const { data: summary } = useQuery({ queryKey: ['customers-summary'], queryFn: fetchCustomerSummary });
 
     const [addOpen, setAddOpen] = useState(false);
     const [paying, setPaying] = useState<CustomerListItem | null>(null);
@@ -110,6 +124,65 @@ export function CustomersListPage() {
                     </Can>
                 </Stack>
             </Box>
+
+            <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+                <Grid item xs={12} sm={6}>
+                    <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, height: '100%' }}>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Box
+                                sx={{
+                                    width: 42,
+                                    height: 42,
+                                    borderRadius: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: alpha(theme.palette.error.main, 0.12),
+                                    color: theme.palette.error.main,
+                                }}
+                            >
+                                <TrendingUpOutlinedIcon />
+                            </Box>
+                            <Box>
+                                <Typography variant="h5" fontWeight={800}>
+                                    {money(summary?.receivable ?? 0)}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {t('customers_page.total_receivable')}
+                                </Typography>
+                            </Box>
+                        </Stack>
+                    </Paper>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                    <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, height: '100%' }}>
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Box
+                                sx={{
+                                    width: 42,
+                                    height: 42,
+                                    borderRadius: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    bgcolor: alpha(theme.palette.warning.main, 0.12),
+                                    color: theme.palette.warning.main,
+                                }}
+                            >
+                                <TrendingDownOutlinedIcon />
+                            </Box>
+                            <Box>
+                                <Typography variant="h5" fontWeight={800}>
+                                    {money(summary?.advance ?? 0)}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    {t('customers_page.total_we_owe')}
+                                </Typography>
+                            </Box>
+                        </Stack>
+                    </Paper>
+                </Grid>
+            </Grid>
 
             {isError && <Alert severity="error">{t('common.loading')}</Alert>}
 

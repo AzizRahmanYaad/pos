@@ -30,6 +30,26 @@ class SupplierController extends Controller
         );
     }
 
+    /**
+     * Aggregate supplier balances: how much the shop owes suppliers
+     * (payable) versus how much the shop is in credit with suppliers via
+     * advances/prepayments — embedded as a stat header on the suppliers
+     * list.
+     */
+    public function summary()
+    {
+        $this->authorize('viewAny', Supplier::class);
+
+        $balances = Supplier::query()->get()->map(fn (Supplier $supplier) => (float) $supplier->currentBalance());
+
+        return response()->json([
+            'data' => [
+                'payable' => round($balances->filter(fn ($b) => $b < 0)->sum(fn ($b) => -$b), 2),
+                'advance' => round($balances->filter(fn ($b) => $b > 0)->sum(), 2),
+            ],
+        ]);
+    }
+
     public function store(StoreSupplierRequest $request): SupplierResource
     {
         return new SupplierResource(Supplier::create($request->validated()));

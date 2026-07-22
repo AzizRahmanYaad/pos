@@ -76,3 +76,13 @@ export async function downloadCustomerListPdf(
     const blob = new Blob([response.data], { type: 'application/pdf' });
     return { url: URL.createObjectURL(blob), filename, blob };
 }
+
+export interface CustomerSummary {
+    receivable: number;
+    advance: number;
+}
+
+export async function fetchCustomerSummary(): Promise<CustomerSummary> {
+    const { data } = await apiClient.get<{ data: CustomerSummary }>('/customers/summary');
+    return data.data;
+}

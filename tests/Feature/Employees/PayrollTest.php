@@ -152,6 +152,27 @@ class PayrollTest extends TestCase
         app(CreatePayrollRunAction::class)->execute(7, 2026, $user->id, $employee->id, '2026-07-20');
     }
 
+    public function test_payroll_runs_list_is_paginated(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $manager->assignRole('manager');
+
+        foreach (range(1, 3) as $i) {
+            $employee = Employee::factory()->create(['salary_amount' => 100]);
+            app(CreatePayrollRunAction::class)->execute(1, 2026, $manager->id, $employee->id, "2026-01-0{$i}");
+        }
+
+        $response = $this->actingAs($manager)
+            ->getJson('/api/v1/payroll-runs?per_page=2')
+            ->assertOk();
+
+        $response->assertJsonCount(2, 'data');
+        $this->assertEquals(2, $response->json('meta.per_page'));
+        $this->assertEquals(3, $response->json('meta.total'));
+        $this->assertEquals(2, $response->json('meta.last_page'));
+    }
+
     public function test_manager_can_create_and_pay_payroll_via_api(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -40,7 +41,12 @@ class PeriodClosing extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['status', 'notes'])
-            ->logOnlyDirty();
+            ->logOnlyDirty()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'period_closed',
+                'updated' => $this->status === self::STATUS_REOPENED ? 'period_reopened' : 'period_updated',
+                default => $eventName,
+            });
     }
 
     public function snapshots(): HasMany
@@ -51,5 +57,15 @@ class PeriodClosing extends Model
     public function closer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by');
+    }
+
+    /**
+     * The audit trail of this closing — who closed it and, if applicable,
+     * who reopened it and when. Displayed as a chronological log on the
+     * Clearance detail page.
+     */
+    public function activities(): MorphMany
+    {
+        return $this->activitiesAsSubject();
     }
 }

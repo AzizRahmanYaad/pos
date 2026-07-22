@@ -9,6 +9,15 @@ export interface PeriodClosingSnapshotDto {
     quantity: number | null;
 }
 
+export interface ActivityLogDto {
+    id: number;
+    event: string;
+    description: string;
+    causer_name: string | null;
+    properties: { attributes?: Record<string, unknown>; old?: Record<string, unknown> } | null;
+    created_at: string;
+}
+
 export interface PeriodClosingDto {
     id: number;
     period_type: 'daily' | 'monthly' | 'custom';
@@ -19,6 +28,7 @@ export interface PeriodClosingDto {
     status: 'closed' | 'reopened';
     notes: string | null;
     snapshots: PeriodClosingSnapshotDto[];
+    activities: ActivityLogDto[];
 }
 
 interface CollectionResponse<T> {
@@ -31,7 +41,7 @@ export async function fetchPeriodClosings(): Promise<PeriodClosingDto[]> {
 }
 
 export async function fetchPeriodClosing(id: number): Promise<PeriodClosingDto> {
-    const { data } = await apiClient.get(`/period-closings/${id}`);
+    const { data } = await apiClient.get<{ data: PeriodClosingDto }>(`/period-closings/${id}`);
     return data.data;
 }
 

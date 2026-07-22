@@ -16,6 +16,7 @@ import { EmployeeDetailPage } from '@/features/employees/EmployeeDetailPage';
 import { PayrollPage } from '@/features/payroll/PayrollPage';
 import { PayrollRunDetailPage } from '@/features/payroll/PayrollRunDetailPage';
 import { PeriodClosingPage } from '@/features/period-closing/PeriodClosingPage';
+import { PeriodClosingDetailPage } from '@/features/period-closing/PeriodClosingDetailPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { UsersPage } from '@/features/users/UsersPage';
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
                     { path: 'payroll', element: guarded('payroll.manage', <PayrollPage />) },
                     { path: 'payroll/:id', element: guarded('payroll.manage', <PayrollRunDetailPage />) },
                     { path: 'period-closing', element: guarded('period-closing.close', <PeriodClosingPage />) },
+                    { path: 'period-closing/:id', element: guarded('period-closing.close', <PeriodClosingDetailPage />) },
                     { path: 'reports', element: guarded('reports.view', <ReportsPage />) },
                     { path: 'settings', element: <SettingsPage /> },
                 ],

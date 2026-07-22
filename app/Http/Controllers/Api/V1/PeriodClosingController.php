@@ -38,7 +38,9 @@ class PeriodClosingController extends Controller
     {
         $this->authorize('viewAny', PeriodClosing::class);
 
-        return new PeriodClosingResource($periodClosing->load(['snapshots', 'closer']));
+        return new PeriodClosingResource(
+            $periodClosing->load(['snapshots', 'closer', 'activities' => fn ($query) => $query->with('causer')->latest()])
+        );
     }
 
     public function reopen(PeriodClosing $periodClosing, ReopenPeriodAction $reopenPeriod): PeriodClosingResource
@@ -47,6 +49,8 @@ class PeriodClosingController extends Controller
 
         $reopened = $reopenPeriod->execute($periodClosing);
 
-        return new PeriodClosingResource($reopened->load('snapshots'));
+        return new PeriodClosingResource(
+            $reopened->load(['snapshots', 'closer', 'activities' => fn ($query) => $query->with('causer')->latest()])
+        );
     }
 }

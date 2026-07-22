@@ -304,7 +304,26 @@
   "reports_page": {
     "report_label": "Report",
     "profit_loss": "Profit & Loss",
-    "inventory_valuation": "Inventory Valuation"
+    "inventory_valuation": "Inventory Valuation",
+    "subtitle": "Financial reports across the whole business — printable, downloadable, and shareable via WhatsApp",
+    "sales_summary": "Sales Summary",
+    "expenses_by_category": "Expenses by Category",
+    "receivables": "Receivables",
+    "payables": "Payables",
+    "customer": "Customer",
+    "supplier": "Supplier",
+    "by_day": "By day",
+    "by_month": "By month",
+    "no_data": "No data for this selection",
+    "period": "Period",
+    "sale_count": "Sales",
+    "net_loss": "Net loss",
+    "wa_profit_loss": "Profit & Loss statement from {{company}} — net {{net}}",
+    "wa_sales_summary": "Sales summary from {{company}} ({{period}})",
+    "wa_expenses_by_category": "Expenses by category from {{company}} ({{period}})",
+    "wa_inventory": "Inventory valuation from {{company}} — total {{total}}",
+    "wa_receivables": "Receivables report from {{company}} — total {{total}}",
+    "wa_payables": "Payables report from {{company}} — total {{total}}"
   },
   "dashboard_page": {
     "today_sales": "Today's sales",

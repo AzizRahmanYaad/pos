@@ -304,7 +304,26 @@
   "reports_page": {
     "report_label": "راپور",
     "profit_loss": "فایده و ضرر",
-    "inventory_valuation": "ارزش موجودی"
+    "inventory_valuation": "ارزش موجودی",
+    "subtitle": "گزارش‌های مالی از سراسر تجارت — قابل چاپ، دانلود و اشتراک‌گذاری از طریق واتساپ",
+    "sales_summary": "خلص فروشات",
+    "expenses_by_category": "مصارف بر اساس کتگوری",
+    "receivables": "مطالبات",
+    "payables": "قابل پرداخت‌ها",
+    "customer": "مشتری",
+    "supplier": "تهیه کننده",
+    "by_day": "روزانه",
+    "by_month": "ماهانه",
+    "no_data": "برای این انتخاب معلوماتی وجود ندارد",
+    "period": "دوره",
+    "sale_count": "تعداد فروش",
+    "net_loss": "زیان خالص",
+    "wa_profit_loss": "صورت سود و زیان از {{company}} — خالص {{net}}",
+    "wa_sales_summary": "خلص فروشات از {{company}} ({{period}})",
+    "wa_expenses_by_category": "مصارف بر اساس کتگوری از {{company}} ({{period}})",
+    "wa_inventory": "ارزیابی موجودی از {{company}} — مجموع {{total}}",
+    "wa_receivables": "گزارش مطالبات از {{company}} — مجموع {{total}}",
+    "wa_payables": "گزارش قابل پرداخت‌ها از {{company}} — مجموع {{total}}"
   },
   "dashboard_page": {
     "today_sales": "فروش امروز",

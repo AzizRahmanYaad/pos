@@ -36,6 +36,13 @@
         tr.net td { border-top: 3px double #10493c; font-weight: bold; font-size: 15px; padding-top: 12px; }
         tr.net td.num.positive { color: #1e6f5c; }
         tr.net td.num.negative { color: #b3261e; }
+
+        .snapshot-title { font-size: 13px; font-weight: bold; color: #10493c; margin: 22px 0 8px; }
+        table.snapshot { width: 100%; border-collapse: collapse; }
+        table.snapshot td { width: 25%; padding: 10px; }
+        .snapshot-box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; background: #f8faf9; }
+        .snapshot-label { font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; }
+        .snapshot-amt { font-size: 14px; font-weight: bold; color: #111827; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -99,6 +106,36 @@
         <tr class="net">
             <td>{{ $netPositive ? __('Net profit') : __('Net loss') }}</td>
             <td class="num {{ $netPositive ? 'positive' : 'negative' }}">{{ $money($data['net_profit']) }}</td>
+        </tr>
+    </table>
+
+    <div class="snapshot-title">{{ __('Financial Position (current)') }}</div>
+    <table class="snapshot">
+        <tr>
+            <td>
+                <div class="snapshot-box">
+                    <div class="snapshot-label">{{ __('Cash Balance') }}</div>
+                    <div class="snapshot-amt">{{ $money($data['cash_balance']) }}</div>
+                </div>
+            </td>
+            <td>
+                <div class="snapshot-box">
+                    <div class="snapshot-label">{{ __('Inventory Value') }}</div>
+                    <div class="snapshot-amt">{{ $money($data['inventory_value']) }}</div>
+                </div>
+            </td>
+            <td>
+                <div class="snapshot-box">
+                    <div class="snapshot-label">{{ __('Accounts Receivable') }}</div>
+                    <div class="snapshot-amt">{{ $money($data['receivables_total']) }}</div>
+                </div>
+            </td>
+            <td>
+                <div class="snapshot-box">
+                    <div class="snapshot-label">{{ __('Accounts Payable') }}</div>
+                    <div class="snapshot-amt">{{ $money($data['payables_total']) }}</div>
+                </div>
+            </td>
         </tr>
     </table>
 </body>

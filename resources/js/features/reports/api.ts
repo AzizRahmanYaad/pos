@@ -9,6 +9,7 @@ export interface DashboardSummary {
     cash_position: number;
     receivables: number;
     payables: number;
+    inventory_value: number;
     recent_sales: {
         id: number;
         invoice_number: string;
@@ -33,6 +34,10 @@ export interface ProfitLoss {
     operating_expenses_by_category: ProfitLossExpenseCategory[];
     payroll_cost: number;
     net_profit: number;
+    cash_balance: number;
+    inventory_value: number;
+    receivables_total: number;
+    payables_total: number;
 }
 
 export interface InventoryValuationRow {
@@ -62,6 +67,35 @@ export interface ExpenseCategoryRow {
     total: number;
 }
 
+export interface PurchaseSummaryRow {
+    period: string;
+    purchase_count: number;
+    total: number;
+}
+
+export interface DailyJournalTransaction {
+    type: 'sale' | 'purchase' | 'customer_collection' | 'supplier_payment' | 'expense';
+    time: string;
+    description: string;
+    amount: number;
+    direction: 'in' | 'out';
+}
+
+export interface DailyJournal {
+    date: string;
+    sales_total: number;
+    credit_sales_total: number;
+    customer_collections_total: number;
+    purchases_total: number;
+    supplier_payments_total: number;
+    expenses_total: number;
+    cash_in_total: number;
+    cash_out_total: number;
+    net_cash_movement: number;
+    profit_or_loss: number;
+    transactions: DailyJournalTransaction[];
+}
+
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
     const { data } = await apiClient.get<DashboardSummary>('/dashboard/summary');
     return data;
@@ -87,6 +121,22 @@ export async function fetchSalesSummary(from: string, to: string, groupBy: 'day'
 export async function fetchExpensesByCategory(from: string, to: string): Promise<ExpenseCategoryRow[]> {
     const { data } = await apiClient.get<{ rows: ExpenseCategoryRow[] }>('/reports/expenses-by-category', {
         params: { from, to },
+    });
+    return data.rows;
+}
+
+export async function fetchDailyJournal(date: string): Promise<DailyJournal> {
+    const { data } = await apiClient.get<DailyJournal>('/reports/daily-journal', { params: { date } });
+    return data;
+}
+
+export async function fetchPurchaseSummary(
+    from: string,
+    to: string,
+    groupBy: 'day' | 'month' = 'day',
+): Promise<PurchaseSummaryRow[]> {
+    const { data } = await apiClient.get<{ rows: PurchaseSummaryRow[] }>('/reports/purchase-summary', {
+        params: { from, to, group_by: groupBy },
     });
     return data.rows;
 }
@@ -138,6 +188,11 @@ export const downloadSalesSummaryPdf = (from: string, to: string) =>
 
 export const downloadExpensesByCategoryPdf = (from: string, to: string) =>
     downloadReportPdf('/reports/expenses-by-category/pdf', { from, to });
+
+export const downloadPurchaseSummaryPdf = (from: string, to: string, groupBy: 'day' | 'month' = 'day') =>
+    downloadReportPdf('/reports/purchase-summary/pdf', { from, to, group_by: groupBy });
+
+export const downloadDailyJournalPdf = (date: string) => downloadReportPdf('/reports/daily-journal/pdf', { date });
 
 export const downloadReceivablesPdf = () => downloadReportPdf('/reports/receivables/pdf');
 

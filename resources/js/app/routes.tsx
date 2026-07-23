@@ -20,6 +20,7 @@ import { PayrollRunDetailPage } from '@/features/payroll/PayrollRunDetailPage';
 import { PeriodClosingPage } from '@/features/period-closing/PeriodClosingPage';
 import { PeriodClosingDetailPage } from '@/features/period-closing/PeriodClosingDetailPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
+import { DailyJournalPage } from '@/features/journal/DailyJournalPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { PartyLedgerPage } from '@/features/parties/PartyLedgerPage';
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
                     { path: 'period-closing', element: guarded('period-closing.close', <PeriodClosingPage />) },
                     { path: 'period-closing/:id', element: guarded('period-closing.close', <PeriodClosingDetailPage />) },
                     { path: 'reports', element: guarded('reports.view', <ReportsPage />) },
+                    { path: 'journal', element: guarded('reports.view', <DailyJournalPage />) },
                     { path: 'settings', element: <SettingsPage /> },
                 ],
             },

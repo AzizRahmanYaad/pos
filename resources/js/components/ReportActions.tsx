@@ -12,7 +12,8 @@ interface DownloadResult {
 }
 
 interface ReportActionsProps {
-    download: () => Promise<DownloadResult>;
+    /** Omit (or pass undefined) when there's nothing ready to export yet — the actions render disabled. */
+    download?: () => Promise<DownloadResult>;
     /** Message used when sharing to WhatsApp. */
     message?: string;
     size?: 'small' | 'medium' | 'large';
@@ -27,6 +28,7 @@ export function ReportActions({ download, message, size = 'medium' }: ReportActi
     const [busy, setBusy] = useState(false);
 
     const openPdf = async (print: boolean) => {
+        if (!download) return;
         setBusy(true);
         try {
             const { url } = await download();
@@ -41,6 +43,7 @@ export function ReportActions({ download, message, size = 'medium' }: ReportActi
     };
 
     const shareWhatsApp = async () => {
+        if (!download) return;
         setBusy(true);
         try {
             const { url, filename, blob } = await download();
@@ -68,9 +71,11 @@ export function ReportActions({ download, message, size = 'medium' }: ReportActi
         }
     };
 
+    const disabled = busy || !download;
+
     return (
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button variant="outlined" size={size} startIcon={<PrintOutlinedIcon />} disabled={busy} onClick={() => openPdf(true)}>
+            <Button variant="outlined" size={size} startIcon={<PrintOutlinedIcon />} disabled={disabled} onClick={() => openPdf(true)}>
                 {t('purchases_page.print')}
             </Button>
             <Tooltip title={t('ledger.download_pdf')}>
@@ -79,7 +84,7 @@ export function ReportActions({ download, message, size = 'medium' }: ReportActi
                         variant="outlined"
                         size={size}
                         startIcon={<PictureAsPdfOutlinedIcon />}
-                        disabled={busy}
+                        disabled={disabled}
                         onClick={() => openPdf(false)}
                     >
                         PDF
@@ -90,7 +95,7 @@ export function ReportActions({ download, message, size = 'medium' }: ReportActi
                 variant="contained"
                 size={size}
                 startIcon={<WhatsAppIcon />}
-                disabled={busy}
+                disabled={disabled}
                 onClick={shareWhatsApp}
                 sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
             >

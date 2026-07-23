@@ -246,6 +246,13 @@ export function DashboardPage() {
                         value={String(summary?.low_stock_count ?? 0)}
                     />
                 </Grid>
+                <Grid item xs={6} md={3}>
+                    <StatCard
+                        icon={<Inventory2OutlinedIcon fontSize="small" />}
+                        label={t('dashboard_page.inventory_value')}
+                        value={money(summary?.inventory_value ?? 0)}
+                    />
+                </Grid>
 
                 {/* Expenses donut */}
                 <Grid item xs={12} md={6}>

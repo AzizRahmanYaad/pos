@@ -15,9 +15,9 @@ use Mpdf\Mpdf;
 class LedgerStatementPdf
 {
     /**
-     * @param  Model  $party  a Customer or Supplier
+     * @param  Model  $party  a Customer, Supplier, or CashAccount
      * @param  Collection<int, \App\Models\LedgerEntry>  $entries  chronological
-     * @param  'customer'|'supplier'  $kind
+     * @param  'customer'|'supplier'|'cash_account'  $kind
      */
     public function build(Model $party, Collection $entries, string $kind): string
     {

@@ -6,6 +6,9 @@ use App\Domain\Employees\Actions\CreatePayrollRunAction;
 use App\Domain\Employees\Actions\PayPayrollRunAction;
 use App\Domain\Expenses\Actions\CreateExpenseAction;
 use App\Domain\Inventory\Actions\RecordStockMovementAction;
+use App\Domain\Payments\Actions\RecordPaymentAction;
+use App\Domain\Purchases\Actions\CreatePurchaseAction;
+use App\Domain\Purchases\Actions\ReceivePurchaseAction;
 use App\Domain\Sales\Actions\CreateSaleAction;
 use App\Domain\Sales\Actions\RefundSaleAction;
 use App\Models\CashAccount;
@@ -15,6 +18,7 @@ use App\Models\ExpenseCategory;
 use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\Supplier;
+use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
 use Database\Seeders\BusinessSettingsSeeder;
@@ -286,6 +290,7 @@ class ReportTest extends TestCase
         app(RecordStockMovementAction::class)->execute($product, $warehouse, StockMovement::TYPE_OPENING, 5, 10);
         Customer::factory()->create(['opening_balance' => 100, 'opening_balance_type' => 'debit']);
         Supplier::factory()->create(['opening_balance' => 50, 'opening_balance_type' => 'credit']);
+        $cashAccount = CashAccount::factory()->create();
 
         $manager = $this->manager();
 
@@ -293,13 +298,186 @@ class ReportTest extends TestCase
             '/api/v1/reports/profit-loss/pdf',
             '/api/v1/reports/inventory-valuation/pdf',
             '/api/v1/reports/sales-summary/pdf',
+            '/api/v1/reports/purchase-summary/pdf',
             '/api/v1/reports/expenses-by-category/pdf',
             '/api/v1/reports/receivables/pdf',
             '/api/v1/reports/payables/pdf',
+            '/api/v1/reports/daily-journal/pdf',
+            "/api/v1/cash-accounts/{$cashAccount->id}/ledger/pdf",
         ] as $url) {
             $response = $this->actingAs($manager)->get($url)->assertOk();
             $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
             $this->assertStringStartsWith('%PDF-', $response->getContent());
         }
+    }
+
+    public function test_profit_loss_includes_current_balance_sheet_snapshot(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        app(RecordStockMovementAction::class)->execute($product, $warehouse, StockMovement::TYPE_OPENING, 10, 20);
+
+        CashAccount::factory()->create(['opening_balance' => 500]);
+        Customer::factory()->create(['opening_balance' => 300, 'opening_balance_type' => 'debit']);
+        Supplier::factory()->create(['opening_balance' => 150, 'opening_balance_type' => 'credit']);
+
+        $response = $this->actingAs($this->manager())
+            ->getJson('/api/v1/reports/profit-loss?from='.now()->startOfMonth()->toDateString().'&to='.now()->endOfMonth()->toDateString())
+            ->assertOk();
+
+        // Stock: 10 units @ 20 = 200. Cash: opening balance 500 (no other
+        // movements this test). Receivables/payables come straight from
+        // the same opening balances used elsewhere in this file.
+        $response->assertJson([
+            'cash_balance' => 500.0,
+            'inventory_value' => 200.0,
+            'receivables_total' => 300.0,
+            'payables_total' => 150.0,
+        ]);
+    }
+
+    public function test_purchase_summary_only_counts_received_purchases_grouped_by_day(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $unit = Unit::factory()->create();
+        $manager = $this->manager();
+
+        // Received: counts, at its full grand total.
+        $received = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 5, 'unit_id' => $unit->id, 'unit_cost' => 20]],
+            landedCosts: [],
+            createdBy: $manager->id,
+        );
+        app(ReceivePurchaseAction::class)->execute($received, $manager->id);
+
+        // Draft: not yet real spend, must be excluded.
+        app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 100, 'unit_id' => $unit->id, 'unit_cost' => 20]],
+            landedCosts: [],
+            createdBy: $manager->id,
+        );
+
+        $response = $this->actingAs($manager)
+            ->getJson('/api/v1/reports/purchase-summary?from='.now()->startOfMonth()->toDateString().'&to='.now()->endOfMonth()->toDateString())
+            ->assertOk();
+
+        $response->assertJsonFragment(['purchase_count' => 1, 'total' => 100.0]);
+        $this->assertEquals(100.0, collect($response->json('rows'))->sum('total'));
+    }
+
+    public function test_daily_journal_aggregates_the_days_sales_purchases_payments_and_expenses(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create(['opening_balance' => 0]);
+        $cashier = User::factory()->create();
+        $customer = Customer::factory()->create();
+        $supplier = Supplier::factory()->create();
+        $unit = Unit::factory()->create();
+
+        $product = Product::factory()->create(['sale_price' => 100]);
+        app(RecordStockMovementAction::class)->execute($product, $warehouse, StockMovement::TYPE_OPENING, 10, 40);
+
+        // Credit sale: total 100, only 60 tendered -> 40 stays on the customer's account.
+        app(CreateSaleAction::class)->execute(
+            data: ['customer_id' => $customer->id, 'warehouse_id' => $warehouse->id],
+            items: [['product_id' => $product->id, 'quantity' => 1, 'unit_id' => $product->unit_id, 'unit_price' => 100]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 60]],
+            cashierId: $cashier->id,
+        );
+
+        // The customer pays down 40 of what they owe.
+        app(RecordPaymentAction::class)->execute(
+            party: $customer,
+            direction: \App\Models\Payment::DIRECTION_IN,
+            amount: 40,
+            cashAccount: $cashAccount,
+            method: 'cash',
+            description: null,
+            reference: null,
+            receivedBy: $cashier->id,
+        );
+
+        // A received purchase (unpaid — pure A/P, no cash movement).
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: ['supplier_id' => $supplier->id, 'warehouse_id' => $warehouse->id, 'purchase_date' => now()],
+            items: [['product_id' => $product->id, 'quantity' => 5, 'unit_id' => $unit->id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $cashier->id,
+        );
+        app(ReceivePurchaseAction::class)->execute($purchase, $cashier->id);
+
+        // Paying the supplier down by 20.
+        app(RecordPaymentAction::class)->execute(
+            party: $supplier,
+            direction: \App\Models\Payment::DIRECTION_OUT,
+            amount: 20,
+            cashAccount: $cashAccount,
+            method: 'cash',
+            description: null,
+            reference: null,
+            receivedBy: $cashier->id,
+        );
+
+        // A same-day operating expense of 10, paid from the same cash account.
+        $category = ExpenseCategory::factory()->create(['is_landed_cost_type' => false]);
+        app(CreateExpenseAction::class)->execute([
+            'expense_category_id' => $category->id,
+            'cash_account_id' => $cashAccount->id,
+            'amount' => 10,
+            'expense_date' => now(),
+            'is_landed_cost' => false,
+        ], $cashier->id);
+
+        $response = $this->actingAs($this->manager())
+            ->getJson('/api/v1/reports/daily-journal')
+            ->assertOk();
+
+        $response->assertJson([
+            'sales_total' => 100.0,
+            'credit_sales_total' => 40.0,
+            'customer_collections_total' => 40.0,
+            'purchases_total' => 50.0,
+            'supplier_payments_total' => 20.0,
+            'expenses_total' => 10.0,
+            // Cash in: 60 (sale) + 40 (collection) = 100. Cash out: 20 (supplier) + 10 (expense) = 30.
+            'cash_in_total' => 100.0,
+            'cash_out_total' => 30.0,
+            'net_cash_movement' => 70.0,
+            // Revenue 100 - cogs (1 unit @ 40) - operating expenses 10 = 50.
+            'profit_or_loss' => 50.0,
+        ]);
+
+        $this->assertCount(5, $response->json('transactions'));
+    }
+
+    public function test_cash_account_ledger_lists_entries_with_running_balance(): void
+    {
+        $cashAccount = CashAccount::factory()->create(['opening_balance' => 1000]);
+        $supplier = Supplier::factory()->create();
+        $manager = $this->manager();
+
+        app(RecordPaymentAction::class)->execute(
+            party: $supplier,
+            direction: \App\Models\Payment::DIRECTION_OUT,
+            amount: 200,
+            cashAccount: $cashAccount,
+            method: 'cash',
+            description: 'Supplier payment',
+            reference: null,
+            receivedBy: $manager->id,
+        );
+
+        $response = $this->actingAs($manager)
+            ->getJson("/api/v1/cash-accounts/{$cashAccount->id}/ledger")
+            ->assertOk();
+
+        // Opening balance (debit, +1000) then a 200 cash-out (credit) ->
+        // current balance settles at 800.
+        $this->assertEquals(800.0, $response->json('current_balance'));
+        $response->assertJsonFragment(['entry_type' => 'credit', 'amount' => 200.0]);
     }
 }

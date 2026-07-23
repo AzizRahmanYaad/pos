@@ -159,6 +159,8 @@
     "new_category": "New category",
     "new_unit": "New unit",
     "reorder_level": "Reorder level",
+    "item_cost": "Item cost",
+    "item_cost_tooltip": "Total cost of the item — purchase cost plus any allocated landed cost.",
     "price_after_create_hint": "Pricing is set after the product is created — use the pricing icon on the products list to set a fixed price or an auto margin over cost.",
     "track_inventory": "Track inventory",
     "type_standard": "Standard product",

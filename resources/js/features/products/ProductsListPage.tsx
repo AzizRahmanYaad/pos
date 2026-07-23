@@ -224,6 +224,7 @@ export function ProductsListPage() {
                                 <TableCell>{t('nav.products')}</TableCell>
                                 <TableCell>{t('fields.category')}</TableCell>
                                 <TableCell align="right">{t('fields.stock')}</TableCell>
+                                <TableCell align="right">{t('products_page.item_cost')}</TableCell>
                                 <TableCell align="right">{t('fields.price')}</TableCell>
                                 <TableCell>{t('fields.status')}</TableCell>
                                 <Can permission="products.manage">
@@ -237,7 +238,7 @@ export function ProductsListPage() {
                         <TableBody>
                             {isLoading && (
                                 <TableRow>
-                                    <TableCell colSpan={7}>
+                                    <TableCell colSpan={8}>
                                         <Box sx={{ py: 4, textAlign: 'center' }}>
                                             <CircularProgress size={28} />
                                         </Box>
@@ -329,6 +330,13 @@ export function ProductsListPage() {
                                             )}
                                         </TableCell>
                                         <TableCell align="right">
+                                            <Tooltip title={t('products_page.item_cost_tooltip')}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {product.average_cost.toFixed(2)}
+                                                </Typography>
+                                            </Tooltip>
+                                        </TableCell>
+                                        <TableCell align="right">
                                             <Stack direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
                                                 {product.pricing_mode === 'margin' && (
                                                     <Tooltip
@@ -410,7 +418,7 @@ export function ProductsListPage() {
                             })}
                             {data && data.data.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={7}>
+                                    <TableCell colSpan={8}>
                                         <Box sx={{ py: 6, textAlign: 'center' }}>
                                             <Inventory2OutlinedIcon
                                                 sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }}

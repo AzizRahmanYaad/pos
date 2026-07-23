@@ -5,6 +5,7 @@ import {
     Avatar,
     Badge,
     Box,
+    Chip,
     Divider,
     Drawer,
     IconButton,
@@ -14,6 +15,7 @@ import {
     ListItemText,
     Menu,
     MenuItem,
+    Stack,
     Toolbar,
     Tooltip,
     Typography,
@@ -37,10 +39,12 @@ import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import LockClockOutlinedIcon from '@mui/icons-material/LockClockOutlined';
 import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
 import HighlightOffOutlinedIcon from '@mui/icons-material/HighlightOffOutlined';
@@ -54,6 +58,7 @@ import { BrandSpinner } from '@/components/BrandSpinner';
 import { useAuthStore } from '@/store/authStore';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { fetchStockAlerts } from '@/features/inventory/api';
+import { fetchCashAccounts } from '@/features/cash-accounts/api';
 
 const DRAWER_WIDTH = 244;
 const COLLAPSED_WIDTH = 76;
@@ -81,6 +86,7 @@ const NAV_ITEMS: NavItem[] = [
     { to: '/payroll', labelKey: 'nav.payroll', icon: <ReceiptLongOutlinedIcon />, permission: 'payroll.manage' },
     { to: '/period-closing', labelKey: 'nav.period_closing', icon: <LockClockOutlinedIcon />, permission: 'period-closing.close' },
     { to: '/reports', labelKey: 'nav.reports', icon: <AssessmentOutlinedIcon />, permission: 'reports.view' },
+    { to: '/journal', labelKey: 'nav.journal', icon: <MenuBookOutlinedIcon />, permission: 'reports.view' },
     { to: '/settings', labelKey: 'nav.settings', icon: <SettingsOutlinedIcon /> },
 ];
 
@@ -109,6 +115,7 @@ export function AppLayout() {
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
     const canViewStock = useAuthStore((state) => state.can('inventory.manage'));
+    const canViewCash = useAuthStore((state) => state.can('ledger.view'));
 
     const handleLogout = async () => {
         closeProfile();
@@ -132,6 +139,17 @@ export function AppLayout() {
     const alertCount = stockAlerts?.length ?? 0;
     const openNotifications = (e: MouseEvent<HTMLElement>) => setNotifEl(e.currentTarget);
     const closeNotifications = () => setNotifEl(null);
+
+    const { data: cashAccounts } = useQuery({
+        queryKey: ['cash-accounts'],
+        queryFn: fetchCashAccounts,
+        enabled: canViewCash,
+        refetchInterval: 60_000,
+    });
+    const activeCashAccounts = (cashAccounts ?? []).filter((a) => a.is_active);
+    const totalCashBalance = activeCashAccounts.reduce((sum, a) => sum + a.current_balance, 0);
+    const money = (v: number) =>
+        v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const openProfile = (e: MouseEvent<HTMLElement>) => setProfileEl(e.currentTarget);
     const closeProfile = () => setProfileEl(null);
@@ -251,6 +269,44 @@ export function AppLayout() {
                         {companyName}
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
+
+                    {canViewCash && (
+                        <Tooltip
+                            title={
+                                activeCashAccounts.length > 1 ? (
+                                    <Stack spacing={0.25} sx={{ py: 0.25 }}>
+                                        {activeCashAccounts.map((a) => (
+                                            <Box
+                                                key={a.id}
+                                                sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}
+                                            >
+                                                <span>{a.name}</span>
+                                                <span>{money(a.current_balance)}</span>
+                                            </Box>
+                                        ))}
+                                    </Stack>
+                                ) : (
+                                    t('nav_header.cash_balance')
+                                )
+                            }
+                        >
+                            <Chip
+                                size="small"
+                                variant="outlined"
+                                icon={<AccountBalanceWalletOutlinedIcon sx={{ fontSize: '16px !important' }} />}
+                                label={`${t('nav_header.cash_balance')}: ${money(totalCashBalance)}`}
+                                sx={{
+                                    fontWeight: 700,
+                                    borderColor: 'divider',
+                                    color: totalCashBalance < 0 ? 'error.main' : 'success.dark',
+                                    bgcolor: (th) =>
+                                        alpha(totalCashBalance < 0 ? th.palette.error.main : th.palette.success.main, 0.08),
+                                    mr: 0.5,
+                                    display: { xs: 'none', sm: 'flex' },
+                                }}
+                            />
+                        </Tooltip>
+                    )}
 
                     <Tooltip title={fullscreen ? t('nav_header.exit_fullscreen') : t('nav_header.fullscreen')}>
                         <IconButton size="small" onClick={toggleFullscreen} sx={{ color: 'text.secondary' }}>

@@ -13,7 +13,7 @@ use Mpdf\Mpdf;
 class ProfitLossPdf
 {
     /**
-     * @param  array{from:string,to:string,revenue:float,cogs:float,gross_profit:float,operating_expenses:float,operating_expenses_by_category:array<int,array{category:string,total:float}>,payroll_cost:float,net_profit:float}  $data
+     * @param  array{from:string,to:string,revenue:float,cogs:float,gross_profit:float,operating_expenses:float,operating_expenses_by_category:array<int,array{category:string,total:float}>,payroll_cost:float,net_profit:float,cash_balance:float,inventory_value:float,receivables_total:float,payables_total:float}  $data
      */
     public function build(array $data): string
     {

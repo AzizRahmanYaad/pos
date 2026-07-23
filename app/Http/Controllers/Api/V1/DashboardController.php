@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\SaleResource;
 use App\Models\CashAccount;
 use App\Models\Customer;
+use App\Models\ProductStock;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Supplier;
@@ -78,6 +79,11 @@ class DashboardController extends Controller
         $payables = Supplier::query()->get()
             ->sum(fn (Supplier $supplier) => max(0, -$supplier->currentBalance()));
 
+        $inventoryValue = ProductStock::query()
+            ->where('quantity', '>', 0)
+            ->get()
+            ->sum(fn (ProductStock $stock) => (float) $stock->quantity * (float) $stock->average_cost);
+
         $recentSales = Sale::query()
             ->with(['customer', 'cashier'])
             ->whereIn('status', [Sale::STATUS_COMPLETED, Sale::STATUS_PARTIALLY_REFUNDED, Sale::STATUS_REFUNDED])
@@ -94,6 +100,7 @@ class DashboardController extends Controller
             'cash_position' => round($cashPosition, 2),
             'receivables' => round($receivables, 2),
             'payables' => round($payables, 2),
+            'inventory_value' => round($inventoryValue, 2),
             'recent_sales' => SaleResource::collection($recentSales),
         ]);
     }

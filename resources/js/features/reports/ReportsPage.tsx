@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     Box,
@@ -11,6 +11,7 @@ import {
     TableCell,
     TableContainer,
     TableHead,
+    TablePagination,
     TableRow,
     TextField,
     ToggleButton,
@@ -24,23 +25,40 @@ import {
     fetchProfitLoss,
     fetchInventoryValuation,
     fetchSalesSummary,
+    fetchPurchaseSummary,
     fetchExpensesByCategory,
     fetchReceivables,
     fetchPayables,
     downloadProfitLossPdf,
     downloadInventoryValuationPdf,
     downloadSalesSummaryPdf,
+    downloadPurchaseSummaryPdf,
     downloadExpensesByCategoryPdf,
     downloadReceivablesPdf,
     downloadPayablesPdf,
 } from '@/features/reports/api';
+import {
+    fetchCashAccounts,
+    fetchCashAccountLedger,
+    downloadCashAccountLedgerPdf,
+} from '@/features/cash-accounts/api';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { DualDateField } from '@/components/DualDateField';
 import { ReportActions } from '@/components/ReportActions';
+import { formatDate } from '@/lib/calendar';
 
-type ReportTab = 'profit-loss' | 'sales-summary' | 'expenses-by-category' | 'inventory' | 'receivables' | 'payables';
+type ReportTab =
+    | 'profit-loss'
+    | 'sales-summary'
+    | 'purchase-summary'
+    | 'expenses-by-category'
+    | 'inventory'
+    | 'receivables'
+    | 'payables'
+    | 'cash';
 
-const DATE_RANGE_TABS: ReportTab[] = ['profit-loss', 'sales-summary', 'expenses-by-category'];
+const DATE_RANGE_TABS: ReportTab[] = ['profit-loss', 'sales-summary', 'purchase-summary', 'expenses-by-category', 'cash'];
+const GROUP_BY_TABS: ReportTab[] = ['sales-summary', 'purchase-summary'];
 
 function startOfMonth(): string {
     const d = new Date();
@@ -53,12 +71,15 @@ function today(): string {
 }
 
 export function ReportsPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const theme = useTheme();
     const [from, setFrom] = useState(startOfMonth());
     const [to, setTo] = useState(today());
     const [tab, setTab] = useState<ReportTab>('profit-loss');
     const [groupBy, setGroupBy] = useState<'day' | 'month'>('day');
+    const [cashAccountId, setCashAccountId] = useState<number | ''>('');
+    const [cashPage, setCashPage] = useState(0);
+    const cashPerPage = 25;
 
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
     const sym = settings?.currency_symbol ?? '';
@@ -84,6 +105,38 @@ export function ReportsPage() {
         enabled: tab === 'sales-summary',
     });
 
+    const { data: purchaseRows, isFetching: purchasesLoading } = useQuery({
+        queryKey: ['report-purchase-summary', from, to, groupBy],
+        queryFn: () => fetchPurchaseSummary(from, to, groupBy),
+        enabled: tab === 'purchase-summary',
+    });
+
+    const { data: cashAccounts } = useQuery({
+        queryKey: ['cash-accounts'],
+        queryFn: fetchCashAccounts,
+        enabled: tab === 'cash',
+    });
+    const activeCashAccounts = (cashAccounts ?? []).filter((a) => a.is_active);
+
+    useEffect(() => {
+        if (tab === 'cash' && cashAccountId === '' && activeCashAccounts.length > 0) {
+            setCashAccountId(activeCashAccounts[0].id);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tab, activeCashAccounts.length]);
+
+    const { data: cashLedger, isFetching: cashLoading } = useQuery({
+        queryKey: ['report-cash-ledger', cashAccountId, cashPage, cashPerPage, from, to],
+        queryFn: () =>
+            fetchCashAccountLedger(cashAccountId as number, {
+                page: cashPage + 1,
+                perPage: cashPerPage,
+                from: from || undefined,
+                to: to || undefined,
+            }),
+        enabled: tab === 'cash' && cashAccountId !== '',
+    });
+
     const { data: expenseRows, isFetching: expensesLoading } = useQuery({
         queryKey: ['report-expenses-by-category', from, to],
         queryFn: () => fetchExpensesByCategory(from, to),
@@ -103,7 +156,14 @@ export function ReportsPage() {
     });
 
     const isLoading =
-        pnlLoading || valuationLoading || salesLoading || expensesLoading || receivablesLoading || payablesLoading;
+        pnlLoading ||
+        valuationLoading ||
+        salesLoading ||
+        purchasesLoading ||
+        expensesLoading ||
+        receivablesLoading ||
+        payablesLoading ||
+        (tab === 'cash' && cashLoading);
 
     const download = useMemo(() => {
         switch (tab) {
@@ -111,6 +171,8 @@ export function ReportsPage() {
                 return () => downloadProfitLossPdf(from, to);
             case 'sales-summary':
                 return () => downloadSalesSummaryPdf(from, to);
+            case 'purchase-summary':
+                return () => downloadPurchaseSummaryPdf(from, to, groupBy);
             case 'expenses-by-category':
                 return () => downloadExpensesByCategoryPdf(from, to);
             case 'inventory':
@@ -119,8 +181,12 @@ export function ReportsPage() {
                 return () => downloadReceivablesPdf();
             case 'payables':
                 return () => downloadPayablesPdf();
+            case 'cash':
+                return cashAccountId !== ''
+                    ? () => downloadCashAccountLedgerPdf(cashAccountId, { from: from || undefined, to: to || undefined })
+                    : undefined;
         }
-    }, [tab, from, to]);
+    }, [tab, from, to, groupBy, cashAccountId]);
 
     const waMessage = useMemo(() => {
         switch (tab) {
@@ -128,6 +194,8 @@ export function ReportsPage() {
                 return t('reports_page.wa_profit_loss', { company: companyName, net: pnl ? money(pnl.net_profit) : '' });
             case 'sales-summary':
                 return t('reports_page.wa_sales_summary', { company: companyName, period: `${from} — ${to}` });
+            case 'purchase-summary':
+                return t('reports_page.wa_purchase_summary', { company: companyName, period: `${from} — ${to}` });
             case 'expenses-by-category':
                 return t('reports_page.wa_expenses_by_category', { company: companyName, period: `${from} — ${to}` });
             case 'inventory':
@@ -142,8 +210,13 @@ export function ReportsPage() {
                 });
             case 'payables':
                 return t('reports_page.wa_payables', { company: companyName, total: payables ? money(payables.total) : '' });
+            case 'cash':
+                return t('reports_page.wa_cash', {
+                    company: companyName,
+                    total: cashLedger ? money(cashLedger.current_balance) : '',
+                });
         }
-    }, [tab, companyName, from, to, pnl, valuation, receivables, payables, sym]);
+    }, [tab, companyName, from, to, pnl, valuation, receivables, payables, cashLedger, sym]);
 
     return (
         <Box>
@@ -168,18 +241,39 @@ export function ReportsPage() {
                     >
                         <MenuItem value="profit-loss">{t('reports_page.profit_loss')}</MenuItem>
                         <MenuItem value="sales-summary">{t('reports_page.sales_summary')}</MenuItem>
+                        <MenuItem value="purchase-summary">{t('reports_page.purchase_summary')}</MenuItem>
                         <MenuItem value="expenses-by-category">{t('reports_page.expenses_by_category')}</MenuItem>
                         <MenuItem value="inventory">{t('reports_page.inventory_valuation')}</MenuItem>
                         <MenuItem value="receivables">{t('reports_page.receivables')}</MenuItem>
                         <MenuItem value="payables">{t('reports_page.payables')}</MenuItem>
+                        <MenuItem value="cash">{t('reports_page.cash_report')}</MenuItem>
                     </TextField>
+                    {tab === 'cash' && (
+                        <TextField
+                            select
+                            size="small"
+                            label={t('fields.cash_account')}
+                            value={cashAccountId}
+                            onChange={(e) => {
+                                setCashAccountId(Number(e.target.value));
+                                setCashPage(0);
+                            }}
+                            sx={{ minWidth: 200 }}
+                        >
+                            {activeCashAccounts.map((account) => (
+                                <MenuItem key={account.id} value={account.id}>
+                                    {account.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    )}
                     {DATE_RANGE_TABS.includes(tab) && (
                         <>
                             <DualDateField label={t('fields.from')} value={from} onChange={setFrom} />
                             <DualDateField label={t('fields.to')} value={to} onChange={setTo} />
                         </>
                     )}
-                    {tab === 'sales-summary' && (
+                    {GROUP_BY_TABS.includes(tab) && (
                         <ToggleButtonGroup
                             size="small"
                             value={groupBy}
@@ -269,6 +363,36 @@ export function ReportsPage() {
                             color={pnl.net_profit >= 0 ? theme.palette.success.main : theme.palette.error.main}
                         />
                     </Stack>
+
+                    <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 3, mb: 1.5 }}>
+                        {t('reports_page.financial_position')}
+                    </Typography>
+                    <Stack direction="row" flexWrap="wrap" useFlexGap sx={{ mx: -0.75 }}>
+                        {[
+                            { label: t('reports_page.cash_balance'), value: pnl.cash_balance },
+                            { label: t('reports_page.inventory_value'), value: pnl.inventory_value },
+                            { label: t('reports_page.accounts_receivable'), value: pnl.receivables_total },
+                            { label: t('reports_page.accounts_payable'), value: pnl.payables_total },
+                        ].map((item) => (
+                            <Box key={item.label} sx={{ width: { xs: '50%', sm: '25%' }, p: 0.75 }}>
+                                <Box
+                                    sx={{
+                                        p: 1.5,
+                                        borderRadius: 2,
+                                        bgcolor: alpha(theme.palette.text.primary, 0.03),
+                                        height: '100%',
+                                    }}
+                                >
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                        {item.label}
+                                    </Typography>
+                                    <Typography variant="body1" fontWeight={700}>
+                                        {money(item.value)}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        ))}
+                    </Stack>
                 </Paper>
             )}
 
@@ -294,6 +418,42 @@ export function ReportsPage() {
                                     </TableRow>
                                 ))}
                                 {salesRows.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={3}>
+                                            <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                                                {t('reports_page.no_data')}
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Paper>
+            )}
+
+            {!isLoading && tab === 'purchase-summary' && purchaseRows && (
+                <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                    <TableContainer>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'action.hover' } }}>
+                                    <TableCell>{t('reports_page.period')}</TableCell>
+                                    <TableCell align="right">{t('reports_page.purchase_count')}</TableCell>
+                                    <TableCell align="right">{t('fields.total')}</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {purchaseRows.map((row) => (
+                                    <TableRow key={row.period} hover>
+                                        <TableCell>{row.period}</TableCell>
+                                        <TableCell align="right">{row.purchase_count}</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 600 }}>
+                                            {money(row.total)}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {purchaseRows.length === 0 && (
                                     <TableRow>
                                         <TableCell colSpan={3}>
                                             <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
@@ -413,6 +573,96 @@ export function ReportsPage() {
                     noData={t('reports_page.no_data')}
                     totalLabel={t('fields.total')}
                 />
+            )}
+
+            {!isLoading && tab === 'cash' && cashAccountId === '' && (
+                <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, textAlign: 'center' }}>
+                    <Typography color="text.secondary">{t('reports_page.no_cash_accounts')}</Typography>
+                </Paper>
+            )}
+
+            {!isLoading && tab === 'cash' && cashAccountId !== '' && cashLedger && (
+                <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                    <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        sx={{ p: 2, bgcolor: alpha(theme.palette.success.main, 0.06) }}
+                    >
+                        <Typography variant="body2" color="text.secondary">
+                            {t('reports_page.current_balance')}
+                        </Typography>
+                        <Typography variant="h6" fontWeight={800} color="success.dark">
+                            {money(cashLedger.current_balance)}
+                        </Typography>
+                    </Stack>
+                    <TableContainer>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'action.hover' } }}>
+                                    <TableCell>{t('fields.date')}</TableCell>
+                                    <TableCell>{t('fields.description')}</TableCell>
+                                    <TableCell align="right">{t('reports_page.cash_in')}</TableCell>
+                                    <TableCell align="right">{t('reports_page.cash_out')}</TableCell>
+                                    <TableCell align="right">{t('fields.balance')}</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {cashLedger.data.map((entry) => (
+                                    <TableRow key={entry.id} hover>
+                                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                            {formatDate(entry.transaction_date, i18n.language)}
+                                        </TableCell>
+                                        <TableCell>{entry.description ?? '—'}</TableCell>
+                                        <TableCell align="right">
+                                            {entry.entry_type === 'debit' ? (
+                                                <Typography variant="body2" fontWeight={700} color="success.main">
+                                                    +{entry.amount.toFixed(2)}
+                                                </Typography>
+                                            ) : (
+                                                <Typography variant="body2" color="text.disabled">
+                                                    —
+                                                </Typography>
+                                            )}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            {entry.entry_type === 'credit' ? (
+                                                <Typography variant="body2" fontWeight={700} color="error.main">
+                                                    −{entry.amount.toFixed(2)}
+                                                </Typography>
+                                            ) : (
+                                                <Typography variant="body2" color="text.disabled">
+                                                    —
+                                                </Typography>
+                                            )}
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 700 }}>
+                                            {entry.running_balance.toFixed(2)}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {cashLedger.data.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={5}>
+                                            <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                                                {t('reports_page.no_data')}
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    <TablePagination
+                        component="div"
+                        count={cashLedger.meta.total}
+                        page={cashPage}
+                        onPageChange={(_, newPage) => setCashPage(newPage)}
+                        rowsPerPage={cashPerPage}
+                        rowsPerPageOptions={[cashPerPage]}
+                        onRowsPerPageChange={() => {}}
+                    />
+                </Paper>
             )}
         </Box>
     );

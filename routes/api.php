@@ -68,6 +68,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/suppliers/{supplier}/ledger/clear', [SupplierController::class, 'clearLedger']);
         Route::apiResource('suppliers', SupplierController::class);
 
+        Route::get('/cash-accounts/{cashAccount}/ledger', [CashAccountController::class, 'ledger']);
+        Route::get('/cash-accounts/{cashAccount}/ledger/pdf', [CashAccountController::class, 'ledgerPdf']);
         Route::apiResource('cash-accounts', CashAccountController::class);
 
         Route::get('/purchases/{purchase}/pdf', [PurchaseController::class, 'invoicePdf']);
@@ -113,6 +115,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/reports/receivables/pdf', [ReportController::class, 'receivablesPdf']);
             Route::get('/reports/payables', [ReportController::class, 'payables']);
             Route::get('/reports/payables/pdf', [ReportController::class, 'payablesPdf']);
+            Route::get('/reports/purchase-summary', [ReportController::class, 'purchaseSummary']);
+            Route::get('/reports/purchase-summary/pdf', [ReportController::class, 'purchaseSummaryPdf']);
+            Route::get('/reports/daily-journal', [ReportController::class, 'dailyJournal']);
+            Route::get('/reports/daily-journal/pdf', [ReportController::class, 'dailyJournalPdf']);
         });
     });
 });

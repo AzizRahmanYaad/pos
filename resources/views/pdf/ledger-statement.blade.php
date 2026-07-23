@@ -2,15 +2,24 @@
     /** @var \Illuminate\Database\Eloquent\Model $party */
     /** @var \Illuminate\Support\Collection $entries */
     /** @var \App\Models\BusinessSetting $settings */
-    /** @var string $kind  customer|supplier */
-    /** @var float $owedToShop  positive = party owes the shop */
+    /** @var string $kind  customer|supplier|cash_account */
+    /** @var float $owedToShop  positive = party owes the shop (or cash on hand, for a cash account) */
     $sym = $settings->currency_symbol ?: '';
     $money = fn ($v) => number_format((float) $v, 2) . ($sym ? ' ' . $sym : '');
     $owedToShop = round((float) $owedToShop, 2);
-    $partyLabel = $kind === 'supplier' ? __('Supplier') : __('Customer');
+    $partyLabel = match ($kind) {
+        'supplier' => __('Supplier'),
+        'cash_account' => __('Cash account'),
+        default => __('Customer'),
+    };
     // For a customer, "owed to shop" is a balance due; for a supplier it is
-    // an advance / prepayment. The reverse sign flips the meaning.
-    if ($owedToShop > 0) {
+    // an advance / prepayment. A cash account has no owe/advance polarity —
+    // its balance is simply the cash on hand. The reverse sign flips the
+    // meaning for customer vs supplier.
+    if ($kind === 'cash_account') {
+        $bg = $owedToShop < 0 ? '#b3261e' : '#1e6f5c';
+        $cap = __('Available balance');
+    } elseif ($owedToShop > 0) {
         $bg = $kind === 'supplier' ? '#1e6f5c' : '#b3261e';
         $cap = $kind === 'supplier' ? __('Advance / prepaid') : __('Balance due');
     } elseif ($owedToShop < 0) {

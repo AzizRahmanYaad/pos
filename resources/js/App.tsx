@@ -10,6 +10,7 @@ import { useLocaleStore } from '@/store/localeStore';
 import { useAuthStore } from '@/store/authStore';
 import { queryClient } from '@/lib/queryClient';
 import { TopProgressBar } from '@/components/TopProgressBar';
+import { ToastHost } from '@/components/ToastHost';
 
 export function App() {
     const direction = useLocaleStore((state) => state.direction);
@@ -38,6 +39,7 @@ export function App() {
                 <TopProgressBar />
                 <QueryClientProvider client={queryClient}>
                     <RouterProvider router={router} />
+                    <ToastHost />
                     <Snackbar
                         open={periodClosedMessage !== null}
                         autoHideDuration={6000}

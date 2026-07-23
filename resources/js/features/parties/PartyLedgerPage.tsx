@@ -128,6 +128,7 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
 
     const clearMutation = useMutation({
         mutationFn: () => clearPartyLedger(kind, partyId),
+        meta: { successMessage: t('ledger.clear_success'), errorMessage: t('ledger.clear_failed') },
         onSuccess: () => {
             setConfirmClear(false);
             queryClient.invalidateQueries({ queryKey: [`${kind}-ledger`, partyId] });

@@ -62,11 +62,13 @@ export function ReturnSaleDialog({ sale, onClose }: ReturnSaleDialogProps) {
             const allSelected = refundableItems.every((item) => item.id in selected);
             return refundSale(sale!.id, allSelected ? undefined : { items });
         },
+        meta: { successMessage: t('sales_page.return_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sale', sale?.id] });
             queryClient.invalidateQueries({ queryKey: ['sales-page'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             onClose();
         },
         onError: () => setError(t('sales_page.return_failed')),

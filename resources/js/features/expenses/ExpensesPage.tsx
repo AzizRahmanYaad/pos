@@ -89,6 +89,7 @@ export function ExpensesPage() {
 
     const categoryMutation = useMutation({
         mutationFn: createExpenseCategory,
+        meta: { errorMessage: t('expenses_page.category_create_failed') },
         onSuccess: (category) => {
             queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
             setCategoryId(category.id);
@@ -103,9 +104,11 @@ export function ExpensesPage() {
 
     const mutation = useMutation({
         mutationFn: createExpense,
+        meta: { successMessage: t('expenses_page.save_success') },
         onSuccess: () => {
             invalidateExpenses();
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             setDialogOpen(false);
             setAmount('');
             setDescription('');

@@ -53,11 +53,13 @@ export function ReceivePurchaseDialog({ purchase, onClose, invalidateQueryKey }:
                 paid > 0 ? { amount: paid, cash_account_id: cashAccountId as number, method } : undefined,
             );
         },
+        meta: { successMessage: t('purchases_page.receive_success') },
         onSuccess: () => {
             const keys = Array.isArray(invalidateQueryKey) ? invalidateQueryKey : [invalidateQueryKey];
             keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             onClose();
         },
         onError: () => setError(t('purchases_page.receive_failed')),

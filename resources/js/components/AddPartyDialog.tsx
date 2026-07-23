@@ -66,10 +66,15 @@ export function AddPartyDialog({ kind, open, onClose }: AddPartyDialogProps) {
                   })
                 : createSupplier(base);
         },
+        meta: {
+            successMessage:
+                kind === 'customer' ? t('parties.customer_created') : t('parties.supplier_created'),
+        },
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: [kind === 'customer' ? 'customers' : 'suppliers'],
-            });
+            const listKey = kind === 'customer' ? 'customers-page' : 'suppliers-page';
+            const summaryKey = kind === 'customer' ? 'customers-summary' : 'suppliers-summary';
+            queryClient.invalidateQueries({ queryKey: [listKey] });
+            queryClient.invalidateQueries({ queryKey: [summaryKey] });
             close();
         },
         onError: () => setError(t('parties.create_failed')),

@@ -95,6 +95,7 @@ export function PeriodClosingPage() {
 
     const closeMutation = useMutation({
         mutationFn: closePeriod,
+        meta: { successMessage: t('period_closing_page.close_success') },
         onSuccess: (closing) => {
             queryClient.invalidateQueries({ queryKey: ['period-closings'] });
             setNewOpen(false);

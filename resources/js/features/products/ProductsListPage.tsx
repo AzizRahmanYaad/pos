@@ -101,6 +101,7 @@ export function ProductsListPage() {
 
     const deleteMutation = useMutation({
         mutationFn: (product: ProductListItem) => deleteProduct(product.id),
+        meta: { successMessage: t('products_page.delete_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -115,9 +116,12 @@ export function ProductsListPage() {
 
     const mutation = useMutation({
         mutationFn: createStockAdjustment,
+        meta: { successMessage: t('products_page.adjustment_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['stock-list'] });
+            queryClient.invalidateQueries({ queryKey: ['stock-summary'] });
             closeDialog();
         },
         onError: () => setError(t('products_page.adjustment_failed')),

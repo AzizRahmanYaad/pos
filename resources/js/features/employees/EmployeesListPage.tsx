@@ -82,6 +82,7 @@ export function EmployeesListPage() {
 
     const createMutation = useMutation({
         mutationFn: createEmployee,
+        meta: { successMessage: t('employees_page.create_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['employees'] });
             setAddOpen(false);
@@ -98,8 +99,10 @@ export function EmployeesListPage() {
                 cash_account_id: advanceCashAccountId as number,
                 reason: advanceReason || undefined,
             }),
+        meta: { successMessage: t('employees_page.advance_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             setAdvancing(null);
             setAdvanceAmount('');
             setAdvanceReason('');

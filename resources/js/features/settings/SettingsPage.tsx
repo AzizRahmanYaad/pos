@@ -35,6 +35,10 @@ function BusinessSettingsForm() {
 
     const mutation = useMutation({
         mutationFn: updateBusinessSettings,
+        meta: {
+            successMessage: t('settings_page.save_success'),
+            errorMessage: t('settings_page.save_failed'),
+        },
         onSuccess: (updated) => {
             queryClient.setQueryData(['business-settings'], updated);
             setSuccess(true);
@@ -140,6 +144,7 @@ function BusinessSettingsForm() {
                     <Grid item xs={12}>
                         <TextField
                             label={t('settings_page.receipt_footer')}
+                            helperText={t('settings_page.receipt_footer_help')}
                             value={form.receipt_footer ?? ''}
                             onChange={(e) => set('receipt_footer', e.target.value)}
                             fullWidth
@@ -183,6 +188,7 @@ function ChangePasswordForm() {
 
     const mutation = useMutation({
         mutationFn: updatePassword,
+        meta: { successMessage: t('settings_page.password_updated') },
         onSuccess: () => {
             setCurrentPassword('');
             setPassword('');

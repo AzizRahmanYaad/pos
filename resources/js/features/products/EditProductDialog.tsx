@@ -76,6 +76,7 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
                 track_inventory: type === 'service' ? false : trackInventory,
                 is_active: isActive,
             }),
+        meta: { successMessage: t('products_page.update_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });

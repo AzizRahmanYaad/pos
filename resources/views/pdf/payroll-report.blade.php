@@ -10,55 +10,30 @@
     $period = ($months[$run->period_month] ?? $run->period_month).' '.$run->period_year;
     $statusColors = ['draft' => '#4b5563', 'paid' => '#1e6f5c'];
     $statusBg = $statusColors[$run->status] ?? '#4b5563';
+
+    $subtitle = '';
+    if ($run->employee) {
+        $subtitle .= '<strong>'.e($run->employee->name).'</strong> &nbsp;•&nbsp; ';
+    }
+    $subtitle .= e($period);
+    if ($run->period_date) {
+        $subtitle .= ' &nbsp;•&nbsp; '.e(\App\Support\JalaliDate::monthYear($run->period_date)).' '.e(__('Hijri Shamsi'))
+            .' &nbsp;•&nbsp; '.\Illuminate\Support\Carbon::parse($run->period_date)->format('Y-m-d');
+    }
+    $subtitle .= ' &nbsp;•&nbsp; <span class="status-pill" style="background: '.$statusBg.';">'.e(__(ucfirst($run->status))).'</span>';
+    $subtitle .= ' &nbsp;•&nbsp; '.e(__('Generated')).': '.now()->format('Y-m-d');
 @endphp
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <style>
-        * { font-family: sans-serif; }
-        body { color: #1f2937; font-size: 11px; }
-        .brandbar { background: #1e6f5c; color: #ffffff; padding: 14px 18px; border-radius: 6px; }
-        .brand-name { font-size: 21px; font-weight: bold; }
-        .brand-meta { font-size: 10px; color: #d7ece5; margin-top: 3px; line-height: 1.5; }
-        .doc-title { font-size: 16px; font-weight: bold; color: #10493c; margin: 16px 0 2px; }
-        .doc-sub { font-size: 10px; color: #6b7280; }
-        .status-pill { display: inline-block; color: #fff; font-size: 10px; font-weight: bold;
-            padding: 3px 10px; border-radius: 10px; }
-        table.items { width: 100%; border-collapse: collapse; margin-top: 14px; }
-        table.items thead th { background: #10493c; color: #ffffff; font-size: 10px; padding: 7px 8px; text-align: left; }
-        table.items thead th.num { text-align: right; }
-        table.items tbody td { padding: 6px 8px; border-bottom: 1px solid #eef2f1; font-size: 10px; }
-        table.items tbody tr:nth-child(even) td { background: #f8faf9; }
-        td.num { text-align: right; }
-        tr.totals td { font-weight: bold; background: #eef5f2 !important; border-top: 2px solid #10493c;
-            font-size: 11px; color: #10493c; }
-        .empty { color: #9ca3af; padding: 14px; text-align: center; font-style: italic; }
-    </style>
+    @include('pdf.partials.styles')
 </head>
 <body>
-    <div class="brandbar">
-        <div class="brand-name">{{ $settings->company_name ?: config('app.name') }}</div>
-        <div class="brand-meta">
-            @if ($settings->address){{ $settings->address }}@endif
-            @if ($settings->phone) &nbsp;•&nbsp; {{ $settings->phone }} @endif
-            @if ($settings->email) &nbsp;•&nbsp; {{ $settings->email }} @endif
-        </div>
-    </div>
-
-    <div class="doc-title">{{ __('Payroll Report') }}</div>
-    <div class="doc-sub">
-        @if ($run->employee)
-            <strong>{{ $run->employee->name }}</strong> &nbsp;•&nbsp;
-        @endif
-        {{ $period }}
-        @if ($run->period_date)
-            &nbsp;•&nbsp; {{ \App\Support\JalaliDate::monthYear($run->period_date) }} {{ __('Hijri Shamsi') }}
-            &nbsp;•&nbsp; {{ \Illuminate\Support\Carbon::parse($run->period_date)->format('Y-m-d') }}
-        @endif
-        &nbsp;•&nbsp; <span class="status-pill" style="background: {{ $statusBg }};">{{ __(ucfirst($run->status)) }}</span>
-        &nbsp;•&nbsp; {{ __('Generated') }}: {{ now()->format('Y-m-d') }}
-    </div>
+    @include('pdf.partials.letterhead', [
+        'title' => __('Payroll Report'),
+        'subtitle' => $subtitle,
+    ])
 
     <table class="items">
         <thead>

@@ -53,9 +53,14 @@ export function PayrollRunDetailPage() {
 
     const payMutation = useMutation({
         mutationFn: () => payPayrollRun(id, payingCashAccountId as number),
+        meta: {
+            successMessage: t('payroll_page.pay_success'),
+            errorMessage: t('payroll_page.pay_failed'),
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['payroll-run', id] });
             queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
         },
     });
 

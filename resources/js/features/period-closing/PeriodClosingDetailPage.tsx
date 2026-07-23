@@ -58,6 +58,7 @@ export function PeriodClosingDetailPage() {
     const [reopenError, setReopenError] = useState<string | null>(null);
     const reopenMutation = useMutation({
         mutationFn: () => reopenPeriod(id),
+        meta: { successMessage: t('period_closing_page.reopen_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['period-closing', id] });
             queryClient.invalidateQueries({ queryKey: ['period-closings'] });

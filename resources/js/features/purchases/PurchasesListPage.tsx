@@ -68,7 +68,14 @@ export function PurchasesListPage() {
         queryClient.invalidateQueries({ queryKey: ['products'] });
         queryClient.invalidateQueries({ queryKey: ['products-page'] });
     };
-    const cancelMutation = useMutation({ mutationFn: cancelPurchase, onSuccess: invalidate });
+    const cancelMutation = useMutation({
+        mutationFn: cancelPurchase,
+        meta: {
+            successMessage: t('purchases_page.cancel_success'),
+            errorMessage: t('purchases_page.cancel_failed'),
+        },
+        onSuccess: invalidate,
+    });
 
     const [paying, setPaying] = useState<PurchaseListItem | null>(null);
     const [receiving, setReceiving] = useState<PurchaseListItem | null>(null);

@@ -104,6 +104,7 @@ export function NewPurchasePage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             navigate('/purchases');
         },
         onError: () => setError(t('purchases_page.create_failed')),

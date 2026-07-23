@@ -58,6 +58,7 @@ export function ReceivePurchaseDialog({ purchase, onClose, invalidateQueryKey }:
             keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             onClose();
         },
         onError: () => setError(t('purchases_page.receive_failed')),

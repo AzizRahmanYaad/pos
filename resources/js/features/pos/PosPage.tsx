@@ -193,6 +193,7 @@ export function PosPage() {
             setReceipt(sale);
             clearSale();
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
         },
         onError: () => setError(t('pos_page.checkout_failed')),
     });

@@ -56,6 +56,7 @@ export function PayrollRunDetailPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['payroll-run', id] });
             queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
         },
     });
 

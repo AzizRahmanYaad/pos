@@ -71,6 +71,7 @@ export function PaymentDialog({
         onSuccess: () => {
             const keys = Array.isArray(invalidateQueryKey) ? invalidateQueryKey : [invalidateQueryKey];
             keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             setAmount('');
             setDescription('');
             setError(null);

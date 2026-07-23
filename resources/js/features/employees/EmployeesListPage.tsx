@@ -100,6 +100,7 @@ export function EmployeesListPage() {
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             setAdvancing(null);
             setAdvanceAmount('');
             setAdvanceReason('');

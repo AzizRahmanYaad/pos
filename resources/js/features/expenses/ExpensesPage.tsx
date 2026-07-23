@@ -106,6 +106,7 @@ export function ExpensesPage() {
         onSuccess: () => {
             invalidateExpenses();
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             setDialogOpen(false);
             setAmount('');
             setDescription('');

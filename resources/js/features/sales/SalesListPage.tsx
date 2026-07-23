@@ -83,10 +83,12 @@ export function SalesListPage() {
 
     const returnMutation = useMutation({
         mutationFn: (sale: SaleListItem) => refundSale(sale.id),
+        meta: { successMessage: t('sales_page.return_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sales-page'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
+            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             setReturning(null);
             setReturnError(null);
         },

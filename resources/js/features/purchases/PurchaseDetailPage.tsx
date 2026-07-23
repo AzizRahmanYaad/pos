@@ -67,7 +67,14 @@ export function PurchaseDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['products'] });
         queryClient.invalidateQueries({ queryKey: ['products-page'] });
     };
-    const cancelMutation = useMutation({ mutationFn: () => cancelPurchase(id), onSuccess: invalidate });
+    const cancelMutation = useMutation({
+        mutationFn: () => cancelPurchase(id),
+        meta: {
+            successMessage: t('purchases_page.cancel_success'),
+            errorMessage: t('purchases_page.cancel_failed'),
+        },
+        onSuccess: invalidate,
+    });
 
     const money = (v: number) =>
         v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });

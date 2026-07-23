@@ -68,6 +68,12 @@ export function PaymentDialog({
 
     const mutation = useMutation({
         mutationFn: recordPayment,
+        meta: {
+            successMessage:
+                partyType === 'customer'
+                    ? t('payments_dialog.receive_success')
+                    : t('payments_dialog.pay_success'),
+        },
         onSuccess: () => {
             const keys = Array.isArray(invalidateQueryKey) ? invalidateQueryKey : [invalidateQueryKey];
             keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));

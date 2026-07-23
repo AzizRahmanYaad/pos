@@ -85,6 +85,7 @@ export function PayrollPage() {
 
     const createMutation = useMutation({
         mutationFn: () => createPayrollRun(employeeId as number, date, Number(bonuses) || 0, Number(deductions) || 0),
+        meta: { successMessage: t('payroll_page.create_success') },
         onSuccess: (run) => {
             queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
             setNewOpen(false);

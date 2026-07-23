@@ -59,6 +59,7 @@ export function NewPurchasePage() {
 
     const categoryMutation = useMutation({
         mutationFn: createExpenseCategory,
+        meta: { errorMessage: t('expenses_page.category_create_failed') },
         onSuccess: (category) => {
             queryClient.invalidateQueries({ queryKey: ['expense-categories'] });
             setLandedCostCategoryId(category.id);
@@ -101,8 +102,10 @@ export function NewPurchasePage() {
 
             return purchase;
         },
+        meta: { successMessage: t('purchases_page.create_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['purchases-page'] });
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
             queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
             navigate('/purchases');

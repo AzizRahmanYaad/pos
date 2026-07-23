@@ -256,6 +256,7 @@ export function UsersPage() {
 
             return editing ? updateUser(editing.id, payload) : createUser(payload);
         },
+        meta: { successMessage: editing ? t('users_page.update_success') : t('users_page.create_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
             closeDialog();
@@ -265,6 +266,10 @@ export function UsersPage() {
 
     const deleteMutation = useMutation({
         mutationFn: (user: UserListItem) => deleteUser(user.id),
+        meta: {
+            successMessage: t('users_page.delete_success'),
+            errorMessage: t('users_page.delete_failed'),
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
             setDeleting(null);
@@ -274,6 +279,10 @@ export function UsersPage() {
 
     const extendMutation = useMutation({
         mutationFn: (user: UserListItem) => extendUserAccess(user.id),
+        meta: {
+            successMessage: t('users_page.extend_success'),
+            errorMessage: t('users_page.extend_failed'),
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
             setExtending(null);

@@ -59,6 +59,7 @@ export function EditPricingDialog({ product, onClose }: EditPricingDialogProps) 
                 margin_basis: pricingMode === 'margin' ? marginBasis : undefined,
                 sale_price: pricingMode === 'fixed' ? Number(salePrice) : undefined,
             }),
+        meta: { successMessage: t('products_page.pricing_save_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });

@@ -35,6 +35,10 @@ function BusinessSettingsForm() {
 
     const mutation = useMutation({
         mutationFn: updateBusinessSettings,
+        meta: {
+            successMessage: t('settings_page.save_success'),
+            errorMessage: t('settings_page.save_failed'),
+        },
         onSuccess: (updated) => {
             queryClient.setQueryData(['business-settings'], updated);
             setSuccess(true);
@@ -184,6 +188,7 @@ function ChangePasswordForm() {
 
     const mutation = useMutation({
         mutationFn: updatePassword,
+        meta: { successMessage: t('settings_page.password_updated') },
         onSuccess: () => {
             setCurrentPassword('');
             setPassword('');

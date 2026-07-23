@@ -87,8 +87,10 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
                 track_inventory: type === 'service' ? false : trackInventory,
                 is_active: true,
             }),
+        meta: { successMessage: t('products_page.create_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['products-page'] });
             close();
         },
         onError: () => setError(t('products_page.create_failed')),
@@ -101,6 +103,7 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
             }
             return { kind: 'unit' as const, item: await createUnit(newName, newShortName) };
         },
+        meta: { errorMessage: t('products_page.quick_create_failed') },
         onSuccess: (result) => {
             if (result.kind === 'category') {
                 queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -113,6 +116,7 @@ export function AddProductDialog({ open, onClose }: AddProductDialogProps) {
             setNewName('');
             setNewShortName('');
         },
+        onError: () => setError(t('products_page.quick_create_failed')),
     });
 
     const canSave = name !== '' && sku !== '' && unitId !== '';

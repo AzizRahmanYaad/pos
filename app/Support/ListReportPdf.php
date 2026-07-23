@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\BusinessSetting;
+use App\Support\Pdf\PdfFooter;
 use Mpdf\Mpdf;
 
 /**
@@ -48,13 +49,7 @@ class ListReportPdf
             'directionality' => $rtl ? 'rtl' : 'ltr',
         ]);
 
-        $company = e($settings->company_name ?: config('app.name'));
-        $footer = $rtl
-            ? '<div style="text-align:center;color:#9ca3af;font-size:9px;border-top:1px solid #e5e7eb;padding-top:4px;">'
-                .$company.' &nbsp;—&nbsp; {PAGENO}/{nbpg}</div>'
-            : '<div style="text-align:center;color:#9ca3af;font-size:9px;border-top:1px solid #e5e7eb;padding-top:4px;">'
-                .$company.' &nbsp;—&nbsp; '.__('Page').' {PAGENO} '.__('of').' {nbpg}</div>';
-        $mpdf->SetHTMLFooter($footer);
+        $mpdf->SetHTMLFooter(PdfFooter::html($settings, $rtl));
 
         $mpdf->WriteHTML($html);
 

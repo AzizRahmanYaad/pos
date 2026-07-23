@@ -11,14 +11,8 @@
 <html>
 <head>
     <meta charset="utf-8">
+    @include('pdf.partials.styles')
     <style>
-        * { font-family: sans-serif; }
-        body { color: #1f2937; font-size: 11px; }
-        .brandbar { background: #1e6f5c; color: #ffffff; padding: 14px 18px; border-radius: 6px; }
-        .brand-name { font-size: 21px; font-weight: bold; }
-        .brand-meta { font-size: 10px; color: #d7ece5; margin-top: 3px; line-height: 1.5; }
-        .doc-title { font-size: 16px; font-weight: bold; color: #10493c; margin: 16px 0 2px; }
-        .doc-sub { font-size: 10px; color: #6b7280; }
         table.statement { width: 100%; border-collapse: collapse; margin-top: 18px; }
         table.statement td { padding: 9px 10px; font-size: 12px; border-bottom: 1px solid #eef2f1; }
         table.statement td.num { text-align: right; }
@@ -30,36 +24,28 @@
         tr.category-row td { padding: 5px 10px 5px 26px; font-size: 10px; color: #4b5563; border-bottom: none; }
         tr.category-row td.num { color: #b3261e; }
         tr.category-row .bar-track { background: #f1f5f3; border-radius: 3px; height: 5px; margin-top: 3px; width: 92%; }
-        tr.category-row .bar-fill { background: #c9a227; border-radius: 3px; height: 5px; }
+        tr.category-row .bar-fill { background-color: #b8901f; background-image: linear-gradient(90deg, #b8901f, #e3bc45); border-radius: 3px; height: 5px; }
         tr.section-total td { font-weight: bold; border-top: 1px solid #e5e7eb; color: #374151; }
         tr.section-total td.num { color: #b3261e; }
         tr.net td { border-top: 3px double #10493c; font-weight: bold; font-size: 15px; padding-top: 12px; }
         tr.net td.num.positive { color: #1e6f5c; }
         tr.net td.num.negative { color: #b3261e; }
 
-        .snapshot-title { font-size: 13px; font-weight: bold; color: #10493c; margin: 22px 0 8px; }
-        table.snapshot { width: 100%; border-collapse: collapse; }
-        table.snapshot td { width: 25%; padding: 10px; }
-        .snapshot-box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; background: #f8faf9; }
-        .snapshot-label { font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; }
-        .snapshot-amt { font-size: 14px; font-weight: bold; color: #111827; margin-top: 2px; }
+        {{-- Built with floats, not a table: mpdf renders a bordered block's
+             border per text-line instead of as one box when nested inside a
+             <td>, so the four cards float instead of sitting in table cells. --}}
+        .snapshot { width: 100%; }
+        .snapshot:after { content: ""; display: block; clear: both; }
+        .snapshot .card { float: left; width: 25%; }
+        .snapshot .card .box { margin-right: 8px; }
+        .snapshot-amt { font-size: 14px; font-weight: bold; color: #111827; margin-top: 3px; }
     </style>
 </head>
 <body>
-    <div class="brandbar">
-        <div class="brand-name">{{ $settings->company_name ?: config('app.name') }}</div>
-        <div class="brand-meta">
-            @if ($settings->address){{ $settings->address }}@endif
-            @if ($settings->phone) &nbsp;•&nbsp; {{ $settings->phone }} @endif
-            @if ($settings->email) &nbsp;•&nbsp; {{ $settings->email }} @endif
-        </div>
-    </div>
-
-    <div class="doc-title">{{ __('Profit & Loss Statement') }}</div>
-    <div class="doc-sub">
-        {{ $data['from'] }} &nbsp;—&nbsp; {{ $data['to'] }}
-        &nbsp;•&nbsp; {{ __('Generated') }}: {{ now()->format('Y-m-d') }}
-    </div>
+    @include('pdf.partials.letterhead', [
+        'title' => __('Profit & Loss Statement'),
+        'subtitle' => e($data['from']).' &nbsp;—&nbsp; '.e($data['to']).' &nbsp;•&nbsp; '.__('Generated').': '.now()->format('Y-m-d'),
+    ])
 
     <table class="statement">
         <tr>
@@ -109,34 +95,32 @@
         </tr>
     </table>
 
-    <div class="snapshot-title">{{ __('Financial Position (current)') }}</div>
-    <table class="snapshot">
-        <tr>
-            <td>
-                <div class="snapshot-box">
-                    <div class="snapshot-label">{{ __('Cash Balance') }}</div>
-                    <div class="snapshot-amt">{{ $money($data['cash_balance']) }}</div>
-                </div>
-            </td>
-            <td>
-                <div class="snapshot-box">
-                    <div class="snapshot-label">{{ __('Inventory Value') }}</div>
-                    <div class="snapshot-amt">{{ $money($data['inventory_value']) }}</div>
-                </div>
-            </td>
-            <td>
-                <div class="snapshot-box">
-                    <div class="snapshot-label">{{ __('Accounts Receivable') }}</div>
-                    <div class="snapshot-amt">{{ $money($data['receivables_total']) }}</div>
-                </div>
-            </td>
-            <td>
-                <div class="snapshot-box">
-                    <div class="snapshot-label">{{ __('Accounts Payable') }}</div>
-                    <div class="snapshot-amt">{{ $money($data['payables_total']) }}</div>
-                </div>
-            </td>
-        </tr>
-    </table>
+    <div class="section-title">{{ __('Financial Position (current)') }}</div>
+    <div class="snapshot">
+        <div class="card">
+            <div class="box">
+                <div class="label">{{ __('Cash Balance') }}</div>
+                <div class="snapshot-amt">{{ $money($data['cash_balance']) }}</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="box">
+                <div class="label">{{ __('Inventory Value') }}</div>
+                <div class="snapshot-amt">{{ $money($data['inventory_value']) }}</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="box">
+                <div class="label">{{ __('Accounts Receivable') }}</div>
+                <div class="snapshot-amt">{{ $money($data['receivables_total']) }}</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="box">
+                <div class="label">{{ __('Accounts Payable') }}</div>
+                <div class="snapshot-amt">{{ $money($data['payables_total']) }}</div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

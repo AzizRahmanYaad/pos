@@ -140,6 +140,7 @@ function BusinessSettingsForm() {
                     <Grid item xs={12}>
                         <TextField
                             label={t('settings_page.receipt_footer')}
+                            helperText={t('settings_page.receipt_footer_help')}
                             value={form.receipt_footer ?? ''}
                             onChange={(e) => set('receipt_footer', e.target.value)}
                             fullWidth

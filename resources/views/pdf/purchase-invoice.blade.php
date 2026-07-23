@@ -10,63 +10,28 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <style>
-        * { font-family: sans-serif; }
-        body { color: #1f2937; font-size: 11px; }
-        .brandbar { background: #1e6f5c; color: #ffffff; padding: 14px 18px; border-radius: 6px; }
-        .brand-name { font-size: 21px; font-weight: bold; }
-        .brand-meta { font-size: 10px; color: #d7ece5; margin-top: 3px; line-height: 1.5; }
-        .doc-title { font-size: 16px; font-weight: bold; color: #10493c; margin: 16px 0 2px; }
-        .doc-sub { font-size: 10px; color: #6b7280; }
-        .meta-table { width: 100%; margin-top: 14px; }
-        .meta-table td { vertical-align: top; }
-        .box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px; background: #f8faf9; }
-        .label { font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
-        .party-name { font-size: 13px; font-weight: bold; color: #111827; }
-        .party-line { font-size: 10px; color: #4b5563; margin-top: 2px; }
-        .status-pill { display: inline-block; color: #fff; font-size: 10px; font-weight: bold;
-            padding: 3px 10px; border-radius: 10px; }
-        table.items { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        table.items thead th { background: #10493c; color: #ffffff; font-size: 10px; padding: 7px 8px; text-align: left; }
-        table.items thead th.num { text-align: right; }
-        table.items tbody td { padding: 6px 8px; border-bottom: 1px solid #eef2f1; font-size: 10px; }
-        table.items tbody tr:nth-child(even) td { background: #f8faf9; }
-        td.num { text-align: right; }
-        table.totals { width: 46%; border-collapse: collapse; margin-top: 12px; float: right; }
-        table.totals td { padding: 5px 8px; font-size: 11px; }
-        table.totals tr.grand td { border-top: 2px solid #10493c; font-weight: bold; font-size: 13px; color: #10493c; }
-        .muted { color: #6b7280; }
-    </style>
+    @include('pdf.partials.styles')
 </head>
 <body>
-    <div class="brandbar">
-        <div class="brand-name">{{ $settings->company_name ?: config('app.name') }}</div>
-        <div class="brand-meta">
-            @if ($settings->address){{ $settings->address }}@endif
-            @if ($settings->phone) &nbsp;•&nbsp; {{ $settings->phone }} @endif
-            @if ($settings->email) &nbsp;•&nbsp; {{ $settings->email }} @endif
+    @include('pdf.partials.letterhead', [
+        'title' => __('Purchase Invoice'),
+        'subtitle' => e($purchase->purchase_number).' &nbsp;•&nbsp; '.\Illuminate\Support\Carbon::parse($purchase->purchase_date)->format('Y-m-d'),
+    ])
+
+    <div class="doc-head">
+        <div class="col-main">
+            <div class="box">
+                <div class="label">{{ __('Supplier') }}</div>
+                <div class="party-name">{{ $purchase->supplier?->name ?? '—' }}</div>
+                @if ($purchase->supplier?->phone)<div class="party-line">{{ $purchase->supplier->phone }}</div>@endif
+                @if ($purchase->supplier?->address)<div class="party-line">{{ $purchase->supplier->address }}</div>@endif
+                <div class="party-line">{{ __('Warehouse') }}: {{ $purchase->warehouse?->name ?? '—' }}</div>
+            </div>
+        </div>
+        <div class="col-side" style="text-align: right;">
+            <span class="status-pill" style="background: {{ $statusBg }};">{{ __(ucfirst($purchase->status)) }}</span>
         </div>
     </div>
-
-    <div class="doc-title">{{ __('Purchase Invoice') }}</div>
-    <div class="doc-sub">{{ $purchase->purchase_number }} &nbsp;•&nbsp; {{ \Illuminate\Support\Carbon::parse($purchase->purchase_date)->format('Y-m-d') }}</div>
-
-    <table class="meta-table">
-        <tr>
-            <td style="width: 58%; padding-right: 12px;">
-                <div class="box">
-                    <div class="label">{{ __('Supplier') }}</div>
-                    <div class="party-name">{{ $purchase->supplier?->name ?? '—' }}</div>
-                    @if ($purchase->supplier?->phone)<div class="party-line">{{ $purchase->supplier->phone }}</div>@endif
-                    @if ($purchase->supplier?->address)<div class="party-line">{{ $purchase->supplier->address }}</div>@endif
-                    <div class="party-line">{{ __('Warehouse') }}: {{ $purchase->warehouse?->name ?? '—' }}</div>
-                </div>
-            </td>
-            <td style="width: 42%; text-align: right;">
-                <span class="status-pill" style="background: {{ $statusBg }};">{{ __(ucfirst($purchase->status)) }}</span>
-            </td>
-        </tr>
-    </table>
 
     <table class="items">
         <thead>

@@ -43,6 +43,7 @@ import {
     createExpenseCategory,
 } from '@/features/expenses/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { fetchPurchases } from '@/features/purchases/api';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { DualDateField } from '@/components/DualDateField';
@@ -108,7 +109,7 @@ export function ExpensesPage() {
         onSuccess: () => {
             invalidateExpenses();
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
-            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
+            invalidateCashViews(queryClient);
             setDialogOpen(false);
             setAmount('');
             setDescription('');

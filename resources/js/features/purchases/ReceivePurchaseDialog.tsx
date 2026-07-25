@@ -16,6 +16,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { LoadingButton } from '@/components/LoadingButton';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { receivePurchase, type ReceivePurchasePayment } from '@/features/purchases/api';
 
 interface ReceivePurchaseDialogProps {
@@ -59,7 +60,7 @@ export function ReceivePurchaseDialog({ purchase, onClose, invalidateQueryKey }:
             keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
-            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
+            invalidateCashViews(queryClient);
             onClose();
         },
         onError: () => setError(t('purchases_page.receive_failed')),

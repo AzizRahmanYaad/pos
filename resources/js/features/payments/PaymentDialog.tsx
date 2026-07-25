@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { recordPayment, type RecordPaymentPayload } from '@/features/payments/api';
 import { LoadingButton } from '@/components/LoadingButton';
 
@@ -77,7 +78,7 @@ export function PaymentDialog({
         onSuccess: () => {
             const keys = Array.isArray(invalidateQueryKey) ? invalidateQueryKey : [invalidateQueryKey];
             keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
-            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
+            invalidateCashViews(queryClient);
             setAmount('');
             setDescription('');
             setError(null);

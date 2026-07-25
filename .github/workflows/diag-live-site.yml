@@ -1,0 +1,49 @@
+name: Diagnose live site state (temporary)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect deployed app and live response
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            cd "${{ secrets.HOSTINGER_APP_PATH }}"
+            echo "===== pwd ====="
+            pwd
+            echo "===== git status (if a git repo at all) ====="
+            git rev-parse HEAD 2>&1 || echo "not a git checkout"
+            echo "===== public/build/manifest.json (main entry hash) ====="
+            grep -A2 '"resources/js/main.tsx"' public/build/manifest.json 2>&1 || echo "manifest missing"
+            echo "===== ls -la public/build/assets | grep main ====="
+            ls -la public/build/assets 2>&1 | grep -i "main-" || echo "no main-*.js found"
+            echo "===== routes/web.php on server ====="
+            cat routes/web.php 2>&1
+            echo "===== .env APP_URL ====="
+            grep -i "^APP_URL" .env 2>&1
+            echo "===== curl -I localhost (server-local request to itself) ====="
+            curl -skI http://localhost/ 2>&1 || echo "localhost curl failed"
+            echo "===== curl -I the real public APP_URL ====="
+            APP_URL=$(grep -i "^APP_URL" .env | cut -d= -f2- | tr -d '\r')
+            echo "Fetching: $APP_URL"
+            curl -skI "$APP_URL" 2>&1 || echo "public curl failed"
+            echo "===== curl -s the real public APP_URL body head (first 2000 chars) ====="
+            curl -sk "$APP_URL" 2>&1 | head -c 2000 || echo "public body fetch failed"
+            echo "===== opcache status via php -i ====="
+            PHP_BIN=""
+            for c in php8.4 php84 /opt/alt/php84/usr/bin/php /usr/bin/php8.4 /usr/local/bin/php8.4 php8.5 /opt/alt/php85/usr/bin/php php; do
+              if command -v "$c" >/dev/null 2>&1 && "$c" -r 'exit(PHP_VERSION_ID >= 80401 ? 0 : 1);' >/dev/null 2>&1; then
+                PHP_BIN="$c"
+                break
+              fi
+            done
+            echo "Using PHP binary: $PHP_BIN"
+            "$PHP_BIN" -r 'echo "opcache.enable=" , ini_get("opcache.enable"), "\n"; echo "opcache.validate_timestamps=", ini_get("opcache.validate_timestamps"), "\n"; echo "opcache.revalidate_freq=", ini_get("opcache.revalidate_freq"), "\n";' 2>&1
+            echo "===== done ====="

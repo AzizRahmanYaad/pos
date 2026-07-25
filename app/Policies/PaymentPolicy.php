@@ -8,11 +8,11 @@ class PaymentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('ledger.view');
+        return $user->can('payments.view');
     }
 
     public function create(User $user): bool
     {
-        return $user->can('payments.manage');
+        return $user->can('payments.create');
     }
 }

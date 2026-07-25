@@ -15,7 +15,7 @@ class StockController extends Controller
      */
     public function index(Request $request)
     {
-        abort_unless($request->user()->can('inventory.manage'), 403);
+        abort_unless($request->user()->can('inventory.view'), 403);
 
         $warehouseId = $request->integer('warehouse_id') ?: null;
         $status = $request->string('status')->toString();
@@ -48,7 +48,7 @@ class StockController extends Controller
      */
     public function summary(Request $request)
     {
-        abort_unless($request->user()->can('inventory.manage'), 403);
+        abort_unless($request->user()->can('inventory.view'), 403);
 
         $products = Product::query()->where('track_inventory', true)->with('stocks')->get();
 
@@ -83,7 +83,7 @@ class StockController extends Controller
      */
     public function alerts(Request $request)
     {
-        abort_unless($request->user()->can('inventory.manage'), 403);
+        abort_unless($request->user()->can('inventory.view'), 403);
 
         $products = Product::query()
             ->where('track_inventory', true)

@@ -17,7 +17,7 @@ class AuthenticationTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
 
         $user = User::factory()->create(['password' => bcrypt('secret123')]);
-        $user->assignRole('cashier');
+        $this->grantRole($user, 'cashier');
 
         $response = $this->withHeader('Referer', config('app.url'))->postJson('/api/v1/auth/login', [
             'email' => $user->email,

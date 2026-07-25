@@ -45,7 +45,7 @@ class ProductController extends Controller
 
     public function listPdf(\App\Support\ListReportPdf $pdf)
     {
-        $this->authorize('viewAny', Product::class);
+        abort_unless(request()->user()->can('products.export'), 403);
 
         $products = Product::query()
             ->with(['category', 'unit', 'stocks'])

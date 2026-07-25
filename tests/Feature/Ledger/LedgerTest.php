@@ -68,7 +68,7 @@ class LedgerTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $user = User::factory()->create();
-        $user->assignRole('cashier');
+        $this->grantRole($user, 'cashier');
 
         $customer = Customer::factory()->create(['opening_balance' => 250, 'opening_balance_type' => LedgerEntry::DEBIT]);
 
@@ -94,7 +94,7 @@ class LedgerTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $this->actingAs($cashier)->postJson('/api/v1/customers', [
             'name' => 'Walk-in',
@@ -105,7 +105,7 @@ class LedgerTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $this->actingAs($manager)->postJson('/api/v1/customers', [
             'name' => 'Regular Customer',

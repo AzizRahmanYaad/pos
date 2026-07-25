@@ -8,7 +8,7 @@ class PeriodClosingPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('reports.view') || $user->can('period-closing.close');
+        return $user->can('period-closing.view');
     }
 
     public function create(User $user): bool

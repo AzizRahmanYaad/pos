@@ -59,7 +59,7 @@ class StockMovementTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $product = Product::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -78,7 +78,7 @@ class StockMovementTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $product = Product::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -95,7 +95,7 @@ class StockMovementTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $product = Product::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -112,7 +112,7 @@ class StockMovementTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $product = Product::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -128,7 +128,7 @@ class StockMovementTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
         $warehouse = Warehouse::factory()->create();
 
         $healthy = Product::factory()->create(['track_inventory' => true, 'reorder_level' => 5]);
@@ -152,7 +152,7 @@ class StockMovementTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
         $warehouse = Warehouse::factory()->create();
 
         Product::factory()->create(['track_inventory' => true, 'reorder_level' => 5]);
@@ -170,7 +170,7 @@ class StockMovementTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
         $warehouse = Warehouse::factory()->create();
 
         $healthy = Product::factory()->create(['track_inventory' => true, 'reorder_level' => 5, 'is_active' => true]);
@@ -189,7 +189,7 @@ class StockMovementTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $this->actingAs($cashier)->getJson('/api/v1/inventory/stock')->assertForbidden();
     }

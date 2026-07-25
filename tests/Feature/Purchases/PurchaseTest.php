@@ -100,7 +100,7 @@ class PurchaseTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $supplier = Supplier::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -141,7 +141,7 @@ class PurchaseTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $supplier = Supplier::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -334,7 +334,7 @@ class PurchaseTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $supplier = Supplier::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -365,7 +365,7 @@ class PurchaseTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $supplier = Supplier::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -463,7 +463,7 @@ class PurchaseTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $supplier = Supplier::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -490,7 +490,7 @@ class PurchaseTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $supplier = Supplier::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -510,7 +510,7 @@ class PurchaseTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $supplier = Supplier::factory()->create();
         $warehouse = Warehouse::factory()->create();

@@ -61,7 +61,7 @@ class PurchaseController extends Controller
 
     public function invoicePdf(Purchase $purchase, \App\Support\PurchaseInvoicePdf $pdf)
     {
-        $this->authorize('viewAny', Purchase::class);
+        abort_unless(request()->user()->can('purchases.print'), 403);
 
         $purchase->load(['supplier', 'warehouse', 'items.product', 'landedCosts']);
 
@@ -85,7 +85,7 @@ class PurchaseController extends Controller
 
     public function cancel(Purchase $purchase, CancelPurchaseAction $cancelPurchase): PurchaseResource
     {
-        $this->authorize('update', $purchase);
+        $this->authorize('delete', $purchase);
 
         return new PurchaseResource($cancelPurchase->execute($purchase));
     }

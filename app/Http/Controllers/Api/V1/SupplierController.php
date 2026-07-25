@@ -80,7 +80,7 @@ class SupplierController extends Controller
 
     public function ledger(Supplier $supplier)
     {
-        $this->authorize('viewAny', Supplier::class);
+        abort_unless(request()->user()->can('suppliers.view'), 403);
 
         $entries = $supplier->ledgerEntries()
             ->with('creator')
@@ -99,7 +99,7 @@ class SupplierController extends Controller
 
     public function ledgerPdf(Supplier $supplier, LedgerStatementPdf $pdf)
     {
-        $this->authorize('viewAny', Supplier::class);
+        abort_unless(request()->user()->can('suppliers.print'), 403);
 
         $entries = $supplier->ledgerEntries()
             ->with('creator')
@@ -127,7 +127,7 @@ class SupplierController extends Controller
      */
     public function clearLedger(Supplier $supplier)
     {
-        abort_unless(request()->user()->can('payments.manage'), 403);
+        abort_unless(request()->user()->can('ledger.clear'), 403);
 
         $balance = round($supplier->currentBalance(), 2);
         abort_if(

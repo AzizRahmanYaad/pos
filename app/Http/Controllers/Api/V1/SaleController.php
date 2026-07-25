@@ -67,7 +67,7 @@ class SaleController extends Controller
 
     public function invoicePdf(Sale $sale, \App\Support\SaleInvoicePdf $pdf)
     {
-        $this->authorize('view', $sale);
+        abort_unless(request()->user()->can('sales.print'), 403);
 
         $sale->load(['items.product', 'payments.cashAccount', 'customer', 'warehouse', 'cashier']);
 

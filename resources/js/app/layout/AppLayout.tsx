@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     AppBar,
@@ -16,12 +16,16 @@ import {
     Menu,
     MenuItem,
     Stack,
+    Button,
+    Collapse,
     Toolbar,
     Tooltip,
     Typography,
     useMediaQuery,
     useTheme,
 } from '@mui/material';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
@@ -54,6 +58,7 @@ import { alpha } from '@mui/material/styles';
 import { LogoMark } from '@/components/AppLogo';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Can } from '@/components/Can';
+import { visibleNavigation, type NavEntry } from '@/app/navigation';
 import { BrandSpinner } from '@/components/BrandSpinner';
 import { useAuthStore } from '@/store/authStore';
 import { fetchBusinessSettings } from '@/features/settings/api';
@@ -64,31 +69,6 @@ const DRAWER_WIDTH = 244;
 const COLLAPSED_WIDTH = 76;
 const COLLAPSE_KEY = 'pos_sidebar_collapsed';
 
-interface NavItem {
-    to: string;
-    labelKey: string;
-    icon: React.ReactNode;
-    permission?: string;
-}
-
-const NAV_ITEMS: NavItem[] = [
-    { to: '/', labelKey: 'nav.dashboard', icon: <DashboardOutlinedIcon />, permission: 'reports.view' },
-    { to: '/users', labelKey: 'nav.users', icon: <ManageAccountsOutlinedIcon />, permission: 'users.manage' },
-    { to: '/pos', labelKey: 'nav.pos', icon: <PointOfSaleOutlinedIcon />, permission: 'pos.access' },
-    { to: '/sales', labelKey: 'nav.sales', icon: <ReceiptOutlinedIcon />, permission: 'pos.access' },
-    { to: '/products', labelKey: 'nav.products', icon: <Inventory2OutlinedIcon />, permission: 'products.manage' },
-    { to: '/stocks', labelKey: 'nav.stocks', icon: <WarehouseOutlinedIcon />, permission: 'inventory.manage' },
-    { to: '/customers', labelKey: 'nav.customers', icon: <PeopleOutlineIcon />, permission: 'sales.manage' },
-    { to: '/suppliers', labelKey: 'nav.suppliers', icon: <LocalShippingOutlinedIcon />, permission: 'purchases.manage' },
-    { to: '/purchases', labelKey: 'nav.purchases', icon: <ShoppingCartOutlinedIcon />, permission: 'purchases.manage' },
-    { to: '/expenses', labelKey: 'nav.expenses', icon: <PaymentsOutlinedIcon />, permission: 'expenses.manage' },
-    { to: '/employees', labelKey: 'nav.employees', icon: <BadgeOutlinedIcon />, permission: 'employees.manage' },
-    { to: '/payroll', labelKey: 'nav.payroll', icon: <ReceiptLongOutlinedIcon />, permission: 'payroll.manage' },
-    { to: '/period-closing', labelKey: 'nav.period_closing', icon: <LockClockOutlinedIcon />, permission: 'period-closing.close' },
-    { to: '/reports', labelKey: 'nav.reports', icon: <AssessmentOutlinedIcon />, permission: 'reports.view' },
-    { to: '/journal', labelKey: 'nav.journal', icon: <MenuBookOutlinedIcon />, permission: 'reports.view' },
-    { to: '/settings', labelKey: 'nav.settings', icon: <SettingsOutlinedIcon /> },
-];
 
 function initials(name: string): string {
     return name
@@ -114,7 +94,7 @@ export function AppLayout() {
     const [loggingOut, setLoggingOut] = useState(false);
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
-    const canViewStock = useAuthStore((state) => state.can('inventory.manage'));
+    const canViewStock = useAuthStore((state) => state.can('inventory.view'));
     const canViewCash = useAuthStore((state) => state.can('ledger.view'));
 
     const handleLogout = async () => {
@@ -173,6 +153,68 @@ export function AppLayout() {
         }
     };
 
+    // Only what this user may actually reach; a group whose children are
+    // all hidden never renders at all.
+    const can = useAuthStore((state) => state.can);
+    const entries = useMemo(() => visibleNavigation(can), [can]);
+
+    const groupOf = (entry: NavEntry) => (entry.kind === 'group' ? entry : null);
+    const groupHasActiveChild = (entry: NavEntry) =>
+        groupOf(entry)?.children.some((child) => location.pathname.startsWith(child.to)) ?? false;
+
+    // A group starts open when the current page lives inside it, and the
+    // user's own expand/collapse choices win from then on.
+    const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+    const isGroupOpen = (entry: NavEntry) => {
+        const group = groupOf(entry);
+        if (group === null) return false;
+
+        return openGroups[group.id] ?? groupHasActiveChild(entry);
+    };
+    const toggleGroup = (id: string) =>
+        setOpenGroups((open) => ({ ...open, [id]: !(open[id] ?? entries.some((e) => e.kind === 'group' && e.id === id && groupHasActiveChild(e))) }));
+
+    const renderLink = (item: { to: string; labelKey: string; icon: React.ReactNode }, nested = false) => {
+        const selected = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);
+
+        return (
+            <Tooltip key={item.to} title={mini ? t(item.labelKey) : ''} placement="right" arrow>
+                <ListItemButton
+                    component={RouterLink}
+                    to={item.to}
+                    selected={selected}
+                    onClick={() => setMobileOpen(false)}
+                    sx={{
+                        py: 0.85,
+                        justifyContent: mini ? 'center' : 'flex-start',
+                        px: mini ? 1.25 : 2,
+                        pl: !mini && nested ? 3.5 : undefined,
+                    }}
+                >
+                    <ListItemIcon
+                        sx={{
+                            minWidth: mini ? 0 : 34,
+                            justifyContent: 'center',
+                            color: selected ? 'primary.dark' : 'text.secondary',
+                        }}
+                    >
+                        {item.icon}
+                    </ListItemIcon>
+                    {!mini && (
+                        <ListItemText
+                            primary={t(item.labelKey)}
+                            primaryTypographyProps={{
+                                fontSize: 14,
+                                fontWeight: selected ? 700 : 500,
+                                color: selected ? 'text.primary' : 'text.secondary',
+                            }}
+                        />
+                    )}
+                </ListItemButton>
+            </Tooltip>
+        );
+    };
+
     const mini = !isMobile && collapsed;
     const currentWidth = mini ? COLLAPSED_WIDTH : DRAWER_WIDTH;
 
@@ -196,49 +238,55 @@ export function AppLayout() {
                 )}
             </Box>
 
-            <List sx={{ px: mini ? 1 : 1.5, py: 0.5, flexGrow: 1 }}>
-                {NAV_ITEMS.map((item) => {
-                    const selected = location.pathname === item.to;
-                    const button = (
-                        <Tooltip key={item.to} title={mini ? t(item.labelKey) : ''} placement="right" arrow>
-                            <ListItemButton
-                                component={RouterLink}
-                                to={item.to}
-                                selected={selected}
-                                onClick={() => setMobileOpen(false)}
-                                sx={{ py: 0.85, justifyContent: mini ? 'center' : 'flex-start', px: mini ? 1.25 : 2 }}
-                            >
-                                <ListItemIcon
-                                    sx={{
-                                        minWidth: mini ? 0 : 34,
-                                        justifyContent: 'center',
-                                        color: selected ? 'primary.dark' : 'text.secondary',
-                                    }}
-                                >
-                                    {item.icon}
-                                </ListItemIcon>
-                                {!mini && (
-                                    <ListItemText
-                                        primary={t(item.labelKey)}
-                                        primaryTypographyProps={{
-                                            fontSize: 14,
-                                            fontWeight: selected ? 700 : 500,
-                                            color: selected ? 'text.primary' : 'text.secondary',
+            <List sx={{ px: mini ? 1 : 1.5, py: 0.5, flexGrow: 1 }} component="nav">
+                {entries.map((entry) =>
+                    entry.kind === 'link'
+                        ? renderLink(entry)
+                        : (
+                            <Box key={entry.id}>
+                                <Tooltip title={mini ? t(entry.labelKey) : ''} placement="right" arrow>
+                                    <ListItemButton
+                                        onClick={() => toggleGroup(entry.id)}
+                                        sx={{
+                                            py: 0.85,
+                                            justifyContent: mini ? 'center' : 'flex-start',
+                                            px: mini ? 1.25 : 2,
                                         }}
-                                    />
-                                )}
-                            </ListItemButton>
-                        </Tooltip>
-                    );
-
-                    return item.permission ? (
-                        <Can key={item.to} permission={item.permission}>
-                            {button}
-                        </Can>
-                    ) : (
-                        button
-                    );
-                })}
+                                    >
+                                        <ListItemIcon
+                                            sx={{
+                                                minWidth: mini ? 0 : 34,
+                                                justifyContent: 'center',
+                                                color: groupHasActiveChild(entry) ? 'primary.dark' : 'text.secondary',
+                                            }}
+                                        >
+                                            {entry.icon}
+                                        </ListItemIcon>
+                                        {!mini && (
+                                            <>
+                                                <ListItemText
+                                                    primary={t(entry.labelKey)}
+                                                    primaryTypographyProps={{
+                                                        fontSize: 12,
+                                                        fontWeight: 700,
+                                                        letterSpacing: 0.6,
+                                                        textTransform: 'uppercase',
+                                                        color: groupHasActiveChild(entry) ? 'text.primary' : 'text.secondary',
+                                                    }}
+                                                />
+                                                {isGroupOpen(entry) ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+                                            </>
+                                        )}
+                                    </ListItemButton>
+                                </Tooltip>
+                                <Collapse in={isGroupOpen(entry)} timeout="auto" unmountOnExit>
+                                    <List disablePadding>
+                                        {entry.children.map((child) => renderLink(child, true))}
+                                    </List>
+                                </Collapse>
+                            </Box>
+                        ),
+                )}
             </List>
         </Box>
     );
@@ -268,6 +316,38 @@ export function AppLayout() {
                     <Typography variant="h6" noWrap fontWeight={700} sx={{ color: 'text.primary' }}>
                         {companyName}
                     </Typography>
+                    <Box sx={{ flexGrow: 1 }} />
+
+                    {/* Selling is what this application is for, so the till
+                        is reachable from every screen — centred, larger than
+                        anything else up here, and impossible to miss. */}
+                    <Can permission="pos.access">
+                        <Tooltip title={t('nav.pos')}>
+                            <Button
+                                component={RouterLink}
+                                to="/pos"
+                                variant="contained"
+                                size="large"
+                                startIcon={<PointOfSaleOutlinedIcon sx={{ fontSize: '28px !important' }} />}
+                                sx={{
+                                    flexShrink: 0,
+                                    px: { xs: 1.5, md: 3 },
+                                    py: 1.1,
+                                    borderRadius: 3,
+                                    fontSize: { md: '1rem' },
+                                    fontWeight: 800,
+                                    letterSpacing: 0.3,
+                                    boxShadow: 3,
+                                    '& .MuiButton-startIcon': { mr: { xs: 0, md: 1 } },
+                                    '&:hover': { boxShadow: 6 },
+                                }}
+                            >
+                                <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                                    {t('nav.pos')}
+                                </Box>
+                            </Button>
+                        </Tooltip>
+                    </Can>
                     <Box sx={{ flexGrow: 1 }} />
 
                     {canViewCash && (

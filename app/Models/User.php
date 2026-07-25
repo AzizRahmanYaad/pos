@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Support\Permissions;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -50,5 +51,52 @@ class User extends Authenticatable
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Whether this account administers the platform itself rather than a
+     * single business — it owns the company list and their user limits,
+     * and is the only account that legitimately has no tenant of its own.
+     */
+    public function isPlatformOwner(): bool
+    {
+        return $this->can(Permissions::of(Permissions::COMPANIES, Permissions::VIEW));
+    }
+
+    /**
+     * Whether this account is allowed to administer the given one. The
+     * platform owner may administer anybody; everyone else is confined to
+     * their own business, and an account with no business at all is never
+     * a valid target for a Company Admin.
+     */
+    public function managesSameBusinessAs(self $target): bool
+    {
+        if ($this->isPlatformOwner()) {
+            return true;
+        }
+
+        return $this->tenant_id !== null && $this->tenant_id === $target->tenant_id;
+    }
+
+    /**
+     * The permissions this account is allowed to hand out.
+     *
+     * A Company Admin is capped at what they hold themselves, which is what
+     * stops them promoting a cashier past their own reach. The platform
+     * owner is the deliberate exception: it provisions accounts for
+     * businesses whose day-to-day access it pointedly does not have, so it
+     * may grant anything a company is allowed to hold.
+     *
+     * @return string[]
+     */
+    public function grantablePermissions(): array
+    {
+        $own = $this->getAllPermissions()->pluck('name')->all();
+
+        if ($this->isPlatformOwner()) {
+            return array_values(array_unique([...Permissions::forCompany(), ...$own]));
+        }
+
+        return array_values($own);
     }
 }

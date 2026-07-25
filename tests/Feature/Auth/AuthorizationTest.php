@@ -24,16 +24,27 @@ class AuthorizationTest extends TestCase
             ->assertOk();
     }
 
-    public function test_admin_cannot_list_users(): void
+    /**
+     * A Company Admin runs their own business's accounts, but the list they
+     * get back stops at their own business — other companies' staff are not
+     * theirs to see.
+     */
+    public function test_company_admin_lists_only_their_own_businesss_users(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);
 
-        $admin = User::factory()->create();
-        $admin->assignRole('admin');
+        $mine = \App\Models\Tenant::create(['name' => 'Mine']);
+        $theirs = \App\Models\Tenant::create(['name' => 'Theirs']);
 
-        $this->actingAs($admin)
-            ->getJson('/api/v1/users')
-            ->assertForbidden();
+        $admin = User::factory()->create(['tenant_id' => $mine->id, 'name' => 'Owner']);
+        $admin->assignRole('admin');
+        User::factory()->create(['tenant_id' => $mine->id, 'name' => 'My Cashier']);
+        User::factory()->create(['tenant_id' => $theirs->id, 'name' => 'Their Cashier']);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/users')->assertOk();
+
+        $names = collect($response->json('data'))->pluck('name');
+        $this->assertEqualsCanonicalizing(['Owner', 'My Cashier'], $names->all());
     }
 
     public function test_superadmin_can_create_pos_user(): void
@@ -91,7 +102,7 @@ class AuthorizationTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
 
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $this->actingAs($cashier)
             ->getJson('/api/v1/users')
@@ -103,7 +114,7 @@ class AuthorizationTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
 
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $this->actingAs($cashier)
             ->putJson('/api/v1/settings', ['company_name' => 'New Name'])

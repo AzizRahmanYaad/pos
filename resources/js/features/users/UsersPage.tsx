@@ -11,6 +11,7 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    Divider,
     FormControlLabel,
     Grid,
     IconButton,
@@ -45,6 +46,7 @@ import {
     createUser,
     deleteUser,
     extendUserAccess,
+    fetchPermissionCatalogue,
     fetchRoles,
     fetchTenants,
     fetchUsers,
@@ -53,6 +55,8 @@ import {
     type UserPayload,
 } from '@/features/users/api';
 import { useAuthStore } from '@/store/authStore';
+import { PermissionMatrix } from '@/features/users/PermissionMatrix';
+import { CompanyLimitsPanel } from '@/features/users/CompanyLimitsPanel';
 import { formatDate } from '@/lib/calendar';
 
 const LOCALES = ['en', 'prs', 'ps'] as const;
@@ -80,6 +84,8 @@ interface UserFormState {
     isActive: boolean;
     role: string;
     tenantId: number | '';
+    permissions: string[];
+    maxUsers: string;
 }
 
 const EMPTY_FORM: UserFormState = {
@@ -94,6 +100,8 @@ const EMPTY_FORM: UserFormState = {
     isActive: true,
     role: '',
     tenantId: '',
+    permissions: [],
+    maxUsers: '',
 };
 
 function initials(name: string): string {
@@ -161,9 +169,17 @@ export function UsersPage() {
     const currentUser = useAuthStore((state) => state.user);
     const logoInputRef = useRef<HTMLInputElement | null>(null);
 
-    const { data: users } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+    const { data: usersPage } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+    const users = usersPage?.users;
+    const limit = usersPage?.limit ?? null;
     const { data: roles } = useQuery({ queryKey: ['roles'], queryFn: fetchRoles });
-    const { data: tenants } = useQuery({ queryKey: ['tenants'], queryFn: fetchTenants });
+    const canManageCompanies = useAuthStore((state) => state.can('companies.view'));
+    const { data: tenants } = useQuery({
+        queryKey: ['tenants'],
+        queryFn: fetchTenants,
+        enabled: canManageCompanies,
+    });
+    const { data: catalogue } = useQuery({ queryKey: ['permissions'], queryFn: fetchPermissionCatalogue });
 
     const [search, setSearch] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -187,7 +203,12 @@ export function UsersPage() {
         );
     }, [users, search]);
 
-    const activeCount = users?.filter((user) => user.is_active).length ?? 0;
+    // A business that has used its allowance cannot add another account —
+    // block it here as well as on the server, so the dialog never opens
+    // only to fail on save.
+    const limitReached = limit?.reached ?? false;
+
+    const activeCount = users?.filter((user: UserListItem) => user.is_active).length ?? 0;
     const expiredCount = users?.filter(isExpired).length ?? 0;
 
     const set = <K extends keyof UserFormState>(key: K, value: UserFormState[K]) =>
@@ -223,6 +244,8 @@ export function UsersPage() {
             isActive: user.is_active,
             role: user.roles[0] ?? '',
             tenantId: user.tenant_id ?? '',
+            permissions: user.direct_permissions ?? [],
+            maxUsers: '',
         });
         setLogoPreview(user.logo_url);
         setError(null);
@@ -248,6 +271,10 @@ export function UsersPage() {
                 ...(editingSelf ? {} : { is_active: form.isActive, roles: [form.role] }),
                 ...(STAFF_ROLES.includes(form.role) && form.tenantId !== ''
                     ? { tenant_id: form.tenantId }
+                    : {}),
+                ...(editingSelf ? {} : { permissions: form.permissions }),
+                ...(canManageCompanies && form.role === 'admin' && form.maxUsers !== ''
+                    ? { max_users: Number(form.maxUsers) }
                     : {}),
                 ...(form.password
                     ? { password: form.password, password_confirmation: form.passwordConfirmation }
@@ -299,7 +326,10 @@ export function UsersPage() {
         form.name !== '' &&
         form.email !== '' &&
         form.role !== '' &&
-        (STAFF_ROLES.includes(form.role) ? form.tenantId !== '' : true) &&
+        // Only the platform owner chooses which business a staff account
+        // joins, so only they have a business to pick. For a Company Admin
+        // the field is not shown at all — the backend takes their own.
+        (canManageCompanies && STAFF_ROLES.includes(form.role) ? form.tenantId !== '' : true) &&
         (editing ? true : form.password !== '') &&
         !passwordsMismatch;
 
@@ -353,15 +383,36 @@ export function UsersPage() {
                         {t('users_page.subtitle')}
                     </Typography>
                 </Box>
-                <Button
-                    variant="contained"
-                    size="large"
-                    startIcon={<PersonAddAlt1Icon />}
-                    onClick={openCreate}
-                >
-                    {t('users_page.new_user')}
-                </Button>
+                <Tooltip title={limitReached ? t('users_page.limit.reached', { max: limit?.max_users }) : ''}>
+                    <span>
+                        <Button
+                            variant="contained"
+                            size="large"
+                            startIcon={<PersonAddAlt1Icon />}
+                            onClick={openCreate}
+                            disabled={limitReached}
+                        >
+                            {t('users_page.new_user')}
+                        </Button>
+                    </span>
+                </Tooltip>
             </Box>
+
+            {canManageCompanies && <CompanyLimitsPanel />}
+
+            {/* Say where the business stands before they hit the ceiling,
+                and say plainly what to do about it once they have. */}
+            {limit !== null && limit.max_users !== null && (
+                <Alert
+                    severity={limitReached ? 'warning' : 'info'}
+                    icon={<GroupIcon fontSize="inherit" />}
+                    sx={{ mb: 3 }}
+                >
+                    {limitReached
+                        ? t('users_page.limit.reached', { max: limit.max_users })
+                        : `${t('users_page.limit.usage', { used: limit.user_count, max: limit.max_users })} · ${t('users_page.limit.remaining', { count: limit.remaining ?? 0 })}`}
+                </Alert>
+            )}
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid item xs={6} md={3}>
@@ -662,7 +713,19 @@ export function UsersPage() {
                                     ))}
                                 </TextField>
                             </Grid>
-                            {STAFF_ROLES.includes(form.role) && (
+                            {canManageCompanies && form.role === 'admin' && editing === null && (
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        label={t('users_page.limit.max_users')}
+                                        type="number"
+                                        value={form.maxUsers}
+                                        onChange={(e) => set('maxUsers', e.target.value)}
+                                        helperText={t('users_page.limit.max_users_hint')}
+                                        fullWidth
+                                    />
+                                </Grid>
+                            )}
+                            {canManageCompanies && STAFF_ROLES.includes(form.role) && (
                                 <Grid item xs={12} sm={6}>
                                     <TextField
                                         select
@@ -717,6 +780,27 @@ export function UsersPage() {
                                     label={t('users_page.active')}
                                 />
                             </Grid>
+
+                            {/* Nobody edits their own access here — the
+                                backend refuses it, so hide it rather than
+                                offer a control that cannot work. */}
+                            {catalogue && !(editing !== null && isSelf(editing)) && (
+                                <Grid item xs={12}>
+                                    <Divider sx={{ mb: 2 }} />
+                                    <Typography variant="subtitle2" fontWeight={800}>
+                                        {t('users_page.permissions.title')}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                                        {t('users_page.permissions.subtitle')}
+                                    </Typography>
+                                    <PermissionMatrix
+                                        modules={catalogue.modules}
+                                        presets={catalogue.presets}
+                                        value={form.permissions}
+                                        onChange={(permissions) => set('permissions', permissions)}
+                                    />
+                                </Grid>
+                            )}
                         </Grid>
                     </Stack>
                 </DialogContent>

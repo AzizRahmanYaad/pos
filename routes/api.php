@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\ExpenseCategoryController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PayrollRunController;
 use App\Http\Controllers\Api\V1\PeriodClosingController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -39,7 +40,9 @@ Route::prefix('v1')->group(function () {
         Route::put('/settings', [BusinessSettingController::class, 'update']);
 
         Route::get('/roles', [RoleController::class, 'index']);
+        Route::get('/permissions', [PermissionController::class, 'index']);
         Route::get('/tenants', [TenantController::class, 'index']);
+        Route::put('/tenants/{tenant}', [TenantController::class, 'update']);
         Route::post('/users/{user}/extend', [UserController::class, 'extend']);
         Route::apiResource('users', UserController::class);
 
@@ -101,24 +104,40 @@ Route::prefix('v1')->group(function () {
         Route::post('/period-closings/{periodClosing}/reopen', [PeriodClosingController::class, 'reopen']);
         Route::apiResource('period-closings', PeriodClosingController::class)->only(['index', 'store', 'show']);
 
-        Route::middleware('permission:reports.view')->group(function () {
+        // The dashboard, the daily journal and the report pack are three
+        // separate modules on the permission screen, so they are three
+        // separate gates here — a user granted only the journal must not
+        // reach the full reporting suite by calling its URL directly.
+        Route::middleware('permission:dashboard.view')->group(function () {
             Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
-            Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
-            Route::get('/reports/profit-loss/pdf', [ReportController::class, 'profitLossPdf']);
-            Route::get('/reports/inventory-valuation', [ReportController::class, 'inventoryValuation']);
-            Route::get('/reports/inventory-valuation/pdf', [ReportController::class, 'inventoryValuationPdf']);
-            Route::get('/reports/sales-summary', [ReportController::class, 'salesSummary']);
-            Route::get('/reports/sales-summary/pdf', [ReportController::class, 'salesSummaryPdf']);
-            Route::get('/reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
-            Route::get('/reports/expenses-by-category/pdf', [ReportController::class, 'expensesByCategoryPdf']);
-            Route::get('/reports/receivables', [ReportController::class, 'receivables']);
-            Route::get('/reports/receivables/pdf', [ReportController::class, 'receivablesPdf']);
-            Route::get('/reports/payables', [ReportController::class, 'payables']);
-            Route::get('/reports/payables/pdf', [ReportController::class, 'payablesPdf']);
-            Route::get('/reports/purchase-summary', [ReportController::class, 'purchaseSummary']);
-            Route::get('/reports/purchase-summary/pdf', [ReportController::class, 'purchaseSummaryPdf']);
+        });
+
+        Route::middleware('permission:journal.view')->group(function () {
             Route::get('/reports/daily-journal', [ReportController::class, 'dailyJournal']);
+        });
+
+        Route::middleware('permission:journal.print')->group(function () {
             Route::get('/reports/daily-journal/pdf', [ReportController::class, 'dailyJournalPdf']);
+        });
+
+        Route::middleware('permission:reports.view')->group(function () {
+            Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
+            Route::get('/reports/inventory-valuation', [ReportController::class, 'inventoryValuation']);
+            Route::get('/reports/sales-summary', [ReportController::class, 'salesSummary']);
+            Route::get('/reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
+            Route::get('/reports/receivables', [ReportController::class, 'receivables']);
+            Route::get('/reports/payables', [ReportController::class, 'payables']);
+            Route::get('/reports/purchase-summary', [ReportController::class, 'purchaseSummary']);
+        });
+
+        Route::middleware('permission:reports.export')->group(function () {
+            Route::get('/reports/profit-loss/pdf', [ReportController::class, 'profitLossPdf']);
+            Route::get('/reports/inventory-valuation/pdf', [ReportController::class, 'inventoryValuationPdf']);
+            Route::get('/reports/sales-summary/pdf', [ReportController::class, 'salesSummaryPdf']);
+            Route::get('/reports/expenses-by-category/pdf', [ReportController::class, 'expensesByCategoryPdf']);
+            Route::get('/reports/receivables/pdf', [ReportController::class, 'receivablesPdf']);
+            Route::get('/reports/payables/pdf', [ReportController::class, 'payablesPdf']);
+            Route::get('/reports/purchase-summary/pdf', [ReportController::class, 'purchaseSummaryPdf']);
         });
     });
 });

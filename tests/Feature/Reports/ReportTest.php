@@ -39,7 +39,7 @@ class ReportTest extends TestCase
     private function manager(): User
     {
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         return $manager;
     }
@@ -252,7 +252,7 @@ class ReportTest extends TestCase
     public function test_cashier_is_forbidden_from_reports(): void
     {
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $this->actingAs($cashier)
             ->getJson('/api/v1/reports/profit-loss')

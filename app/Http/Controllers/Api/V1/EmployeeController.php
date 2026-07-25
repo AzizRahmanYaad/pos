@@ -78,7 +78,7 @@ class EmployeeController extends Controller
 
     public function statementPdf(Employee $employee, \App\Support\EmployeeStatementPdf $pdf)
     {
-        $this->authorize('viewAny', Employee::class);
+        abort_unless(request()->user()->can('employees.print'), 403);
 
         $entries = $employee->ledgerEntries()
             ->orderBy('transaction_date')

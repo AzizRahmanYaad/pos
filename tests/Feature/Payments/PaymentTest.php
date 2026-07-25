@@ -110,7 +110,7 @@ class PaymentTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $customer = Customer::factory()->create(['opening_balance' => 100, 'opening_balance_type' => LedgerEntry::DEBIT]);
         $cashAccount = CashAccount::factory()->create();
@@ -131,7 +131,7 @@ class PaymentTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $supplier = Supplier::factory()->create();
         $warehouse = Warehouse::factory()->create();
@@ -169,7 +169,7 @@ class PaymentTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $customer = Customer::factory()->create();
         $cashAccount = CashAccount::factory()->create();

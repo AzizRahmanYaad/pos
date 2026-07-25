@@ -55,7 +55,7 @@ class CashAccountController extends Controller
      */
     public function ledger(CashAccount $cashAccount)
     {
-        $this->authorize('viewAny', CashAccount::class);
+        abort_unless(request()->user()->can('ledger.view'), 403);
 
         $entries = $cashAccount->ledgerEntries()
             ->with('creator')
@@ -73,7 +73,7 @@ class CashAccountController extends Controller
 
     public function ledgerPdf(CashAccount $cashAccount, LedgerStatementPdf $pdf)
     {
-        $this->authorize('viewAny', CashAccount::class);
+        abort_unless(request()->user()->can('ledger.print'), 403);
 
         $entries = $cashAccount->ledgerEntries()
             ->with('creator')

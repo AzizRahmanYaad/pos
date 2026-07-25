@@ -228,7 +228,7 @@ class SaleTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $warehouse = Warehouse::factory()->create();
         $cashAccount = CashAccount::factory()->create();
@@ -274,7 +274,7 @@ class SaleTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $warehouse = Warehouse::factory()->create();
         $cashAccount = CashAccount::factory()->create();
@@ -301,9 +301,9 @@ class SaleTest extends TestCase
         $product = $this->stockedProduct($warehouse, 50);
 
         $cashierA = User::factory()->create();
-        $cashierA->assignRole('cashier');
+        $this->grantRole($cashierA, 'cashier');
         $cashierB = User::factory()->create();
-        $cashierB->assignRole('cashier');
+        $this->grantRole($cashierB, 'cashier');
 
         $saleA = app(CreateSaleAction::class)->execute(
             data: ['warehouse_id' => $warehouse->id],
@@ -331,9 +331,9 @@ class SaleTest extends TestCase
         $product = $this->stockedProduct($warehouse, 50);
 
         $cashierA = User::factory()->create();
-        $cashierA->assignRole('cashier');
+        $this->grantRole($cashierA, 'cashier');
         $cashierB = User::factory()->create();
-        $cashierB->assignRole('cashier');
+        $this->grantRole($cashierB, 'cashier');
 
         $saleB = app(CreateSaleAction::class)->execute(
             data: ['warehouse_id' => $warehouse->id],
@@ -350,7 +350,7 @@ class SaleTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $warehouse = Warehouse::factory()->create();
         $cashAccount = CashAccount::factory()->create();
@@ -373,7 +373,7 @@ class SaleTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $warehouse = Warehouse::factory()->create();
         $cashAccount = CashAccount::factory()->create();
@@ -403,7 +403,7 @@ class SaleTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $warehouse = Warehouse::factory()->create();
         $cashAccount = CashAccount::factory()->create();
@@ -431,9 +431,9 @@ class SaleTest extends TestCase
         $product = $this->stockedProduct($warehouse, 50);
 
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $sale = app(CreateSaleAction::class)->execute(
             data: ['warehouse_id' => $warehouse->id],

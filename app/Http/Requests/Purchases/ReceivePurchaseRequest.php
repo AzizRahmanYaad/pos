@@ -10,7 +10,7 @@ class ReceivePurchaseRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('purchase'));
+        return $this->user()->can('purchases.approve');
     }
 
     /**

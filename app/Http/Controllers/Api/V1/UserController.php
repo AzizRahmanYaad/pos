@@ -14,67 +14,105 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', User::class);
 
-        return UserResource::collection(
-            User::query()->with(['roles', 'tenant'])->orderBy('name')->paginate(20)
+        $actor = $request->user();
+
+        $users = UserResource::collection(
+            User::query()
+                ->with(['roles', 'permissions', 'tenant'])
+                // A Company Admin only ever sees their own staff; accounts
+                // in other businesses are not theirs to know about.
+                ->unless(
+                    $actor->isPlatformOwner(),
+                    fn ($query) => $query->where('tenant_id', $actor->tenant_id),
+                )
+                ->orderBy('name')
+                ->paginate(20)
         );
+
+        // A Company Admin needs to know where they stand against their
+        // allowance before they hit it, not only once creation fails.
+        $tenant = $actor->isPlatformOwner() ? null : $actor->tenant;
+
+        return $users->additional([
+            'limit' => $tenant === null ? null : [
+                'max_users' => $tenant->max_users,
+                'user_count' => $tenant->userCount(),
+                'remaining' => $tenant->remainingUserSlots(),
+                'reached' => $tenant->hasReachedUserLimit(),
+            ],
+        ]);
     }
 
     public function store(StoreUserRequest $request, TenantProvisioner $provisioner): UserResource
     {
+        $actor = $request->user();
         $roles = $request->validated('roles');
-        $isSuperadmin = in_array('superadmin', $roles, true);
-        $foundsBusiness = in_array('admin', $roles, true);
+        $isPlatformOwner = $actor->isPlatformOwner();
 
-        // Staff accounts (manager/cashier) must join an existing business;
-        // an admin account founds a new business of its own.
-        abort_if(
-            ! $isSuperadmin && ! $foundsBusiness && ! $request->filled('tenant_id'),
-            422,
-            __('Select the business this staff account belongs to.'),
-        );
+        // Only the platform owner creates platform accounts and founds new
+        // businesses. For a Company Admin every account lands in their own
+        // business, whatever the request body asks for.
+        $createsSuperadmin = $isPlatformOwner && in_array('superadmin', $roles, true);
+        $foundsBusiness = $isPlatformOwner && in_array('admin', $roles, true);
 
-        $user = DB::transaction(function () use ($request, $provisioner, $roles, $isSuperadmin, $foundsBusiness) {
-            $tenantId = null;
+        if ($isPlatformOwner && ! $createsSuperadmin && ! $foundsBusiness && ! $request->filled('tenant_id')) {
+            throw ValidationException::withMessages([
+                'tenant_id' => __('Select the business this staff account belongs to.'),
+            ]);
+        }
 
+        $targetTenant = null;
+
+        if (! $foundsBusiness && ! $createsSuperadmin) {
+            $targetTenant = $isPlatformOwner
+                ? Tenant::findOrFail((int) $request->validated('tenant_id'))
+                : $actor->tenant()->firstOrFail();
+
+            $this->assertHasRoomForAnotherUser($targetTenant);
+        }
+
+        $user = DB::transaction(function () use ($request, $provisioner, $roles, $createsSuperadmin, $foundsBusiness, $targetTenant) {
             if ($foundsBusiness) {
-                $tenant = Tenant::create(['name' => $request->validated('name')]);
-                $provisioner->provision($tenant);
-                $tenantId = $tenant->id;
-            } elseif (! $isSuperadmin) {
-                $tenantId = (int) $request->validated('tenant_id');
+                $targetTenant = Tenant::create([
+                    'name' => $request->validated('name'),
+                    'max_users' => $request->validated('max_users'),
+                ]);
+                $provisioner->provision($targetTenant);
             }
 
             $user = User::create([
-                ...$request->safe()->except(['password', 'roles', 'logo', 'tenant_id']),
-                'tenant_id' => $tenantId,
+                ...$request->safe()->except(['password', 'roles', 'permissions', 'logo', 'tenant_id', 'max_users']),
+                'tenant_id' => $createsSuperadmin ? null : $targetTenant?->id,
                 'password' => Hash::make($request->validated('password')),
                 'logo_path' => $request->file('logo')?->store('logos', 'public'),
                 // Every POS account starts with one year of access; the
                 // superadmin later extends it year by year against a cash
                 // payment. Superadmin accounts themselves never expire.
-                'access_expires_at' => $isSuperadmin ? null : now()->addYear(),
+                'access_expires_at' => $createsSuperadmin ? null : now()->addYear(),
             ]);
 
             $user->syncRoles($roles);
+            $this->syncPermissions($request, $user);
 
             return $user;
         });
 
-        return new UserResource($user->load(['roles', 'tenant']));
+        return new UserResource($user->load(['roles', 'permissions', 'tenant']));
     }
 
     public function show(User $user): UserResource
     {
         $this->authorize('view', $user);
 
-        return new UserResource($user->load('roles'));
+        return new UserResource($user->load(['roles', 'permissions']));
     }
 
     public function update(UpdateUserRequest $request, User $user): UserResource
@@ -83,12 +121,12 @@ class UserController extends Controller
         // their own account or dropping their own roles.
         abort_if(
             $user->is($request->user())
-                && ($request->has('roles') || ($request->has('is_active') && ! $request->boolean('is_active'))),
+                && ($request->has('roles') || $request->has('permissions') || ($request->has('is_active') && ! $request->boolean('is_active'))),
             422,
-            __('You cannot change your own roles or deactivate your own account.'),
+            __('You cannot change your own roles, permissions, or deactivate your own account.'),
         );
 
-        $data = $request->safe()->except(['password', 'roles', 'logo']);
+        $data = $request->safe()->except(['password', 'roles', 'permissions', 'logo']);
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->validated('password'));
@@ -107,7 +145,9 @@ class UserController extends Controller
             $user->syncRoles($request->validated('roles'));
         }
 
-        return new UserResource($user->load('roles'));
+        $this->syncPermissions($request, $user);
+
+        return new UserResource($user->load(['roles', 'permissions']));
     }
 
     /**
@@ -126,7 +166,7 @@ class UserController extends Controller
 
         $user->update(['access_expires_at' => $base->addYear()]);
 
-        return new UserResource($user->load('roles'));
+        return new UserResource($user->load(['roles', 'permissions']));
     }
 
     public function destroy(User $user): Response
@@ -140,5 +180,38 @@ class UserController extends Controller
         $user->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * Stop a business adding accounts beyond the allowance the platform
+     * owner granted it, with a message that says what to do about it
+     * rather than just refusing.
+     */
+    private function assertHasRoomForAnotherUser(Tenant $tenant): void
+    {
+        if (! $tenant->hasReachedUserLimit()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'limit' => __(
+                'This business has used all :max of its user accounts. Remove a user first, or ask the platform administrator to raise the limit.',
+                ['max' => $tenant->max_users],
+            ),
+        ]);
+    }
+
+    /**
+     * Persist exactly the permissions that were ticked. They are stored on
+     * the account rather than inherited from a role, so unticking one
+     * always takes effect — see Permissions::rolePermissions().
+     */
+    private function syncPermissions(Request $request, User $user): void
+    {
+        if (! $request->has('permissions')) {
+            return;
+        }
+
+        $user->syncPermissions($request->validated('permissions') ?? []);
     }
 }

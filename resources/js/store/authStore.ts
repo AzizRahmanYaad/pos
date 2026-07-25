@@ -12,6 +12,7 @@ interface AuthState {
     logout: () => Promise<void>;
     bootstrap: () => Promise<void>;
     can: (permission: string) => boolean;
+    canAny: (permissions: string[]) => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -50,6 +51,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     can(permission) {
         return get().user?.permissions.includes(permission) ?? false;
+    },
+
+    /** True when the user holds at least one of these — used to decide
+     * whether a screen is reachable at all when several actions can open it. */
+    canAny(permissions) {
+        const held = get().user?.permissions;
+
+        return held !== undefined && permissions.some((permission) => held.includes(permission));
     },
 }));
 

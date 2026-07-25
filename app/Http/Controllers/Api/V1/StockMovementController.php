@@ -12,6 +12,8 @@ class StockMovementController extends Controller
 {
     public function index()
     {
+        abort_unless(request()->user()->can('inventory.view'), 403);
+
         $movements = QueryBuilder::for(StockMovement::class)
             ->allowedFilters(
                 AllowedFilter::exact('product_id'),

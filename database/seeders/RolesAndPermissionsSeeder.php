@@ -19,10 +19,17 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::findOrCreate($permission, 'web');
         }
 
+        // Anything no longer in the manifest is a retired permission; drop
+        // it so a renamed module cannot leave a dangling grant behind that
+        // still satisfies a stale check somewhere.
+        Permission::query()->whereNotIn('name', Permissions::all())->delete();
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         foreach (Permissions::rolePermissions() as $role => $permissions) {
             Role::findOrCreate($role, 'web')->syncPermissions($permissions);
         }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

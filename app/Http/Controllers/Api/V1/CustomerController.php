@@ -51,7 +51,7 @@ class CustomerController extends Controller
 
     public function listPdf(\App\Support\ListReportPdf $pdf)
     {
-        $this->authorize('viewAny', Customer::class);
+        abort_unless(request()->user()->can('customers.export'), 403);
 
         $customers = Customer::query()
             ->when(request('search'), function ($query, $search) {
@@ -116,7 +116,7 @@ class CustomerController extends Controller
 
     public function ledger(Customer $customer)
     {
-        $this->authorize('viewAny', Customer::class);
+        abort_unless(request()->user()->can('customers.view'), 403);
 
         $entries = $customer->ledgerEntries()
             ->with('creator')
@@ -141,7 +141,7 @@ class CustomerController extends Controller
      */
     public function ledgerPdf(Customer $customer, LedgerStatementPdf $pdf)
     {
-        $this->authorize('viewAny', Customer::class);
+        abort_unless(request()->user()->can('customers.print'), 403);
 
         $entries = $customer->ledgerEntries()
             ->with('creator')
@@ -169,7 +169,7 @@ class CustomerController extends Controller
      */
     public function clearLedger(Customer $customer)
     {
-        abort_unless(request()->user()->can('payments.manage'), 403);
+        abort_unless(request()->user()->can('ledger.clear'), 403);
 
         $balance = round($customer->currentBalance(), 2);
         abort_if(

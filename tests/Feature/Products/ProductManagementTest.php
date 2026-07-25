@@ -29,10 +29,10 @@ class ProductManagementTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
 
         $this->manager = User::factory()->create();
-        $this->manager->assignRole('manager');
+        $this->grantRole($this->manager, 'manager');
 
         $this->cashier = User::factory()->create();
-        $this->cashier->assignRole('cashier');
+        $this->grantRole($this->cashier, 'cashier');
     }
 
     public function test_manager_can_create_a_product(): void

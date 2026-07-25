@@ -134,7 +134,7 @@ class UserAccessTest extends TestCase
         $admin->assignRole('admin');
 
         $target = User::factory()->create(['access_expires_at' => now()->addMonth()]);
-        $target->assignRole('cashier');
+        $this->grantRole($target, 'cashier');
 
         $this->actingAs($admin)
             ->postJson("/api/v1/users/{$target->id}/extend")

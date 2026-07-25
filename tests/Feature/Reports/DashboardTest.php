@@ -41,7 +41,7 @@ class DashboardTest extends TestCase
         );
 
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $response = $this->actingAs($manager)
             ->getJson('/api/v1/dashboard/summary')

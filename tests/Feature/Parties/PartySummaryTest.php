@@ -18,7 +18,7 @@ class PartySummaryTest extends TestCase
     private function cashier(): User
     {
         $user = User::factory()->create();
-        $user->assignRole('cashier');
+        $this->grantRole($user, 'cashier');
 
         return $user;
     }
@@ -56,7 +56,12 @@ class PartySummaryTest extends TestCase
         $theyOwe = Supplier::create(['name' => 'Supplier Owes Us']);
         $action->execute($theyOwe, LedgerEntry::DEBIT, 200, description: 'Advance payment');
 
-        $response = $this->actingAs($this->cashier())->getJson('/api/v1/suppliers/summary')->assertOk();
+        // Suppliers are a buying-side module — a till user has no reason to
+        // see what the shop owes, so this is a manager's view.
+        $manager = User::factory()->create();
+        $this->grantRole($manager, 'manager');
+
+        $response = $this->actingAs($manager)->getJson('/api/v1/suppliers/summary')->assertOk();
 
         $this->assertEquals(500.0, (float) $response->json('data.payable'));
         $this->assertEquals(200.0, (float) $response->json('data.advance'));

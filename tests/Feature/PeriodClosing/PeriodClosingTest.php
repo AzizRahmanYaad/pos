@@ -191,7 +191,7 @@ class PeriodClosingTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create(['name' => 'Manager Mona']);
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
         $admin = User::factory()->create(['name' => 'Admin Ali']);
         $admin->assignRole('admin');
 
@@ -215,7 +215,7 @@ class PeriodClosingTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 

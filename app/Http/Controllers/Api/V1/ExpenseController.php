@@ -58,7 +58,7 @@ class ExpenseController extends Controller
 
     public function reportPdf(\App\Support\ExpenseReportPdf $pdf)
     {
-        $this->authorize('viewAny', Expense::class);
+        abort_unless(request()->user()->can('expenses.export'), 403);
 
         $expenses = $this->filtered()
             ->with('category')

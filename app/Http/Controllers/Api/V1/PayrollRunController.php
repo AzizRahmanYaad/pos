@@ -61,7 +61,7 @@ class PayrollRunController extends Controller
 
     public function reportPdf(PayrollRun $payrollRun, \App\Support\PayrollReportPdf $pdf)
     {
-        $this->authorize('viewAny', PayrollRun::class);
+        abort_unless(request()->user()->can('payroll.print'), 403);
 
         $filename = 'payroll-'.$payrollRun->period_year.'-'.str_pad((string) $payrollRun->period_month, 2, '0', STR_PAD_LEFT).'.pdf';
 

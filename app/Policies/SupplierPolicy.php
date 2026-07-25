@@ -8,21 +8,21 @@ class SupplierPolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->can('suppliers.view');
     }
 
     public function create(User $user): bool
     {
-        return $user->can('purchases.manage');
+        return $user->can('suppliers.create');
     }
 
     public function update(User $user): bool
     {
-        return $user->can('purchases.manage');
+        return $user->can('suppliers.edit');
     }
 
     public function delete(User $user): bool
     {
-        return $user->can('purchases.manage');
+        return $user->can('suppliers.delete');
     }
 }

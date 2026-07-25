@@ -156,7 +156,7 @@ class PayrollTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         foreach (range(1, 3) as $i) {
             $employee = Employee::factory()->create(['salary_amount' => 100]);
@@ -177,7 +177,7 @@ class PayrollTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $employee = Employee::factory()->create(['salary_amount' => 400]);
         $cashAccount = CashAccount::factory()->create(['opening_balance' => 1000]);
@@ -200,7 +200,7 @@ class PayrollTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
         $employee = Employee::factory()->create();
 
         $this->actingAs($cashier)->postJson('/api/v1/payroll-runs', [

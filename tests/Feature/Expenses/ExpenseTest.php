@@ -112,7 +112,7 @@ class ExpenseTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $manager = User::factory()->create();
-        $manager->assignRole('manager');
+        $this->grantRole($manager, 'manager');
 
         $category = ExpenseCategory::factory()->create();
         $cashAccount = CashAccount::factory()->create();
@@ -131,7 +131,7 @@ class ExpenseTest extends TestCase
     {
         $this->seed(RolesAndPermissionsSeeder::class);
         $cashier = User::factory()->create();
-        $cashier->assignRole('cashier');
+        $this->grantRole($cashier, 'cashier');
 
         $category = ExpenseCategory::factory()->create();
         $cashAccount = CashAccount::factory()->create();

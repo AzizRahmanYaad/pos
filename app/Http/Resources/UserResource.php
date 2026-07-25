@@ -26,10 +26,16 @@ class UserResource extends JsonResource
             'is_active' => $this->is_active,
             'access_expires_at' => $this->access_expires_at,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),
+            // Everything this account can actually do, role and directly
+            // assigned permissions combined — this is what the navigation
+            // and every frontend guard is driven from.
             'permissions' => $this->when(
-                $this->relationLoaded('roles'),
-                fn () => $this->getAllPermissions()->pluck('name'),
+                $this->relationLoaded('roles') || $this->relationLoaded('permissions'),
+                fn () => $this->getAllPermissions()->pluck('name')->values(),
             ),
+            // Just the ticked boxes, so the permission screen reopens
+            // showing what was actually saved against the account.
+            'direct_permissions' => $this->whenLoaded('permissions', fn () => $this->permissions->pluck('name')->values()),
             'created_at' => $this->created_at,
         ];
     }

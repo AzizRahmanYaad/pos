@@ -140,6 +140,10 @@ class TenantIsolationTest extends TestCase
             'is_active' => true,
             'roles' => ['cashier'],
             'tenant_id' => $owner->tenant_id,
+            // The role is a label; what the account can actually do comes
+            // from the permissions ticked for it, exactly as the Users
+            // screen sends them.
+            'permissions' => \App\Support\Permissions::presets()['cashier'],
         ])->assertCreated()->assertJsonPath('data.tenant_id', $owner->tenant_id);
 
         $cashier = User::query()->where('email', 'cashier-a@example.com')->firstOrFail();

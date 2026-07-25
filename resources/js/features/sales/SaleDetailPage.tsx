@@ -28,10 +28,12 @@ import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOu
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { useTranslation } from 'react-i18next';
 import { BrandSpinner } from '@/components/BrandSpinner';
+import { LoadingButton } from '@/components/LoadingButton';
 import { downloadSaleInvoicePdf, fetchSale } from '@/features/sales/api';
 import { fetchParty } from '@/features/parties/ledgerApi';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { formatDate } from '@/lib/calendar';
+import { downloadOrToast } from '@/lib/reportDownload';
 import { ReturnSaleDialog } from '@/features/sales/ReturnSaleDialog';
 
 const STATUS_COLOR: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
@@ -62,7 +64,9 @@ export function SaleDetailPage() {
     const openPdf = async (print: boolean) => {
         setBusyPdf(true);
         try {
-            const { url } = await downloadSaleInvoicePdf(id);
+            const result = await downloadOrToast(() => downloadSaleInvoicePdf(id));
+            if (!result) return;
+            const { url } = result;
             const win = window.open(url, '_blank');
             if (print && win) {
                 win.addEventListener('load', () => setTimeout(() => win.print(), 400));
@@ -77,7 +81,9 @@ export function SaleDetailPage() {
         if (!sale) return;
         setBusyPdf(true);
         try {
-            const { url, filename, blob } = await downloadSaleInvoicePdf(id);
+            const result = await downloadOrToast(() => downloadSaleInvoicePdf(id));
+            if (!result) return;
+            const { url, filename, blob } = result;
             const message = t('sales_page.wa_message', {
                 company: settings?.company_name ?? '',
                 number: sale.invoice_number,
@@ -150,25 +156,25 @@ export function SaleDetailPage() {
 
             {/* Actions */}
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-                <Button variant="outlined" startIcon={<PrintOutlinedIcon />} disabled={busyPdf} onClick={() => openPdf(true)}>
+                <LoadingButton variant="outlined" startIcon={<PrintOutlinedIcon />} loading={busyPdf} onClick={() => openPdf(true)}>
                     {t('purchases_page.print')}
-                </Button>
+                </LoadingButton>
                 <Tooltip title={t('ledger.download_pdf')}>
                     <span>
-                        <Button variant="outlined" startIcon={<PictureAsPdfOutlinedIcon />} disabled={busyPdf} onClick={() => openPdf(false)}>
+                        <LoadingButton variant="outlined" startIcon={<PictureAsPdfOutlinedIcon />} loading={busyPdf} onClick={() => openPdf(false)}>
                             PDF
-                        </Button>
+                        </LoadingButton>
                     </span>
                 </Tooltip>
-                <Button
+                <LoadingButton
                     variant="contained"
                     startIcon={<WhatsAppIcon />}
-                    disabled={busyPdf}
+                    loading={busyPdf}
                     onClick={shareWhatsApp}
                     sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
                 >
                     {t('ledger.whatsapp')}
-                </Button>
+                </LoadingButton>
                 <Box sx={{ flexGrow: 1 }} />
                 {canReturn && (
                     <Button

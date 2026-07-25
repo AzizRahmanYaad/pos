@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Button, Stack, Tooltip } from '@mui/material';
+import { Stack, Tooltip } from '@mui/material';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { useTranslation } from 'react-i18next';
+import { LoadingButton } from '@/components/LoadingButton';
+import { downloadOrToast } from '@/lib/reportDownload';
 
 interface DownloadResult {
     url: string;
@@ -31,7 +33,9 @@ export function ReportActions({ download, message, size = 'medium' }: ReportActi
         if (!download) return;
         setBusy(true);
         try {
-            const { url } = await download();
+            const result = await downloadOrToast(download);
+            if (!result) return;
+            const { url } = result;
             const win = window.open(url, '_blank');
             if (print && win) {
                 win.addEventListener('load', () => setTimeout(() => win.print(), 400));
@@ -46,7 +50,9 @@ export function ReportActions({ download, message, size = 'medium' }: ReportActi
         if (!download) return;
         setBusy(true);
         try {
-            const { url, filename, blob } = await download();
+            const result = await downloadOrToast(download);
+            if (!result) return;
+            const { url, filename, blob } = result;
             const file = new File([blob], filename, { type: 'application/pdf' });
             const text = message ?? filename;
 
@@ -71,36 +77,45 @@ export function ReportActions({ download, message, size = 'medium' }: ReportActi
         }
     };
 
-    const disabled = busy || !download;
+    const disabled = !download;
 
     return (
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button variant="outlined" size={size} startIcon={<PrintOutlinedIcon />} disabled={disabled} onClick={() => openPdf(true)}>
+            <LoadingButton
+                variant="outlined"
+                size={size}
+                startIcon={<PrintOutlinedIcon />}
+                loading={busy}
+                disabled={disabled}
+                onClick={() => openPdf(true)}
+            >
                 {t('purchases_page.print')}
-            </Button>
+            </LoadingButton>
             <Tooltip title={t('ledger.download_pdf')}>
                 <span>
-                    <Button
+                    <LoadingButton
                         variant="outlined"
                         size={size}
                         startIcon={<PictureAsPdfOutlinedIcon />}
+                        loading={busy}
                         disabled={disabled}
                         onClick={() => openPdf(false)}
                     >
                         PDF
-                    </Button>
+                    </LoadingButton>
                 </span>
             </Tooltip>
-            <Button
+            <LoadingButton
                 variant="contained"
                 size={size}
                 startIcon={<WhatsAppIcon />}
+                loading={busy}
                 disabled={disabled}
                 onClick={shareWhatsApp}
                 sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
             >
                 {t('ledger.whatsapp')}
-            </Button>
+            </LoadingButton>
         </Stack>
     );
 }

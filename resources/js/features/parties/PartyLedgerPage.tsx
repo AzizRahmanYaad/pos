@@ -48,6 +48,7 @@ import {
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { Can } from '@/components/Can';
 import { formatDate } from '@/lib/calendar';
+import { downloadOrToast } from '@/lib/reportDownload';
 
 /** "App\Models\Sale" → "sale" */
 function sourceKey(sourceType: string | null): string {
@@ -159,7 +160,9 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
     const openPdf = async () => {
         setBusyPdf(true);
         try {
-            const { url } = await downloadPartyLedgerPdf(kind, partyId, currentFilters);
+            const result = await downloadOrToast(() => downloadPartyLedgerPdf(kind, partyId, currentFilters));
+            if (!result) return;
+            const { url } = result;
             window.open(url, '_blank');
             setTimeout(() => URL.revokeObjectURL(url), 60_000);
         } finally {
@@ -170,7 +173,9 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
     const shareWhatsApp = async () => {
         setBusyPdf(true);
         try {
-            const { url, filename, blob } = await downloadPartyLedgerPdf(kind, partyId, currentFilters);
+            const result = await downloadOrToast(() => downloadPartyLedgerPdf(kind, partyId, currentFilters));
+            if (!result) return;
+            const { url, filename, blob } = result;
             const message = t('ledger.wa_message', {
                 company: settings?.company_name ?? '',
                 name,
@@ -269,19 +274,19 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                                 disabled={busyPdf}
                                 onClick={openPdf}
                             >
-                                <PictureAsPdfOutlinedIcon />
+                                {busyPdf ? <CircularProgress size={20} /> : <PictureAsPdfOutlinedIcon />}
                             </IconButton>
                         </span>
                     </Tooltip>
-                    <Button
+                    <LoadingButton
                         variant="contained"
-                        disabled={busyPdf}
+                        loading={busyPdf}
                         startIcon={<WhatsAppIcon />}
                         onClick={shareWhatsApp}
                         sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
                     >
                         {t('ledger.whatsapp')}
-                    </Button>
+                    </LoadingButton>
                     <Can permission="payments.manage">
                         <Tooltip title={canClear ? '' : t('ledger.clear_blocked')}>
                             <span>

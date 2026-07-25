@@ -4,7 +4,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
     Avatar,
     Box,
-    Button,
     Chip,
     IconButton,
     MenuItem,
@@ -34,6 +33,7 @@ import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { formatDate } from '@/lib/calendar';
 import { LoadingButton } from '@/components/LoadingButton';
+import { downloadOrToast } from '@/lib/reportDownload';
 
 export function PayrollRunDetailPage() {
     const { t } = useTranslation();
@@ -73,7 +73,9 @@ export function PayrollRunDetailPage() {
     const openPdf = async (print: boolean) => {
         setBusyPdf(true);
         try {
-            const { url } = await downloadPayrollReportPdf(id);
+            const result = await downloadOrToast(() => downloadPayrollReportPdf(id));
+            if (!result) return;
+            const { url } = result;
             const win = window.open(url, '_blank');
             if (print && win) {
                 win.addEventListener('load', () => setTimeout(() => win.print(), 400));
@@ -88,7 +90,9 @@ export function PayrollRunDetailPage() {
         if (!run) return;
         setBusyPdf(true);
         try {
-            const { url, filename, blob } = await downloadPayrollReportPdf(id);
+            const result = await downloadOrToast(() => downloadPayrollReportPdf(id));
+            if (!result) return;
+            const { url, filename, blob } = result;
             const period = `${months[run.period_month - 1]} ${run.period_year}`;
             const message = t('payroll_page.wa_message', {
                 company: settings?.company_name ?? '',
@@ -156,30 +160,30 @@ export function PayrollRunDetailPage() {
 
             {/* Actions */}
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center" sx={{ mb: 2 }}>
-                <Button variant="outlined" startIcon={<PrintOutlinedIcon />} disabled={busyPdf} onClick={() => openPdf(true)}>
+                <LoadingButton variant="outlined" startIcon={<PrintOutlinedIcon />} loading={busyPdf} onClick={() => openPdf(true)}>
                     {t('purchases_page.print')}
-                </Button>
+                </LoadingButton>
                 <Tooltip title={t('ledger.download_pdf')}>
                     <span>
-                        <Button
+                        <LoadingButton
                             variant="outlined"
                             startIcon={<PictureAsPdfOutlinedIcon />}
-                            disabled={busyPdf}
+                            loading={busyPdf}
                             onClick={() => openPdf(false)}
                         >
                             PDF
-                        </Button>
+                        </LoadingButton>
                     </span>
                 </Tooltip>
-                <Button
+                <LoadingButton
                     variant="contained"
                     startIcon={<WhatsAppIcon />}
-                    disabled={busyPdf}
+                    loading={busyPdf}
                     onClick={shareWhatsApp}
                     sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
                 >
                     {t('ledger.whatsapp')}
-                </Button>
+                </LoadingButton>
                 <Box sx={{ flexGrow: 1 }} />
                 {run.status === 'draft' && (
                     <Stack direction="row" spacing={1.5} alignItems="center">

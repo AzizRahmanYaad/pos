@@ -17,10 +17,8 @@ export function ToastHost() {
         if (toasts.length && !current) {
             setCurrent(toasts[0]);
             setOpen(true);
-        } else if (toasts.length && current && open) {
-            setOpen(false);
         }
-    }, [toasts, current, open]);
+    }, [toasts, current]);
 
     const handleClose = (_event: unknown, reason?: string) => {
         if (reason === 'clickaway') return;

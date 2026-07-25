@@ -2,13 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
@@ -17,6 +14,11 @@ class DatabaseSeeder extends Seeder
         // AdminUserSeeder provisions the default business (settings,
         // warehouse, cash account, units) for its own tenant; the other
         // provisioning seeders remain for single-tenant test setups.
+        // Deliberately not using WithoutModelEvents: it disables every
+        // model's `creating` hook app-wide for this whole run, including
+        // BelongsToTenant's tenant_id stamp — silently leaving the
+        // provisioned warehouse/cash account/units with a null tenant_id,
+        // invisible to the tenant they were just created for.
         $this->call([
             RolesAndPermissionsSeeder::class,
             SuperAdminUserSeeder::class,

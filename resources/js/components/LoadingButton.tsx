@@ -37,15 +37,24 @@ export const LoadingButton = forwardRef<HTMLButtonElement, LoadingButtonProps>(f
             </Box>
             {loading && (
                 <CircularProgress
-                    size={18}
+                    size={20}
                     thickness={5}
-                    color="inherit"
                     sx={{
+                        // Deliberately not color="inherit". The button is kept
+                        // genuinely disabled while loading (that is what blocks
+                        // double-submits), and MUI fades a disabled button's text
+                        // to rgba(0,0,0,0.26) over an rgba(0,0,0,0.12) background —
+                        // so an inherited spinner rendered as a faint grey arc on
+                        // near-identical grey. It was there, but invisible in
+                        // practice. A fixed high-contrast colour reads clearly on
+                        // the disabled grey of a contained button and on the plain
+                        // background of an outlined or text one alike.
+                        color: 'text.primary',
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
-                        marginTop: '-9px',
-                        marginLeft: '-9px',
+                        marginTop: '-10px',
+                        marginLeft: '-10px',
                     }}
                 />
             )}

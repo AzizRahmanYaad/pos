@@ -107,6 +107,15 @@ class ReceivePurchaseAction
             ]);
 
             if ($payment !== null && (float) ($payment['amount'] ?? 0) > 0) {
+                // Dated now — the cash leaves the drawer at the moment of
+                // payment, not on the purchase's original (possibly
+                // much earlier) date. Backdating this to purchase_date
+                // corrupted the cash account's running balance whenever
+                // any other same-day activity had already posted a later
+                // ledger entry: the payment's effect was recorded, but
+                // currentBalance() (latest by transaction_date) would
+                // keep returning the newer entry's balance, silently
+                // hiding the payment from the displayed total.
                 $this->recordPayment->execute(
                     party: $purchase->supplier,
                     direction: Payment::DIRECTION_OUT,
@@ -116,7 +125,6 @@ class ReceivePurchaseAction
                     description: $payment['description'] ?? "Payment for {$purchase->purchase_number}",
                     reference: $purchase,
                     receivedBy: $receivedBy,
-                    paidAt: $purchase->purchase_date,
                 );
             }
 

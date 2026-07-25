@@ -147,4 +147,48 @@ class TenantIsolationTest extends TestCase
         $this->actingAs($ownerA = $owner)->postJson('/api/v1/customers', ['name' => 'Walk-in Regular'])->assertCreated();
         $this->actingAs($cashier)->getJson('/api/v1/customers')->assertOk()->assertJsonCount(1, 'data');
     }
+
+    public function test_cash_account_balances_are_isolated_per_tenant(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $ownerA = $this->createBusiness('Shop A', 'a5@example.com');
+        $ownerB = $this->createBusiness('Shop B', 'b5@example.com');
+
+        $cashA = $this->actingAs($ownerA)->getJson('/api/v1/cash-accounts')->json('data.0');
+        $cashB = $this->actingAs($ownerB)->getJson('/api/v1/cash-accounts')->json('data.0');
+
+        $supplierA = $this->actingAs($ownerA)
+            ->postJson('/api/v1/suppliers', ['name' => 'Supplier A'])
+            ->json('data.id');
+
+        $this->actingAs($ownerA)->postJson('/api/v1/payments', [
+            'party_type' => 'supplier',
+            'party_id' => $supplierA,
+            'direction' => 'out',
+            'amount' => 75,
+            'cash_account_id' => $cashA['id'],
+            'method' => 'cash',
+        ])->assertCreated();
+
+        // Shop A's cash balance moved; Shop B's own account is untouched
+        // and still shows a distinct ID and balance — no cross-tenant bleed.
+        $this->actingAs($ownerA)->getJson('/api/v1/cash-accounts')
+            ->assertJsonPath('data.0.current_balance', -75);
+        $this->actingAs($ownerB)->getJson('/api/v1/cash-accounts')
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $cashB['id'])
+            ->assertJsonPath('data.0.current_balance', 0);
+    }
+
+    public function test_api_responses_are_never_cached(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $owner = $this->createBusiness('Shop A', 'a6@example.com');
+
+        $response = $this->actingAs($owner)->getJson('/api/v1/cash-accounts');
+
+        $response->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-cache, no-store, private');
+    }
 }

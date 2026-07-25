@@ -31,6 +31,7 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
 import { BrandSpinner } from '@/components/BrandSpinner';
 import { LoadingButton } from '@/components/LoadingButton';
+import { downloadOrToast } from '@/lib/reportDownload';
 import { cancelPurchase, downloadPurchaseInvoicePdf, fetchPurchase } from '@/features/purchases/api';
 import { fetchParty } from '@/features/parties/ledgerApi';
 import { fetchBusinessSettings } from '@/features/settings/api';
@@ -82,7 +83,9 @@ export function PurchaseDetailPage() {
     const openPdf = async (print: boolean) => {
         setBusyPdf(true);
         try {
-            const { url } = await downloadPurchaseInvoicePdf(id);
+            const result = await downloadOrToast(() => downloadPurchaseInvoicePdf(id));
+            if (!result) return;
+            const { url } = result;
             const win = window.open(url, '_blank');
             if (print && win) {
                 win.addEventListener('load', () => setTimeout(() => win.print(), 400));
@@ -97,7 +100,9 @@ export function PurchaseDetailPage() {
         if (!purchase) return;
         setBusyPdf(true);
         try {
-            const { url, filename, blob } = await downloadPurchaseInvoicePdf(id);
+            const result = await downloadOrToast(() => downloadPurchaseInvoicePdf(id));
+            if (!result) return;
+            const { url, filename, blob } = result;
             const message = t('purchases_page.wa_message', {
                 company: settings?.company_name ?? '',
                 number: purchase.purchase_number,
@@ -168,35 +173,35 @@ export function PurchaseDetailPage() {
 
             {/* Actions */}
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-                <Button
+                <LoadingButton
                     variant="outlined"
                     startIcon={<PrintOutlinedIcon />}
-                    disabled={busyPdf}
+                    loading={busyPdf}
                     onClick={() => openPdf(true)}
                 >
                     {t('purchases_page.print')}
-                </Button>
+                </LoadingButton>
                 <Tooltip title={t('ledger.download_pdf')}>
                     <span>
-                        <Button
+                        <LoadingButton
                             variant="outlined"
                             startIcon={<PictureAsPdfOutlinedIcon />}
-                            disabled={busyPdf}
+                            loading={busyPdf}
                             onClick={() => openPdf(false)}
                         >
                             PDF
-                        </Button>
+                        </LoadingButton>
                     </span>
                 </Tooltip>
-                <Button
+                <LoadingButton
                     variant="contained"
                     startIcon={<WhatsAppIcon />}
-                    disabled={busyPdf}
+                    loading={busyPdf}
                     onClick={shareWhatsApp}
                     sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
                 >
                     {t('ledger.whatsapp')}
-                </Button>
+                </LoadingButton>
                 <Box sx={{ flexGrow: 1 }} />
                 {purchase.status === 'draft' && (
                     <>

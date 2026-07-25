@@ -29,6 +29,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { LoadingButton } from '@/components/LoadingButton';
+import { downloadOrToast } from '@/lib/reportDownload';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
@@ -135,7 +136,9 @@ export function ExpensesPage() {
     const openPdf = async (print: boolean) => {
         setBusyPdf(true);
         try {
-            const { url } = await downloadExpenseReportPdf(range);
+            const result = await downloadOrToast(() => downloadExpenseReportPdf(range));
+            if (!result) return;
+            const { url } = result;
             const win = window.open(url, '_blank');
             if (print && win) {
                 win.addEventListener('load', () => setTimeout(() => win.print(), 400));
@@ -149,7 +152,9 @@ export function ExpensesPage() {
     const shareWhatsApp = async () => {
         setBusyPdf(true);
         try {
-            const { url, filename, blob } = await downloadExpenseReportPdf(range);
+            const result = await downloadOrToast(() => downloadExpenseReportPdf(range));
+            if (!result) return;
+            const { url, filename, blob } = result;
             const period = from || to ? `${from || '…'} — ${to || '…'}` : t('expenses_page.all_dates');
             const message = t('expenses_page.wa_message', {
                 company: settings?.company_name ?? '',
@@ -215,35 +220,35 @@ export function ExpensesPage() {
                         </Button>
                     )}
                     <Box sx={{ flexGrow: 1 }} />
-                    <Button
+                    <LoadingButton
                         variant="outlined"
                         startIcon={<PrintOutlinedIcon />}
-                        disabled={busyPdf}
+                        loading={busyPdf}
                         onClick={() => openPdf(true)}
                     >
                         {t('purchases_page.print')}
-                    </Button>
+                    </LoadingButton>
                     <Tooltip title={t('ledger.download_pdf')}>
                         <span>
-                            <Button
+                            <LoadingButton
                                 variant="outlined"
                                 startIcon={<PictureAsPdfOutlinedIcon />}
-                                disabled={busyPdf}
+                                loading={busyPdf}
                                 onClick={() => openPdf(false)}
                             >
                                 PDF
-                            </Button>
+                            </LoadingButton>
                         </span>
                     </Tooltip>
-                    <Button
+                    <LoadingButton
                         variant="contained"
                         startIcon={<WhatsAppIcon />}
-                        disabled={busyPdf}
+                        loading={busyPdf}
                         onClick={shareWhatsApp}
                         sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
                     >
                         {t('ledger.whatsapp')}
-                    </Button>
+                    </LoadingButton>
                 </Stack>
                 {busyPdf && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
             </Paper>

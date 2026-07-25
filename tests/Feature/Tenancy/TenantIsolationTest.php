@@ -191,4 +191,23 @@ class TenantIsolationTest extends TestCase
 
         $response->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-cache, no-store, private');
     }
+
+    public function test_database_seeder_stamps_a_real_tenant_id_on_provisioned_records(): void
+    {
+        // DatabaseSeeder must NOT use WithoutModelEvents: that trait
+        // disables every model's `creating` hook for the whole run,
+        // including BelongsToTenant's tenant_id stamp — leaving the
+        // seeded warehouse/cash account/units with a null tenant_id,
+        // invisible to the admin account they were provisioned for.
+        $this->seed();
+
+        $admin = \App\Models\User::query()->where('email', 'admin@example.com')->firstOrFail();
+        $this->assertNotNull($admin->tenant_id);
+
+        $this->actingAs($admin)->getJson('/api/v1/cash-accounts')->assertOk()->assertJsonCount(1, 'data');
+        $this->actingAs($admin)->getJson('/api/v1/warehouses')->assertOk()->assertJsonCount(1, 'data');
+        $this->actingAs($admin)->getJson('/api/v1/units')->assertOk()->assertJsonCount(8, 'data');
+        $this->actingAs($admin)->getJson('/api/v1/settings')->assertOk()
+            ->assertJsonPath('data.company_name', 'Default Business');
+    }
 }

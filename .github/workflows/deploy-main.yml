@@ -132,6 +132,7 @@ jobs:
             "$PHP_BIN" -v | head -1
             "$PHP_BIN" artisan migrate --force
             "$PHP_BIN" artisan db:seed --force
+            "$PHP_BIN" artisan ledger:rebuild-balances
             "$PHP_BIN" artisan storage:link || true
             "$PHP_BIN" artisan config:cache
             "$PHP_BIN" artisan route:cache

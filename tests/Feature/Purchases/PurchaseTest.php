@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Purchases;
 
+use App\Domain\Ledger\Actions\PostLedgerEntryAction;
 use App\Domain\Purchases\Actions\CreatePurchaseAction;
 use App\Domain\Purchases\Actions\ReceivePurchaseAction;
 use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
 use App\Models\CashAccount;
+use App\Models\LedgerEntry;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Supplier;
@@ -258,6 +260,53 @@ class PurchaseTest extends TestCase
         $this->assertEquals(40.0, (float) $received->paid_amount);
         $this->assertEquals(60.0, (float) $received->due_amount);
         $this->assertEquals(-60.0, $supplier->fresh()->currentBalance());
+    }
+
+    /**
+     * A purchase is routinely created on one day and received/paid a few
+     * days later. If the payment posted to the cash account was dated
+     * using the purchase's (earlier) date instead of today, it would land
+     * behind any same-day activity already on that account — and since
+     * the account's current balance is read from whichever ledger entry
+     * has the latest transaction_date, the payment's effect would be
+     * silently invisible even though the entry itself exists.
+     */
+    public function test_paying_a_supplier_for_a_backdated_purchase_still_updates_todays_balance(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $cashAccount = CashAccount::factory()->create(['opening_balance' => 1000]);
+        $user = User::factory()->create();
+
+        // Some other cash activity already happened today on this account
+        // (e.g. a POS sale) before the older purchase gets received.
+        app(PostLedgerEntryAction::class)->execute(
+            ledgerable: $cashAccount,
+            entryType: LedgerEntry::DEBIT,
+            amount: 200,
+            description: "Today's sale",
+        );
+        $this->assertEquals(1200.0, $cashAccount->fresh()->currentBalance());
+
+        $purchase = app(CreatePurchaseAction::class)->execute(
+            data: [
+                'supplier_id' => $supplier->id,
+                'warehouse_id' => $warehouse->id,
+                'purchase_date' => now()->subDays(3)->toDateString(),
+            ],
+            items: [['product_id' => $product->id, 'quantity' => 10, 'unit_id' => $product->unit_id, 'unit_cost' => 10]],
+            landedCosts: [],
+            createdBy: $user->id,
+        );
+
+        app(ReceivePurchaseAction::class)->execute($purchase, $user->id, [
+            'amount' => 100,
+            'cash_account_id' => $cashAccount->id,
+            'method' => 'cash',
+        ]);
+
+        $this->assertEquals(1100.0, $cashAccount->fresh()->currentBalance());
     }
 
     public function test_receiving_a_purchase_with_no_payment_leaves_the_full_amount_owed(): void

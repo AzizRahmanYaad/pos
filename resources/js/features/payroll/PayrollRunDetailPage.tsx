@@ -30,6 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { BrandSpinner } from '@/components/BrandSpinner';
 import { fetchPayrollRun, payPayrollRun, downloadPayrollReportPdf } from '@/features/payroll/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { formatDate } from '@/lib/calendar';
 import { LoadingButton } from '@/components/LoadingButton';
@@ -60,7 +61,7 @@ export function PayrollRunDetailPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['payroll-run', id] });
             queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
-            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
+            invalidateCashViews(queryClient);
         },
     });
 

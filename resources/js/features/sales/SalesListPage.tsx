@@ -34,6 +34,7 @@ import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { useTranslation } from 'react-i18next';
 import { LoadingButton } from '@/components/LoadingButton';
 import { fetchSalesPage, refundSale, type SaleListItem } from '@/features/sales/api';
+import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { DualDateField } from '@/components/DualDateField';
 
 const STATUS_COLOR: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
@@ -88,7 +89,7 @@ export function SalesListPage() {
             queryClient.invalidateQueries({ queryKey: ['sales-page'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
-            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
+            invalidateCashViews(queryClient);
             setReturning(null);
             setReturnError(null);
         },

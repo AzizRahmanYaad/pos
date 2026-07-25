@@ -33,6 +33,7 @@ import { fetchProducts, type ProductListItem } from '@/features/products/api';
 import { fetchCustomers } from '@/features/customers/api';
 import { fetchWarehouses } from '@/features/warehouses/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { createSale, type SalePaymentPayload, type SaleReceipt } from '@/features/pos/api';
 import { ReceiptView } from '@/features/pos/ReceiptView';
 import { LoadingButton } from '@/components/LoadingButton';
@@ -193,7 +194,7 @@ export function PosPage() {
             setReceipt(sale);
             clearSale();
             queryClient.invalidateQueries({ queryKey: ['products'] });
-            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
+            invalidateCashViews(queryClient);
         },
         onError: () => setError(t('pos_page.checkout_failed')),
     });

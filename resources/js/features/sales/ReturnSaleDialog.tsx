@@ -20,6 +20,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { LoadingButton } from '@/components/LoadingButton';
 import { refundSale, type SaleDetail } from '@/features/sales/api';
+import { invalidateCashViews } from '@/lib/cashInvalidation';
 
 interface ReturnSaleDialogProps {
     sale: SaleDetail | null;
@@ -68,7 +69,7 @@ export function ReturnSaleDialog({ sale, onClose }: ReturnSaleDialogProps) {
             queryClient.invalidateQueries({ queryKey: ['sales-page'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['products-page'] });
-            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
+            invalidateCashViews(queryClient);
             onClose();
         },
         onError: () => setError(t('sales_page.return_failed')),

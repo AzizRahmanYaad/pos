@@ -21,6 +21,7 @@ import { fetchWarehouses } from '@/features/warehouses/api';
 import { fetchProducts } from '@/features/products/api';
 import { createPurchase, type PurchaseItemPayload } from '@/features/purchases/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { fetchExpenseCategories, createExpenseCategory, createExpense } from '@/features/expenses/api';
 import { DualDateField } from '@/components/DualDateField';
 
@@ -107,7 +108,7 @@ export function NewPurchasePage() {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             queryClient.invalidateQueries({ queryKey: ['purchases-page'] });
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
-            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
+            invalidateCashViews(queryClient);
             navigate('/purchases');
         },
         onError: () => setError(t('purchases_page.create_failed')),

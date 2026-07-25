@@ -41,6 +41,7 @@ import {
     type EmployeeListItem,
 } from '@/features/employees/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
+import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { DualDateField } from '@/components/DualDateField';
 
 function todayIso(): string {
@@ -102,7 +103,7 @@ export function EmployeesListPage() {
         meta: { successMessage: t('employees_page.advance_success') },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['employees'] });
-            queryClient.invalidateQueries({ queryKey: ['cash-accounts'] });
+            invalidateCashViews(queryClient);
             setAdvancing(null);
             setAdvanceAmount('');
             setAdvanceReason('');

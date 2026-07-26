@@ -117,7 +117,7 @@ export function CustomersListPage() {
                         message={t('customers_page.wa_message', { company: companyName })}
                         size="medium"
                     />
-                    <Can permission="sales.manage">
+                    <Can permission="customers.create">
                         <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
                             {t('parties.new_customer')}
                         </Button>
@@ -315,7 +315,7 @@ export function CustomersListPage() {
                                                     <MenuBookOutlinedIcon fontSize="small" />
                                                 </IconButton>
                                             </Tooltip>
-                                            <Can permission="payments.manage">
+                                            <Can permission="payments.create">
                                                 <Tooltip title={t('payments_dialog.receive_payment')}>
                                                     <IconButton
                                                         size="small"

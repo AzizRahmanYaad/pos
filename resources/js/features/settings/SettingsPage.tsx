@@ -261,7 +261,7 @@ export function SettingsPage() {
                 {t('nav.settings')}
             </Typography>
             <Stack spacing={3}>
-                <Can permission="settings.manage">
+                <Can permission="settings.edit">
                     <BusinessSettingsForm />
                 </Can>
                 <ChangePasswordForm />

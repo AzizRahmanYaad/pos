@@ -287,7 +287,7 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                     >
                         {t('ledger.whatsapp')}
                     </LoadingButton>
-                    <Can permission="payments.manage">
+                    <Can permission="ledger.clear">
                         <Tooltip title={canClear ? '' : t('ledger.clear_blocked')}>
                             <span>
                                 <Button

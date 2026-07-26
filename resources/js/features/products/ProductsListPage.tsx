@@ -49,7 +49,7 @@ import { createStockAdjustment } from '@/features/inventory/api';
 import { AddProductDialog } from '@/features/products/AddProductDialog';
 import { EditProductDialog } from '@/features/products/EditProductDialog';
 import { EditPricingDialog } from '@/features/products/EditPricingDialog';
-import { Can } from '@/components/Can';
+import { Can, CanAny } from '@/components/Can';
 import { ReportActions } from '@/components/ReportActions';
 import { fetchBusinessSettings } from '@/features/settings/api';
 
@@ -173,7 +173,7 @@ export function ProductsListPage() {
                         message={t('products_page.wa_message', { company: companyName })}
                         size="medium"
                     />
-                    <Can permission="products.manage">
+                    <Can permission="products.create">
                         <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
                             {t('products_page.new_product')}
                         </Button>
@@ -231,10 +231,10 @@ export function ProductsListPage() {
                                 <TableCell align="right">{t('products_page.item_cost')}</TableCell>
                                 <TableCell align="right">{t('fields.price')}</TableCell>
                                 <TableCell>{t('fields.status')}</TableCell>
-                                <Can permission="products.manage">
+                                <CanAny permissions={['products.edit', 'products.delete']}>
                                     <TableCell align="right"> </TableCell>
-                                </Can>
-                                <Can permission="inventory.manage">
+                                </CanAny>
+                                <Can permission="inventory.adjust">
                                     <TableCell align="right"> </TableCell>
                                 </Can>
                             </TableRow>
@@ -371,41 +371,47 @@ export function ProductsListPage() {
                                                 }
                                             />
                                         </TableCell>
-                                        <Can permission="products.manage">
+                                        <CanAny permissions={['products.edit', 'products.delete']}>
                                             <TableCell align="right">
                                                 <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                                                    <Tooltip title={t('products_page.edit_product')}>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => setEditingProduct(product)}
-                                                        >
-                                                            <EditOutlinedIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                    <Tooltip title={t('products_page.edit_pricing')}>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => setPricingProduct(product)}
-                                                        >
-                                                            <SellOutlinedIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                    <Tooltip title={t('products_page.delete_product')}>
-                                                        <IconButton
-                                                            size="small"
-                                                            color="error"
-                                                            onClick={() => {
-                                                                setDeleteError(null);
-                                                                setDeleting(product);
-                                                            }}
-                                                        >
-                                                            <DeleteOutlineIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </Tooltip>
+                                                    <Can permission="products.edit">
+                                                        <Tooltip title={t('products_page.edit_product')}>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => setEditingProduct(product)}
+                                                            >
+                                                                <EditOutlinedIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </Can>
+                                                    <Can permission="products.edit">
+                                                        <Tooltip title={t('products_page.edit_pricing')}>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => setPricingProduct(product)}
+                                                            >
+                                                                <SellOutlinedIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </Can>
+                                                    <Can permission="products.delete">
+                                                        <Tooltip title={t('products_page.delete_product')}>
+                                                            <IconButton
+                                                                size="small"
+                                                                color="error"
+                                                                onClick={() => {
+                                                                    setDeleteError(null);
+                                                                    setDeleting(product);
+                                                                }}
+                                                            >
+                                                                <DeleteOutlineIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </Can>
                                                 </Stack>
                                             </TableCell>
-                                        </Can>
-                                        <Can permission="inventory.manage">
+                                        </CanAny>
+                                        <Can permission="inventory.adjust">
                                             <TableCell align="right">
                                                 <Tooltip title={t('actions.adjust')}>
                                                     <IconButton

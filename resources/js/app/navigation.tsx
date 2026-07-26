@@ -20,6 +20,7 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import type { ReactNode } from 'react';
 
 export interface NavLink {
@@ -126,6 +127,7 @@ export const NAVIGATION: NavEntry[] = [
         icon: <AdminPanelSettingsOutlinedIcon />,
         children: [
             link('/users', 'nav.users', <ManageAccountsOutlinedIcon />, 'users.view'),
+            link('/activity-log', 'nav.activity_log', <HistoryOutlinedIcon />, 'activity.view'),
             link('/settings', 'nav.settings', <SettingsOutlinedIcon />, 'settings.view'),
         ],
     },

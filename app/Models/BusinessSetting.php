@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,6 +16,13 @@ use Illuminate\Database\Eloquent\Model;
 class BusinessSetting extends Model
 {
     use BelongsToTenant;
+    use RecordsActivity;
+
+    /** There is only one of these per business, so name it after the business. */
+    public function activityLabel(): string
+    {
+        return $this->company_name ?: __('Business settings');
+    }
 
     protected function casts(): array
     {

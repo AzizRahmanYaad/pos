@@ -67,7 +67,8 @@ class ClearLedgerTest extends TestCase
 
         // The clearing is written to the activity log.
         $this->assertDatabaseHas('activity_log', [
-            'description' => 'Cleared customer ledger',
+            'log_name' => 'customers',
+            'event' => 'ledger-cleared',
             'causer_id' => $admin->id,
         ]);
 

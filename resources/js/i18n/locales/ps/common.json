@@ -17,7 +17,8 @@
         "journal": "ورځنۍ یادداشت",
         "settings": "تنظیمات",
         "users": "د کاروونکو مدیریت",
-        "stocks": "ذخیره"
+        "stocks": "ذخیره",
+        "activity_log": "د فعالیت ریکارډ"
     },
     "actions": {
         "save": "خوندي کول",
@@ -556,7 +557,8 @@
                 "reports": "راپورونه",
                 "settings": "تنظیمات",
                 "users": "کاروونکي",
-                "companies": "سوداګرۍ"
+                "companies": "سوداګرۍ",
+                "activity": "د فعالیت ریکارډ"
             },
             "action": {
                 "view": "کتل",
@@ -733,5 +735,67 @@
         "money": "مالي",
         "people": "کارکوونکي",
         "administration": "مدیریت"
+    },
+    "activity_page": {
+        "title": "د فعالیت ریکارډ",
+        "subtitle": "هر هغه کار چې ستاسو په سوداګرۍ کې کیږي — چا، کله او له کومه ځایه.",
+        "when": "وخت",
+        "user": "کاروونکی",
+        "module": "برخه",
+        "action": "کړنه",
+        "record": "ریکارډ",
+        "ip": "له",
+        "ip_hint": "هغه شبکه‌ییز پته چې کړنه ترې ترسره شوې.",
+        "details": "تفصیلات",
+        "field": "ډګر",
+        "before": "مخکې",
+        "after": "وروسته",
+        "no_detail": "د دې کړنې لپاره د ډګر تفصیل نشته.",
+        "search": "لټون",
+        "from": "له نیټې",
+        "to": "تر نیټې",
+        "all_users": "ټول کاروونکي",
+        "all_modules": "ټولې برخې",
+        "all_actions": "ټولې کړنې",
+        "export_csv": "CSV اخیستل",
+        "empty": "د دې فلټرونو لپاره لا څه نه دي ثبت شوي.",
+        "events": {
+            "created": "جوړ شو",
+            "updated": "سم شو",
+            "deleted": "ړنګ شو",
+            "exported": "ایستل شو",
+            "denied": "رد شو",
+            "signed-in": "ننوتل",
+            "signed-out": "ووتل",
+            "sign-in-failed": "ننوتل ناکام",
+            "password-reset": "پټنوم بدل شو",
+            "period_closed": "دوره وتړل شوه",
+            "period_reopened": "دوره بیا پرانیستل شوه",
+            "period_updated": "دوره سمه شوه",
+            "ledger-cleared": "دفتر تصفیه شو"
+        },
+        "modules": {
+            "dashboard": "ډشبورډ",
+            "journal": "ورځنۍ کتابچه",
+            "pos": "د پلورنې ټکی",
+            "sales": "پلورنې",
+            "purchases": "پیرودنې",
+            "products": "محصولات",
+            "inventory": "ذخیره",
+            "customers": "پیرودونکي",
+            "suppliers": "عرضه کوونکي",
+            "ledger": "صندوق او دفتر",
+            "payments": "تادیات",
+            "expenses": "لګښتونه",
+            "employees": "کارکوونکي",
+            "payroll": "معاشونه",
+            "period-closing": "تصفیه",
+            "reports": "راپورونه",
+            "settings": "تنظیمات",
+            "users": "کاروونکي",
+            "companies": "سوداګرۍ",
+            "activity": "د فعالیت ریکارډ",
+            "account": "حساب"
+        }
     }
 }

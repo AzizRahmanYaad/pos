@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\RecordsActivity;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,8 +13,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 class Customer extends Model
 {
     use BelongsToTenant;
-
     use HasFactory;
+    use RecordsActivity;
 
     protected function casts(): array
     {

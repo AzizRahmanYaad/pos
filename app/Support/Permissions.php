@@ -83,6 +83,8 @@ class Permissions
 
     public const COMPANIES = 'companies';
 
+    public const ACTIVITY = 'activity';
+
     /**
      * Every module, in the order the navigation presents them, with the
      * actions it supports and the navigation group it belongs to. `admin`
@@ -118,6 +120,7 @@ class Permissions
 
             self::USERS => ['group' => 'administration', 'actions' => [self::VIEW, self::CREATE, self::EDIT, self::DELETE]],
             self::SETTINGS => ['group' => 'administration', 'actions' => [self::VIEW, self::EDIT]],
+            self::ACTIVITY => ['group' => 'administration', 'actions' => [self::VIEW, self::EXPORT]],
 
             self::COMPANIES => ['group' => 'platform', 'actions' => [self::VIEW, self::EDIT], 'admin' => true],
         ];
@@ -204,6 +207,8 @@ class Permissions
             'superadmin' => [
                 ...self::forModule(self::COMPANIES),
                 ...self::forModule(self::USERS),
+                // Owning the platform includes being able to audit it.
+                ...self::forModule(self::ACTIVITY),
             ],
             // Owns one business, top to bottom.
             'admin' => self::forCompany(),

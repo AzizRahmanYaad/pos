@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Users\ResolvesAssignableAccess;
 use App\Models\User;
 use App\Support\Permissions;
 use Illuminate\Http\Request;
 
 class PermissionController extends Controller
 {
+    use ResolvesAssignableAccess;
+
     /**
      * Everything the permission screen needs to draw itself: the module
      * matrix, the role presets that pre-tick it, and the ceiling of what
@@ -48,8 +51,16 @@ class PermissionController extends Controller
             ];
         }
 
+        // Only presets for roles this account may actually assign — an
+        // admin preset is no use to someone who cannot create an admin.
+        $assignableRoles = $this->assignableRoles($request->user());
+
         $presets = [];
         foreach (Permissions::presets() as $role => $permissions) {
+            if (! in_array($role, $assignableRoles, true)) {
+                continue;
+            }
+
             $presets[$role] = array_values(array_intersect($permissions, $grantable));
         }
 

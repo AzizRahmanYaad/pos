@@ -14,6 +14,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['name', 'max_users'])]
 class Tenant extends Model
 {
+    /**
+     * Staff accounts a new business may create before the platform owner
+     * has to raise its ceiling.
+     */
+    public const DEFAULT_MAX_USERS = 5;
+
     protected function casts(): array
     {
         return [
@@ -26,28 +32,39 @@ class Tenant extends Model
         return $this->hasMany(User::class);
     }
 
-    /**
-     * How many accounts this business currently has. Counted directly
-     * rather than through the relation so it stays correct regardless of
-     * what the caller happens to have eager-loaded.
-     */
+    /** Every account in the business, owners included. */
     public function userCount(): int
     {
         return $this->users()->count();
     }
 
     /**
-     * Whether the business has used up the account allowance the platform
+     * The staff accounts the allowance actually governs.
+     *
+     * The limit is what a Company Admin may take on, so the owner's own
+     * account does not eat into it — a limit of five means five staff on
+     * top of the admin, not four. Counted directly rather than through the
+     * relation so it stays correct whatever the caller eager-loaded.
+     */
+    public function staffCount(): int
+    {
+        return $this->users()
+            ->whereDoesntHave('roles', fn ($query) => $query->whereIn('name', ['admin', 'superadmin']))
+            ->count();
+    }
+
+    /**
+     * Whether the business has used up the staff allowance the platform
      * owner granted it. A null limit means no ceiling.
      */
     public function hasReachedUserLimit(): bool
     {
-        return $this->max_users !== null && $this->userCount() >= $this->max_users;
+        return $this->max_users !== null && $this->staffCount() >= $this->max_users;
     }
 
-    /** Remaining accounts, or null when the business has no ceiling. */
+    /** Remaining staff slots, or null when the business has no ceiling. */
     public function remainingUserSlots(): ?int
     {
-        return $this->max_users === null ? null : max(0, $this->max_users - $this->userCount());
+        return $this->max_users === null ? null : max(0, $this->max_users - $this->staffCount());
     }
 }

@@ -134,9 +134,12 @@ class CompanyUserManagementTest extends TestCase
     {
         $tenant = Tenant::create(['name' => 'Small Shop', 'max_users' => 2]);
         $admin = $this->companyAdmin($tenant);
-        User::factory()->create(['tenant_id' => $tenant->id]);
 
-        $this->assertSame(2, $tenant->fresh()->userCount());
+        // The allowance governs staff, so the admin's own account does not
+        // eat into it — two staff is what fills a limit of two.
+        User::factory()->count(2)->create(['tenant_id' => $tenant->id, 'created_by' => $admin->id]);
+
+        $this->assertSame(2, $tenant->fresh()->staffCount());
 
         $response = $this->actingAs($admin)->postJson('/api/v1/users', [
             'name' => 'One Too Many',
@@ -155,7 +158,8 @@ class CompanyUserManagementTest extends TestCase
     {
         $tenant = Tenant::create(['name' => 'Small Shop', 'max_users' => 2]);
         $admin = $this->companyAdmin($tenant);
-        $spare = User::factory()->create(['tenant_id' => $tenant->id]);
+        User::factory()->create(['tenant_id' => $tenant->id, 'created_by' => $admin->id]);
+        $spare = User::factory()->create(['tenant_id' => $tenant->id, 'created_by' => $admin->id]);
 
         $this->actingAs($admin)->deleteJson("/api/v1/users/{$spare->id}")->assertNoContent();
 
@@ -174,11 +178,13 @@ class CompanyUserManagementTest extends TestCase
         $tenant = Tenant::create(['name' => 'Small Shop', 'max_users' => 3]);
         $admin = $this->companyAdmin($tenant);
 
+        // Fresh business: the admin exists but has hired nobody yet, so the
+        // whole allowance is still available to them.
         $this->actingAs($admin)->getJson('/api/v1/users')
             ->assertOk()
             ->assertJsonPath('limit.max_users', 3)
-            ->assertJsonPath('limit.user_count', 1)
-            ->assertJsonPath('limit.remaining', 2)
+            ->assertJsonPath('limit.user_count', 0)
+            ->assertJsonPath('limit.remaining', 3)
             ->assertJsonPath('limit.reached', false);
     }
 
@@ -215,7 +221,7 @@ class CompanyUserManagementTest extends TestCase
             ])->assertCreated();
         }
 
-        $this->assertSame(4, $tenant->fresh()->userCount());
+        $this->assertSame(3, $tenant->fresh()->staffCount());
     }
 
     public function test_the_permission_catalogue_never_offers_more_than_the_admin_holds(): void

@@ -20,6 +20,22 @@ function extractErrorMessage(error: unknown): string {
  * (e.g. POS checkout already shows its own receipt screen).
  */
 export const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            // Retrying a refusal or a missing record can only ever produce
+            // the same answer. It used to turn one refused request into
+            // three identical ones, all of them landing in the activity log.
+            retry: (failureCount, error) => {
+                const status = isAxiosError(error) ? error.response?.status : undefined;
+
+                if (status !== undefined && status >= 400 && status < 500) {
+                    return false;
+                }
+
+                return failureCount < 2;
+            },
+        },
+    },
     mutationCache: new MutationCache({
         onSuccess: (_data, _variables, _context, mutation) => {
             const message = mutation.meta?.successMessage;

@@ -55,9 +55,11 @@ class RecordRequestActivity
 
         $status = $response->getStatusCode();
 
-        // Being refused is worth knowing about however it happened, even on
-        // a read — that is somebody reaching for a screen that is not theirs.
-        if ($status === 401 || $status === 403) {
+        // Somebody attempting to change something they are not allowed to
+        // change is worth knowing about. A refused *read* is not: the app
+        // itself asks for data a user cannot see often enough that logging
+        // those buries the entries that matter under pages of noise.
+        if (($status === 401 || $status === 403) && ! $request->isMethod('GET')) {
             $this->log($user, $path, 'denied', $request, $status);
 
             return;

@@ -62,6 +62,31 @@ function EventChip({ event }: { event: string }) {
     );
 }
 
+/**
+ * Turn an API path into something a shopkeeper would recognise. The
+ * Activity Log is read by the person running the business, not by whoever
+ * wrote the endpoint, so "GET /api/v1/reports/sales-summary" has no place
+ * on it — the Area column already says Reports, and this says which one.
+ */
+function describePath(path: string | null): string | null {
+    if (!path) return null;
+
+    const noise = new Set(['api', 'v1', 'pdf', 'export', 'csv', 'excel', 'print', 'report']);
+    const segments = path
+        .split('/')
+        .filter(Boolean)
+        .filter((segment) => !noise.has(segment.toLowerCase()))
+        // Record ids carry no meaning here; the Area column has the context.
+        .filter((segment) => !/^\d+$/.test(segment));
+
+    const last = segments[segments.length - 1];
+    if (!last) return null;
+
+    const words = last.replace(/[-_]/g, ' ');
+
+    return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 function What({ entry }: { entry: ActivityEntry }) {
     const { t } = useTranslation();
 
@@ -69,12 +94,10 @@ function What({ entry }: { entry: ActivityEntry }) {
         return <Typography variant="body2">{entry.subject_label}</Typography>;
     }
 
-    if (entry.path) {
-        return (
-            <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: 12 }}>
-                {entry.method} {entry.path}
-            </Typography>
-        );
+    const named = describePath(entry.path);
+
+    if (named) {
+        return <Typography variant="body2">{named}</Typography>;
     }
 
     // Nothing more to say than the Action column already does — repeating

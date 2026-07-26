@@ -33,6 +33,7 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { fetchPayrollRunsPage, createPayrollRun } from '@/features/payroll/api';
 import { fetchEmployees } from '@/features/employees/api';
+import { useAuthStore } from '@/store/authStore';
 import { DualDateField } from '@/components/DualDateField';
 import { formatDate } from '@/lib/calendar';
 import { LoadingButton } from '@/components/LoadingButton';
@@ -60,7 +61,14 @@ export function PayrollPage() {
         placeholderData: keepPreviousData,
     });
     const runs = data?.data;
-    const { data: employees } = useQuery({ queryKey: ['employees'], queryFn: () => fetchEmployees() });
+    // Payroll needs the staff list to start a run, but a user may hold
+    // payroll without employees — ask only when the answer can come back.
+    const canSeeEmployees = useAuthStore((state) => state.can('employees.view'));
+    const { data: employees } = useQuery({
+        queryKey: ['employees'],
+        queryFn: () => fetchEmployees(),
+        enabled: canSeeEmployees,
+    });
 
     const hasFilters = Boolean(fromFilter || toFilter || employeeFilter);
 

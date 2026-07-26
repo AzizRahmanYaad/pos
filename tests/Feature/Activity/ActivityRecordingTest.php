@@ -166,12 +166,21 @@ class ActivityRecordingTest extends TestCase
         $this->assertSame($this->admin->email, $entry->properties->get('email'));
     }
 
-    public function test_being_refused_a_screen_is_recorded(): void
+    /**
+     * Somebody reaching for a screen they cannot open is usually the app
+     * itself asking for data the user lacks — noise. Somebody trying to
+     * *change* what is not theirs is not noise, and is recorded.
+     */
+    public function test_being_refused_a_change_is_recorded(): void
     {
         $cashier = User::factory()->create(['tenant_id' => $this->tenant->id, 'created_by' => $this->admin->id]);
         $this->grantRole($cashier, 'cashier');
 
-        $this->actingAs($cashier)->getJson('/api/v1/users')->assertForbidden();
+        $this->actingAs($cashier)->postJson('/api/v1/users', [
+            'name' => 'Sneaky', 'email' => 'sneaky@example.test',
+            'password' => 'Secret123!', 'password_confirmation' => 'Secret123!',
+            'locale' => 'en', 'roles' => ['cashier'],
+        ])->assertForbidden();
 
         $entry = $this->entries()->last();
 
@@ -179,6 +188,26 @@ class ActivityRecordingTest extends TestCase
         $this->assertSame($cashier->id, $entry->causer_id);
         $this->assertSame('users', $entry->log_name);
         $this->assertSame(403, $entry->properties->get('status'));
+    }
+
+    /**
+     * The screen a user cannot open is already hidden from their menu; the
+     * app still asks for some of that data on shared screens, and every one
+     * of those refusals used to become a red row the owner had to scroll
+     * past. Reads are not recorded, refused or otherwise.
+     */
+    public function test_being_refused_a_read_is_not_recorded(): void
+    {
+        $cashier = User::factory()->create(['tenant_id' => $this->tenant->id, 'created_by' => $this->admin->id]);
+        $this->grantRole($cashier, 'cashier');
+
+        $before = $this->entries()->count();
+
+        $this->actingAs($cashier)->getJson('/api/v1/users')->assertForbidden();
+        $this->actingAs($cashier)->getJson('/api/v1/employees')->assertForbidden();
+        $this->actingAs($cashier)->getJson('/api/v1/reports/sales-summary')->assertForbidden();
+
+        $this->assertSame($before, $this->entries()->count());
     }
 
     public function test_taking_data_out_of_the_system_is_recorded(): void

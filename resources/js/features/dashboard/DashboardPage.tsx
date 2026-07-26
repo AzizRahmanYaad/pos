@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/store/authStore';
 import {
     Avatar,
     Box,
@@ -89,6 +90,10 @@ function StatCard({ icon, label, value, accent }: StatCardProps) {
 
 export function DashboardPage() {
     const { t, i18n } = useTranslation();
+    // The two charts below are reports data. A user who may see the
+    // dashboard but not reports would otherwise fire requests that can only
+    // come back refused — wasted round trips, and noise in the activity log.
+    const canSeeReports = useAuthStore((state) => state.can('reports.view'));
 
     const { data: summary } = useQuery({ queryKey: ['dashboard-summary'], queryFn: fetchDashboardSummary });
 
@@ -100,6 +105,7 @@ export function DashboardPage() {
     const { data: salesTrend } = useQuery({
         queryKey: ['sales-summary', fromStr, toStr],
         queryFn: () => fetchSalesSummary(fromStr, toStr, 'day'),
+        enabled: canSeeReports,
     });
 
     const monthStart = new Date();
@@ -107,6 +113,7 @@ export function DashboardPage() {
     const { data: expenseBreakdown } = useQuery({
         queryKey: ['expenses-by-category', monthStart.toISOString().slice(0, 10), toStr],
         queryFn: () => fetchExpensesByCategory(monthStart.toISOString().slice(0, 10), toStr),
+        enabled: canSeeReports,
     });
 
     const money = (v: number) =>

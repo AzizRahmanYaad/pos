@@ -771,7 +771,8 @@
             "password-reset": "رمز تغییر کرد",
             "period_closed": "دوره بسته شد",
             "period_reopened": "دوره باز شد",
-            "period_updated": "دوره ویرایش شد"
+            "period_updated": "دوره ویرایش شد",
+            "ledger-cleared": "دفتر تصفیه شد"
         },
         "modules": {
             "dashboard": "داشبورد",

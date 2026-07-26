@@ -771,7 +771,8 @@
             "password-reset": "Password reset",
             "period_closed": "Period closed",
             "period_reopened": "Period reopened",
-            "period_updated": "Period updated"
+            "period_updated": "Period updated",
+            "ledger-cleared": "Ledger cleared"
         },
         "modules": {
             "dashboard": "Dashboard",

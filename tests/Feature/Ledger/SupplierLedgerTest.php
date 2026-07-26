@@ -72,7 +72,8 @@ class SupplierLedgerTest extends TestCase
             ->assertJsonCount(0, 'data');
 
         $this->assertDatabaseHas('activity_log', [
-            'description' => 'Cleared supplier ledger',
+            'log_name' => 'suppliers',
+            'event' => 'ledger-cleared',
             'causer_id' => $admin->id,
         ]);
     }

@@ -9,7 +9,9 @@ use App\Http\Resources\LedgerEntryResource;
 use App\Http\Resources\SupplierResource;
 use App\Models\Supplier;
 use App\Support\LedgerStatementPdf;
+use App\Support\Permissions;
 use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 
 class SupplierController extends Controller
 {
@@ -111,7 +113,7 @@ class SupplierController extends Controller
             ->orderBy('id')
             ->get();
 
-        $filename = 'statement-'.\Illuminate\Support\Str::slug($supplier->name).'-'.now()->format('Ymd').'.pdf';
+        $filename = 'statement-'.Str::slug($supplier->name).'-'.now()->format('Ymd').'.pdf';
 
         return response($pdf->build($supplier, $entries, 'supplier'), 200, [
             'Content-Type' => 'application/pdf',
@@ -140,11 +142,12 @@ class SupplierController extends Controller
             ->whereNull('archived_at')
             ->update(['archived_at' => now()]);
 
-        activity()
+        activity(Permissions::SUPPLIERS)
             ->causedBy(request()->user())
             ->performedOn($supplier)
             ->withProperties(['entries_archived' => $archived, 'balance_at_clear' => $balance])
-            ->log('Cleared supplier ledger');
+            ->event('ledger-cleared')
+            ->log('ledger cleared');
 
         return response()->noContent();
     }

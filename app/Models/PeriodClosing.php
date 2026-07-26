@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Support\ActivityModules;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +16,6 @@ use Spatie\Activitylog\Support\LogOptions;
 class PeriodClosing extends Model
 {
     use BelongsToTenant;
-
     use LogsActivity;
 
     public const TYPE_DAILY = 'daily';
@@ -42,6 +42,9 @@ class PeriodClosing extends Model
         return LogOptions::defaults()
             ->logOnly(['status', 'notes'])
             ->logOnlyDirty()
+            // Without this the entries land in the catch-all log and the
+            // activity screen cannot filter them by module.
+            ->useLogName(ActivityModules::for($this))
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'period_closed',
                 'updated' => $this->status === self::STATUS_REOPENED ? 'period_reopened' : 'period_updated',

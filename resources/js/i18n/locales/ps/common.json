@@ -771,7 +771,8 @@
             "password-reset": "پټنوم بدل شو",
             "period_closed": "دوره وتړل شوه",
             "period_reopened": "دوره بیا پرانیستل شوه",
-            "period_updated": "دوره سمه شوه"
+            "period_updated": "دوره سمه شوه",
+            "ledger-cleared": "دفتر تصفیه شو"
         },
         "modules": {
             "dashboard": "ډشبورډ",

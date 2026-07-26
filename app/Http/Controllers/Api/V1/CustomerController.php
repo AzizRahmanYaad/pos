@@ -7,9 +7,13 @@ use App\Http\Requests\Parties\StoreCustomerRequest;
 use App\Http\Requests\Parties\UpdateCustomerRequest;
 use App\Http\Resources\CustomerResource;
 use App\Http\Resources\LedgerEntryResource;
+use App\Models\BusinessSetting;
 use App\Models\Customer;
 use App\Support\LedgerStatementPdf;
+use App\Support\ListReportPdf;
+use App\Support\Permissions;
 use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 
 class CustomerController extends Controller
 {
@@ -49,7 +53,7 @@ class CustomerController extends Controller
         ]);
     }
 
-    public function listPdf(\App\Support\ListReportPdf $pdf)
+    public function listPdf(ListReportPdf $pdf)
     {
         abort_unless(request()->user()->can('customers.export'), 403);
 
@@ -63,7 +67,7 @@ class CustomerController extends Controller
             ->orderBy('name')
             ->get();
 
-        $sym = \App\Models\BusinessSetting::current()->currency_symbol ?: '';
+        $sym = BusinessSetting::current()->currency_symbol ?: '';
         $money = fn ($v) => number_format((float) $v, 2).($sym ? ' '.$sym : '');
 
         $columns = [
@@ -153,7 +157,7 @@ class CustomerController extends Controller
             ->orderBy('id')
             ->get();
 
-        $filename = 'statement-'.\Illuminate\Support\Str::slug($customer->name).'-'.now()->format('Ymd').'.pdf';
+        $filename = 'statement-'.Str::slug($customer->name).'-'.now()->format('Ymd').'.pdf';
 
         return response($pdf->build($customer, $entries, 'customer'), 200, [
             'Content-Type' => 'application/pdf',
@@ -182,11 +186,12 @@ class CustomerController extends Controller
             ->whereNull('archived_at')
             ->update(['archived_at' => now()]);
 
-        activity()
+        activity(Permissions::CUSTOMERS)
             ->causedBy(request()->user())
             ->performedOn($customer)
             ->withProperties(['entries_archived' => $archived, 'balance_at_clear' => $balance])
-            ->log('Cleared customer ledger');
+            ->event('ledger-cleared')
+            ->log('ledger cleared');
 
         return response()->noContent();
     }

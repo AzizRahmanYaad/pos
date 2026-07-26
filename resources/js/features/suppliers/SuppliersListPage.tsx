@@ -104,7 +104,7 @@ export function SuppliersListPage() {
                         {t('suppliers_page.subtitle')}
                     </Typography>
                 </Box>
-                <Can permission="purchases.manage">
+                <Can permission="suppliers.create">
                     <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
                         {t('parties.new_supplier')}
                     </Button>
@@ -296,7 +296,7 @@ export function SuppliersListPage() {
                                                     <MenuBookOutlinedIcon fontSize="small" />
                                                 </IconButton>
                                             </Tooltip>
-                                            <Can permission="payments.manage">
+                                            <Can permission="payments.create">
                                                 <Tooltip title={t('actions.pay')}>
                                                     <IconButton
                                                         size="small"

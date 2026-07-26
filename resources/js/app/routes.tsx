@@ -23,6 +23,7 @@ import { ReportsPage } from '@/features/reports/ReportsPage';
 import { DailyJournalPage } from '@/features/journal/DailyJournalPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { UsersPage } from '@/features/users/UsersPage';
+import { ActivityLogPage } from '@/features/activity/ActivityLogPage';
 import { PartyLedgerPage } from '@/features/parties/PartyLedgerPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { RequirePermission } from '@/components/RequirePermission';
@@ -87,6 +88,7 @@ export const router = createBrowserRouter([
                     { path: 'reports', element: guarded('reports.view', <ReportsPage />) },
                     { path: 'journal', element: guarded('journal.view', <DailyJournalPage />) },
                     { path: 'settings', element: guarded('settings.view', <SettingsPage />) },
+                    { path: 'activity-log', element: guarded('activity.view', <ActivityLogPage />) },
                 ],
             },
         ],

@@ -17,7 +17,8 @@
         "journal": "Daily Journal",
         "settings": "Settings",
         "users": "User Management",
-        "stocks": "Stocks"
+        "stocks": "Stocks",
+        "activity_log": "Activity Log"
     },
     "actions": {
         "save": "Save",
@@ -556,7 +557,8 @@
                 "reports": "Reports",
                 "settings": "Settings",
                 "users": "Users",
-                "companies": "Businesses"
+                "companies": "Businesses",
+                "activity": "Activity Log"
             },
             "action": {
                 "view": "View",
@@ -733,5 +735,66 @@
         "money": "Finance",
         "people": "Team",
         "administration": "Administration"
+    },
+    "activity_page": {
+        "title": "Activity Log",
+        "subtitle": "Every action taken in your business — who did it, when, and from where.",
+        "when": "When",
+        "user": "User",
+        "module": "Area",
+        "action": "Action",
+        "record": "Record",
+        "ip": "From",
+        "ip_hint": "The network address the action came from.",
+        "details": "Details",
+        "field": "Field",
+        "before": "Before",
+        "after": "After",
+        "no_detail": "No field-level detail for this action.",
+        "search": "Search",
+        "from": "From date",
+        "to": "To date",
+        "all_users": "All users",
+        "all_modules": "All areas",
+        "all_actions": "All actions",
+        "export_csv": "Export CSV",
+        "empty": "Nothing recorded yet for these filters.",
+        "events": {
+            "created": "Created",
+            "updated": "Updated",
+            "deleted": "Deleted",
+            "exported": "Exported",
+            "denied": "Refused",
+            "signed-in": "Signed in",
+            "signed-out": "Signed out",
+            "sign-in-failed": "Sign-in failed",
+            "password-reset": "Password reset",
+            "period_closed": "Period closed",
+            "period_reopened": "Period reopened",
+            "period_updated": "Period updated"
+        },
+        "modules": {
+            "dashboard": "Dashboard",
+            "journal": "Daily Journal",
+            "pos": "Point of Sale",
+            "sales": "Sales",
+            "purchases": "Purchases",
+            "products": "Products",
+            "inventory": "Stock",
+            "customers": "Customers",
+            "suppliers": "Suppliers",
+            "ledger": "Cash & Ledger",
+            "payments": "Payments",
+            "expenses": "Expenses",
+            "employees": "Employees",
+            "payroll": "Payroll",
+            "period-closing": "Clearance",
+            "reports": "Reports",
+            "settings": "Settings",
+            "users": "Users",
+            "companies": "Businesses",
+            "activity": "Activity Log",
+            "account": "Account"
+        }
     }
 }

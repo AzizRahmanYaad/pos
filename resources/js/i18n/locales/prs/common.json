@@ -17,7 +17,8 @@
         "journal": "روزنامچه یومیه",
         "settings": "تنظیمات",
         "users": "مدیریت کاربران",
-        "stocks": "موجودی"
+        "stocks": "موجودی",
+        "activity_log": "سوابق فعالیت"
     },
     "actions": {
         "save": "ذخیره",
@@ -556,7 +557,8 @@
                 "reports": "گزارشات",
                 "settings": "تنظیمات",
                 "users": "کاربران",
-                "companies": "تجارت‌ها"
+                "companies": "تجارت‌ها",
+                "activity": "سوابق فعالیت"
             },
             "action": {
                 "view": "دیدن",
@@ -733,5 +735,66 @@
         "money": "مالی",
         "people": "کارکنان",
         "administration": "مدیریت"
+    },
+    "activity_page": {
+        "title": "سوابق فعالیت",
+        "subtitle": "هر کاری که در تجارت شما انجام می‌شود — چه کسی، چه وقت و از کجا.",
+        "when": "زمان",
+        "user": "کاربر",
+        "module": "بخش",
+        "action": "عمل",
+        "record": "ریکارد",
+        "ip": "از",
+        "ip_hint": "آدرس شبکه‌ای که عمل از آن انجام شده است.",
+        "details": "جزئیات",
+        "field": "فیلد",
+        "before": "قبل",
+        "after": "بعد",
+        "no_detail": "برای این عمل جزئیات فیلدی وجود ندارد.",
+        "search": "جستجو",
+        "from": "از تاریخ",
+        "to": "تا تاریخ",
+        "all_users": "همه کاربران",
+        "all_modules": "همه بخش‌ها",
+        "all_actions": "همه اعمال",
+        "export_csv": "خروجی CSV",
+        "empty": "برای این فلترها هنوز چیزی ثبت نشده است.",
+        "events": {
+            "created": "ایجاد شد",
+            "updated": "ویرایش شد",
+            "deleted": "حذف شد",
+            "exported": "خروجی گرفته شد",
+            "denied": "رد شد",
+            "signed-in": "وارد شد",
+            "signed-out": "خارج شد",
+            "sign-in-failed": "ورود ناکام",
+            "password-reset": "رمز تغییر کرد",
+            "period_closed": "دوره بسته شد",
+            "period_reopened": "دوره باز شد",
+            "period_updated": "دوره ویرایش شد"
+        },
+        "modules": {
+            "dashboard": "داشبورد",
+            "journal": "روزنامچه",
+            "pos": "نقطه فروش",
+            "sales": "فروشات",
+            "purchases": "خریداری",
+            "products": "محصولات",
+            "inventory": "ذخیره",
+            "customers": "مشتریان",
+            "suppliers": "تهیه‌کنندگان",
+            "ledger": "صندوق و دفتر",
+            "payments": "پرداخت‌ها",
+            "expenses": "مصارف",
+            "employees": "کارمندان",
+            "payroll": "معاشات",
+            "period-closing": "تصفیه",
+            "reports": "گزارشات",
+            "settings": "تنظیمات",
+            "users": "کاربران",
+            "companies": "تجارت‌ها",
+            "activity": "سوابق فعالیت",
+            "account": "حساب"
+        }
     }
 }

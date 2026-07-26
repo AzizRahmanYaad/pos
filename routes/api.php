@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ActivityLogController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\BusinessSettingController;
 use App\Http\Controllers\Api\V1\CashAccountController;
@@ -10,9 +11,9 @@ use App\Http\Controllers\Api\V1\EmployeeController;
 use App\Http\Controllers\Api\V1\ExpenseCategoryController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\PaymentController;
-use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PayrollRunController;
 use App\Http\Controllers\Api\V1\PeriodClosingController;
+use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PurchaseController;
 use App\Http\Controllers\Api\V1\ReportController;
@@ -39,6 +40,10 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/settings', [BusinessSettingController::class, 'show']);
         Route::put('/settings', [BusinessSettingController::class, 'update']);
+
+        Route::get('/activity-log', [ActivityLogController::class, 'index']);
+        Route::get('/activity-log/filters', [ActivityLogController::class, 'filters']);
+        Route::get('/activity-log/export', [ActivityLogController::class, 'export']);
 
         Route::get('/roles', [RoleController::class, 'index']);
         Route::get('/permissions', [PermissionController::class, 'index']);

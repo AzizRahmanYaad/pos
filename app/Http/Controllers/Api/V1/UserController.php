@@ -27,12 +27,14 @@ class UserController extends Controller
         $users = UserResource::collection(
             User::query()
                 ->with(['roles', 'permissions', 'tenant'])
-                // A Company Admin only ever sees their own staff; accounts
-                // in other businesses are not theirs to know about.
-                ->unless(
-                    $actor->isPlatformOwner(),
-                    fn ($query) => $query->where('tenant_id', $actor->tenant_id),
-                )
+                // A Company Admin sees the staff they took on, and
+                // themselves — nothing else. Another admin in the same
+                // business, and anyone that admin hired, stay invisible.
+                ->unless($actor->isPlatformOwner(), fn ($query) => $query
+                    ->where('tenant_id', $actor->tenant_id)
+                    ->where(fn ($scope) => $scope
+                        ->where('created_by', $actor->id)
+                        ->orWhere('id', $actor->id)))
                 ->orderBy('name')
                 ->paginate(20)
         );
@@ -44,7 +46,7 @@ class UserController extends Controller
         return $users->additional([
             'limit' => $tenant === null ? null : [
                 'max_users' => $tenant->max_users,
-                'user_count' => $tenant->userCount(),
+                'user_count' => $tenant->staffCount(),
                 'remaining' => $tenant->remainingUserSlots(),
                 'reached' => $tenant->hasReachedUserLimit(),
             ],
@@ -83,7 +85,9 @@ class UserController extends Controller
             if ($foundsBusiness) {
                 $targetTenant = Tenant::create([
                     'name' => $request->validated('name'),
-                    'max_users' => $request->validated('max_users'),
+                    // Every business starts on the standard allowance; the
+                    // superadmin can raise or lower it per company later.
+                    'max_users' => $request->validated('max_users') ?? Tenant::DEFAULT_MAX_USERS,
                 ]);
                 $provisioner->provision($targetTenant);
             }
@@ -91,6 +95,8 @@ class UserController extends Controller
             $user = User::create([
                 ...$request->safe()->except(['password', 'roles', 'permissions', 'logo', 'tenant_id', 'max_users']),
                 'tenant_id' => $createsSuperadmin ? null : $targetTenant?->id,
+                // Who opened this account decides who may later manage it.
+                'created_by' => $request->user()->id,
                 'password' => Hash::make($request->validated('password')),
                 'logo_path' => $request->file('logo')?->store('logos', 'public'),
                 // Every POS account starts with one year of access; the
@@ -195,7 +201,7 @@ class UserController extends Controller
 
         throw ValidationException::withMessages([
             'limit' => __(
-                'This business has used all :max of its user accounts. Remove a user first, or ask the platform administrator to raise the limit.',
+                'This business has used all :max of the staff accounts it may create. Remove a user first, or ask the platform administrator to raise the limit.',
                 ['max' => $tenant->max_users],
             ),
         ]);

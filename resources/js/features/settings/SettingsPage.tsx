@@ -21,6 +21,7 @@ import {
     type BusinessSettings,
 } from '@/features/settings/api';
 import { Can } from '@/components/Can';
+import { MyAccountForm } from '@/features/settings/MyAccountForm';
 
 function BusinessSettingsForm() {
     const { t } = useTranslation();
@@ -261,10 +262,13 @@ export function SettingsPage() {
                 {t('nav.settings')}
             </Typography>
             <Stack spacing={3}>
+                {/* Your own details first — every account has these, even
+                    one with no access to the business settings below. */}
+                <MyAccountForm />
+                <ChangePasswordForm />
                 <Can permission="settings.edit">
                     <BusinessSettingsForm />
                 </Can>
-                <ChangePasswordForm />
             </Stack>
         </Box>
     );

@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Support\Permissions;
@@ -14,7 +15,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'phone', 'address', 'logo_path', 'locale', 'is_active', 'access_expires_at', 'tenant_id', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'address', 'logo_path', 'locale', 'is_active', 'access_expires_at', 'tenant_id', 'created_by', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -63,19 +64,37 @@ class User extends Authenticatable
         return $this->can(Permissions::of(Permissions::COMPANIES, Permissions::VIEW));
     }
 
+    /** The account that opened this one, if anybody on the platform did. */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'created_by');
+    }
+
+    /** The accounts this one has opened. */
+    public function createdUsers(): HasMany
+    {
+        return $this->hasMany(self::class, 'created_by');
+    }
+
     /**
-     * Whether this account is allowed to administer the given one. The
-     * platform owner may administer anybody; everyone else is confined to
-     * their own business, and an account with no business at all is never
-     * a valid target for a Company Admin.
+     * Whether this account may administer the given one.
+     *
+     * The platform owner may administer anybody. A Company Admin's reach
+     * stops at the staff they took on themselves — not their business at
+     * large — so a second admin in the same business is invisible to them,
+     * as is anybody that admin hired.
      */
-    public function managesSameBusinessAs(self $target): bool
+    public function manages(self $target): bool
     {
         if ($this->isPlatformOwner()) {
             return true;
         }
 
-        return $this->tenant_id !== null && $this->tenant_id === $target->tenant_id;
+        if ($this->tenant_id === null || $this->tenant_id !== $target->tenant_id) {
+            return false;
+        }
+
+        return $target->created_by === $this->id;
     }
 
     /**

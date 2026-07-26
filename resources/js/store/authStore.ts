@@ -11,6 +11,7 @@ interface AuthState {
     login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     bootstrap: () => Promise<void>;
+    setUser: (user: AuthUser) => void;
     can: (permission: string) => boolean;
     canAny: (permissions: string[]) => boolean;
 }
@@ -47,6 +48,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         } catch {
             set({ user: null, status: 'guest' });
         }
+    },
+
+    /** Reflect a change the user just made to their own account. */
+    setUser(user) {
+        set({ user });
     },
 
     can(permission) {

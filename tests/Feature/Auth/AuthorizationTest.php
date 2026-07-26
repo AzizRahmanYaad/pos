@@ -38,7 +38,12 @@ class AuthorizationTest extends TestCase
 
         $admin = User::factory()->create(['tenant_id' => $mine->id, 'name' => 'Owner']);
         $admin->assignRole('admin');
-        User::factory()->create(['tenant_id' => $mine->id, 'name' => 'My Cashier']);
+
+        // Hired by this admin, so theirs to manage.
+        User::factory()->create(['tenant_id' => $mine->id, 'name' => 'My Cashier', 'created_by' => $admin->id]);
+        // Same business, but hired by a different admin — not theirs.
+        User::factory()->create(['tenant_id' => $mine->id, 'name' => 'Someone Elses Cashier']);
+        // Another business entirely.
         User::factory()->create(['tenant_id' => $theirs->id, 'name' => 'Their Cashier']);
 
         $response = $this->actingAs($admin)->getJson('/api/v1/users')->assertOk();

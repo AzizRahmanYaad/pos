@@ -473,7 +473,12 @@
         "new_password": "New password",
         "confirm_password": "Confirm new password",
         "password_updated": "Password updated.",
-        "password_update_failed": "Could not update password — check your current password is correct."
+        "password_update_failed": "Could not update password — check your current password is correct.",
+        "my_account": "My account",
+        "my_account_hint": "Your own name, contact details and photo. These appear on the documents you issue.",
+        "logo_hint": "Square image, up to 2 MB.",
+        "profile_saved": "Your details were saved",
+        "profile_failed": "Could not save your details. Please try again."
     },
     "users_page": {
         "title": "User Management",
@@ -571,12 +576,12 @@
         },
         "limit": {
             "title": "User accounts",
-            "usage": "{{used}} of {{max}} used",
+            "usage": "{{used}} of {{max}} staff accounts used",
             "unlimited": "Unlimited accounts",
-            "reached": "You have used all {{max}} of your user accounts. Remove a user first, or ask the platform administrator to raise the limit.",
+            "reached": "You have used all {{max}} staff accounts your plan allows. Remove a user first, or ask the platform administrator to raise the limit.",
             "remaining": "{{count}} remaining",
-            "max_users": "Maximum users",
-            "max_users_hint": "Leave empty for no limit.",
+            "max_users": "Maximum staff accounts",
+            "max_users_hint": "Staff this business may create, not counting the owner. Leave empty for no limit.",
             "save_success": "User limit updated",
             "companies": "Businesses",
             "company": "Business",

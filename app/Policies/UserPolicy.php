@@ -26,7 +26,7 @@ class UserPolicy
         }
 
         return $user->can(Permissions::of(Permissions::USERS, Permissions::VIEW))
-            && $user->managesSameBusinessAs($target);
+            && $user->manages($target);
     }
 
     public function create(User $user): bool
@@ -41,14 +41,14 @@ class UserPolicy
         }
 
         return $user->can(Permissions::of(Permissions::USERS, Permissions::EDIT))
-            && $user->managesSameBusinessAs($target);
+            && $user->manages($target);
     }
 
     public function delete(User $user, User $target): bool
     {
         return ! $user->is($target)
             && $user->can(Permissions::of(Permissions::USERS, Permissions::DELETE))
-            && $user->managesSameBusinessAs($target);
+            && $user->manages($target);
     }
 
     /**

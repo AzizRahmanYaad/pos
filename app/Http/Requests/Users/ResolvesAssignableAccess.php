@@ -24,8 +24,11 @@ trait ResolvesAssignableAccess
             return $roles;
         }
 
-        // Nobody but the platform owner creates platform owners.
-        return array_values(array_diff($roles, ['superadmin']));
+        // Only the platform owner mints platform owners and business
+        // owners. A Company Admin hires staff — letting them create a
+        // second admin would hand out an account they then could not see
+        // or manage, and one able to bypass their own limits.
+        return array_values(array_diff($roles, ['superadmin', 'admin']));
     }
 
     /**

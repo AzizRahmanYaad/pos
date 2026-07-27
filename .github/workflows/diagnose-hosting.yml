@@ -1,0 +1,138 @@
+name: Diagnose hosting
+
+# Answers one question: when the site cannot be reached, is the fault the
+# server, the web server's configuration, or the domain's DNS?
+#
+# It has to run on the server itself. From anywhere else all three failures
+# look identical — the browser simply cannot connect, and says so in the
+# same way whether the machine is down, the domain is unknown to it, or the
+# name points somewhere else entirely.
+#
+# Run it from the Actions tab: "Diagnose hosting" -> "Run workflow".
+# Nothing is deployed and nothing is changed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: The domain that cannot be reached
+        required: true
+        default: soft-afghan.com
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    name: Ask the server what it sees
+
+    steps:
+      - name: What the outside world sees
+        env:
+          DOMAIN: ${{ inputs.domain }}
+        run: |
+          echo "== How $DOMAIN resolves from outside =="
+          # A healthy site answers with the same one or two addresses every
+          # time. A long, changing list means the name is not pinned to the
+          # server the app is on, and every visitor is sent somewhere else.
+          for i in 1 2 3 4 5 6; do
+            getent ahostsv4 "$DOMAIN" | awk '{print $1}' | sort -u | paste -sd, -
+          done | sort | uniq -c | sort -rn
+          echo
+          echo "distinct IPv4 addresses seen over 6 lookups:"
+          for i in 1 2 3 4 5 6; do getent ahostsv4 "$DOMAIN" | awk '{print $1}'; done | sort -u | tee /tmp/outside-v4 | wc -l
+          echo "distinct IPv6 addresses seen over 6 lookups:"
+          for i in 1 2 3 4 5 6; do getent ahostsv6 "$DOMAIN" | awk '{print $1}'; done | sort -u | wc -l
+
+      - name: Check whether the deploy secrets are configured
+        id: cfg
+        env:
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+        run: |
+          if [ -n "$HOSTINGER_SSH_HOST" ]; then
+            echo "ssh=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ssh=false" >> "$GITHUB_OUTPUT"
+            echo "No SSH secrets set - only the outside view above is available."
+          fi
+
+      - name: Ask the server itself
+        if: steps.cfg.outputs.ssh == 'true'
+        uses: appleboy/ssh-action@v1
+        env:
+          DOMAIN: ${{ inputs.domain }}
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          envs: DOMAIN
+          script: |
+            APP_PATH="${{ secrets.HOSTINGER_APP_PATH }}"
+
+            echo "================ 1. Is this machine alive and is the app on it?"
+            echo "uptime:      $(uptime 2>/dev/null | sed 's/^ *//')"
+            if [ -f "$APP_PATH/public/index.php" ]; then
+              echo "PASS  the application is present at $APP_PATH"
+              echo "      last deployed: $(date -r "$APP_PATH/public/index.php" 2>/dev/null || echo unknown)"
+            else
+              echo "FAIL  no application found at $APP_PATH"
+            fi
+
+            echo
+            echo "================ 2. Does the app answer on the server itself?"
+            # /up is the framework's own health endpoint. Asking for it here,
+            # over the loopback, takes DNS and the whole internet out of the
+            # picture: if this answers, the application and PHP are fine and
+            # the fault is entirely in front of them.
+            LOCAL=""
+            for target in "http://127.0.0.1/up" "https://127.0.0.1/up"; do
+              code=$(curl -sS -k -m 15 -o /dev/null -w '%{http_code}' -H "Host: $DOMAIN" "$target" 2>/dev/null || echo 000)
+              echo "  $target  ->  HTTP $code"
+              [ "$code" = "200" ] && LOCAL="yes"
+            done
+            if [ -n "$LOCAL" ]; then
+              echo "PASS  the application serves $DOMAIN on this machine."
+              echo "      Everything from PHP inwards is healthy."
+            else
+              echo "FAIL  the application did not answer for $DOMAIN on this machine."
+              echo "      Either the domain is not attached to this hosting account,"
+              echo "      or its document root does not point at the app's public/ folder."
+            fi
+
+            echo
+            echo "================ 3. Does the domain point at THIS machine?"
+            # The server's own public address is what the DNS record has to
+            # contain. Rather than printing it -- it may be a masked secret --
+            # the two are compared here and only the verdict is shown.
+            MINE=$(curl -sS -m 15 https://api.ipify.org 2>/dev/null || curl -sS -m 15 https://ifconfig.me 2>/dev/null || echo "")
+            THEIRS=$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk '{print $1}' | sort -u)
+
+            if [ -z "$MINE" ]; then
+              echo "SKIP  could not determine this machine's public address."
+            elif [ -z "$THEIRS" ]; then
+              echo "FAIL  $DOMAIN does not resolve to any IPv4 address at all."
+            elif echo "$THEIRS" | grep -qx "$MINE"; then
+              echo "PASS  $DOMAIN resolves to this machine."
+            else
+              echo "FAIL  $DOMAIN does NOT resolve to this machine."
+              echo "      It resolves to $(echo "$THEIRS" | wc -l) other address(es)."
+              echo "      This is the fault: visitors are being sent to servers"
+              echo "      that do not host this site. Point the A record (and the"
+              echo "      AAAA record) at this machine in the hosting panel."
+            fi
+
+            echo
+            echo "================ 4. Configuration the app was given"
+            if [ -f "$APP_PATH/.env" ]; then
+              # Only these three. The rest of the file holds credentials.
+              grep -E '^(APP_ENV|APP_URL|APP_DEBUG)=' "$APP_PATH/.env" || echo "  (none of APP_ENV/APP_URL/APP_DEBUG are set)"
+            else
+              echo "FAIL  no .env on the server - the app cannot start without it."
+            fi
+
+            echo
+            echo "================ 5. Is there a certificate for the domain?"
+            code=$(curl -sS -m 15 -o /dev/null -w '%{http_code}' "https://$DOMAIN/up" 2>/dev/null || echo 000)
+            echo "  https://$DOMAIN/up  ->  HTTP $code  (000 means it could not connect)"

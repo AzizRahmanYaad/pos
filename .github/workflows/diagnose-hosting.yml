@@ -146,8 +146,8 @@ jobs:
             echo "the right host name attached, so the answer is about that"
             echo "machine alone and not about whoever happened to be sent there."
             echo
-            echo "| address | reply |"
-            echo "|---|---|"
+            echo "| address | port 443 | port 80 |"
+            echo "|---|---|---|"
 
             # Whatever this runner is given right now, plus the addresses a
             # machine that cannot open the site was given.
@@ -156,14 +156,16 @@ jobs:
 
             for ip in $(echo "$candidates" | tr ' ' '\n' | sort -u); do
               [ -z "$ip" ] && continue
-              code=$(curl -sS -k -m 12 -o /dev/null -w '%{http_code}' \
+
+              # Port 80 as well as 443. A machine that answers on one and not
+              # the other is being filtered, not switched off — and that is a
+              # different problem with a different owner.
+              https=$(curl -sS -k -m 12 -o /dev/null -w '%{http_code}' \
                 --resolve "$DOMAIN:443:$ip" "https://$DOMAIN/up" 2>/dev/null || echo 000)
-              case "$code" in
-                200) verdict="**200 — serves the site**" ;;
-                000) verdict="no reply (timed out)" ;;
-                *)   verdict="HTTP $code" ;;
-              esac
-              echo "| \`$ip\` | $verdict |"
+              http=$(curl -sS -m 12 -o /dev/null -w '%{http_code}' \
+                --resolve "$DOMAIN:80:$ip" "http://$DOMAIN/up" 2>/dev/null || echo 000)
+              say() { case "$1" in 200) echo "**200**" ;; 000) echo "no reply" ;; *) echo "HTTP $1" ;; esac; }
+              echo "| \`$ip\` | $(say $https) | $(say $http) |"
             done
 
             echo

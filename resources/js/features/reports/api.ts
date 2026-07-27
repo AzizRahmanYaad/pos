@@ -28,6 +28,9 @@ export interface ProfitLoss {
     from: string;
     to: string;
     revenue: number;
+    /** Money the shop chose not to take — deducted from revenue below. */
+    discounts: number;
+    net_revenue: number;
     cogs: number;
     gross_profit: number;
     operating_expenses: number;

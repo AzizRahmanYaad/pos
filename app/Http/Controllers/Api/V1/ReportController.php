@@ -21,6 +21,7 @@ use App\Support\ProfitLossPdf;
 use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ReportController extends Controller
 {
@@ -273,7 +274,7 @@ class ReportController extends Controller
      * ledger entries, so it always reconciles with the Cash Report) and a
      * same-day profit/loss figure.
      *
-     * @return array{date:string,sales_total:float,credit_sales_total:float,customer_collections_total:float,purchases_total:float,supplier_payments_total:float,expenses_total:float,cash_in_total:float,cash_out_total:float,net_cash_movement:float,profit_or_loss:float,transactions:array<int,array{type:string,time:string,description:string,amount:float,direction:string}>}
+     * @return array{date:string,sales_total:float,credit_sales_total:float,customer_collections_total:float,purchases_total:float,supplier_payments_total:float,discounts_total:float,expenses_total:float,cash_in_total:float,cash_out_total:float,net_cash_movement:float,profit_or_loss:float,transactions:array<int,array{type:string,time:string,description:string,amount:float,direction:string}>}
      */
     private function computeDailyJournal(Request $request): array
     {
@@ -290,6 +291,14 @@ class ReportController extends Controller
         $salesTotal = (float) (clone $saleItems)
             ->selectRaw('COALESCE(SUM(sale_items.line_total * (sale_items.quantity - sale_items.refunded_quantity) / sale_items.quantity), 0) as total')
             ->value('total');
+        // Same omission as the profit-and-loss report: a discount taken off
+        // the whole sale never reached the takings, so the day looked more
+        // profitable than it was.
+        $discountsTotal = (float) Sale::query()
+            ->when(TenantContext::id(), fn ($query, $tenantId) => $query->where('sales.tenant_id', $tenantId))
+            ->whereIn('status', [Sale::STATUS_COMPLETED, Sale::STATUS_PARTIALLY_REFUNDED])
+            ->whereBetween('sale_date', [$start, $end])
+            ->sum('discount');
         $cogs = (float) (clone $saleItems)
             ->selectRaw('COALESCE(SUM((sale_items.quantity - sale_items.refunded_quantity) * sale_items.cost_price_snapshot), 0) as total')
             ->value('total');
@@ -384,17 +393,18 @@ class ReportController extends Controller
             'customer_collections_total' => round($customerCollectionsTotal, 2),
             'purchases_total' => round($purchasesTotal, 2),
             'supplier_payments_total' => round($supplierPaymentsTotal, 2),
+            'discounts_total' => round($discountsTotal, 2),
             'expenses_total' => round($operatingExpensesTotal, 2),
             'cash_in_total' => round($cashIn, 2),
             'cash_out_total' => round($cashOut, 2),
             'net_cash_movement' => round($cashIn - $cashOut, 2),
-            'profit_or_loss' => round($salesTotal - $cogs - $operatingExpensesTotal, 2),
+            'profit_or_loss' => round($salesTotal - $discountsTotal - $cogs - $operatingExpensesTotal, 2),
             'transactions' => $transactions->values()->all(),
         ];
     }
 
     /**
-     * @return array{from:string,to:string,revenue:float,cogs:float,gross_profit:float,operating_expenses:float,operating_expenses_by_category:array<int,array{category:string,total:float}>,payroll_cost:float,net_profit:float,cash_balance:float,inventory_value:float,receivables_total:float,payables_total:float}
+     * @return array{from:string,to:string,revenue:float,discounts:float,net_revenue:float,cogs:float,gross_profit:float,operating_expenses:float,operating_expenses_by_category:array<int,array{category:string,total:float}>,payroll_cost:float,net_profit:float,cash_balance:float,inventory_value:float,receivables_total:float,payables_total:float}
      */
     private function computeProfitLoss(Request $request): array
     {
@@ -406,6 +416,17 @@ class ReportController extends Controller
         $cogs = (float) $this->completedSaleItems($from, $to)
             ->selectRaw('COALESCE(SUM((sale_items.quantity - sale_items.refunded_quantity) * sale_items.cost_price_snapshot), 0) as total')
             ->value('total');
+
+        // Line totals already carry any discount given on the line itself,
+        // but a discount taken off the whole sale at the till never reached
+        // this figure — so revenue was reported as if it had been charged in
+        // full. It is money the shop chose not to take, and it belongs here
+        // beside the expenses rather than hidden inside the takings.
+        $discounts = (float) Sale::query()
+            ->when(TenantContext::id(), fn ($query, $tenantId) => $query->where('sales.tenant_id', $tenantId))
+            ->whereIn('status', [Sale::STATUS_COMPLETED, Sale::STATUS_PARTIALLY_REFUNDED])
+            ->whereBetween('sale_date', [$from, $to])
+            ->sum('discount');
 
         $expensesByCategory = Expense::query()
             ->join('expense_categories', 'expense_categories.id', '=', 'expenses.expense_category_id')
@@ -426,7 +447,8 @@ class ReportController extends Controller
             })
             ->sum('net_pay');
 
-        $grossProfit = $revenue - $cogs;
+        $netRevenue = $revenue - $discounts;
+        $grossProfit = $netRevenue - $cogs;
         $netProfit = $grossProfit - $operatingExpenses - $payrollCost;
 
         // A live balance-sheet snapshot alongside the period's P&L — cash,
@@ -449,6 +471,8 @@ class ReportController extends Controller
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'revenue' => round($revenue, 2),
+            'discounts' => round($discounts, 2),
+            'net_revenue' => round($netRevenue, 2),
             'cogs' => round($cogs, 2),
             'gross_profit' => round($grossProfit, 2),
             'operating_expenses' => round($operatingExpenses, 2),
@@ -586,7 +610,7 @@ class ReportController extends Controller
 
         $tableRows = $rows->map(fn ($r) => [$r['name'], $r['phone'] ?: '—', $money($r['balance'])])->all();
 
-        $filename = \Illuminate\Support\Str::slug($title).'-'.now()->format('Ymd').'.pdf';
+        $filename = Str::slug($title).'-'.now()->format('Ymd').'.pdf';
 
         return response($pdf->build($title, $columns, $tableRows, __('Total').': '.$money($rows->sum('balance'))), 200, [
             'Content-Type' => 'application/pdf',

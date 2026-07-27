@@ -15,6 +15,7 @@ use App\Models\CashAccount;
 use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\ExpenseCategory;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\Supplier;
@@ -82,12 +83,83 @@ class ReportTest extends TestCase
 
         $response->assertJson([
             'revenue' => 250.0,
+            'discounts' => 0.0,
+            'net_revenue' => 250.0,
             'cogs' => 100.0,
             'gross_profit' => 150.0,
             'operating_expenses' => 20.0,
             'payroll_cost' => 500.0,
             'net_profit' => -370.0,
         ]);
+    }
+
+    /**
+     * A discount taken off the whole sale is money the shop chose not to
+     * take. It never appeared in line totals, so revenue was reported as if
+     * it had been charged in full and every figure below it was too high.
+     */
+    public function test_a_discount_on_the_sale_comes_off_the_revenue_and_the_profit(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $cashier = User::factory()->create();
+        $product = Product::factory()->create(['sale_price' => 100, 'default_cost' => 60]);
+
+        app(RecordStockMovementAction::class)->execute($product, $warehouse, StockMovement::TYPE_OPENING, 10, 60);
+
+        // Sold for 200, with 50 taken off at the till.
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => now(), 'discount' => 50],
+            items: [[
+                'product_id' => $product->id, 'quantity' => 2,
+                'unit_id' => $product->unit_id, 'unit_price' => 100,
+            ]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 150]],
+            cashierId: $cashier->id,
+        );
+
+        $this->actingAs($this->manager())
+            ->getJson('/api/v1/reports/profit-loss?from='.now()->startOfMonth()->toDateString().'&to='.now()->endOfMonth()->toDateString())
+            ->assertOk()
+            ->assertJson([
+                'revenue' => 200.0,
+                'discounts' => 50.0,
+                'net_revenue' => 150.0,
+                'cogs' => 120.0,
+                // 150 taken, 120 of stock gone: thirty pounds of profit, not
+                // the eighty it used to claim.
+                'gross_profit' => 30.0,
+                'net_profit' => 30.0,
+            ]);
+    }
+
+    public function test_the_daily_journal_also_takes_the_discount_off_the_day(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $cashier = User::factory()->create();
+        $product = Product::factory()->create(['sale_price' => 100, 'default_cost' => 60]);
+
+        app(RecordStockMovementAction::class)->execute($product, $warehouse, StockMovement::TYPE_OPENING, 10, 60);
+
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => now(), 'discount' => 50],
+            items: [[
+                'product_id' => $product->id, 'quantity' => 2,
+                'unit_id' => $product->unit_id, 'unit_price' => 100,
+            ]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 150]],
+            cashierId: $cashier->id,
+        );
+
+        $this->actingAs($this->manager())
+            ->getJson('/api/v1/reports/daily-journal?date='.now()->toDateString())
+            ->assertOk()
+            ->assertJson([
+                'sales_total' => 200.0,
+                'discounts_total' => 50.0,
+                'profit_or_loss' => 30.0,
+            ]);
     }
 
     public function test_profit_loss_nets_out_a_partial_refund_and_excludes_a_full_refund(): void
@@ -392,7 +464,7 @@ class ReportTest extends TestCase
         // The customer pays down 40 of what they owe.
         app(RecordPaymentAction::class)->execute(
             party: $customer,
-            direction: \App\Models\Payment::DIRECTION_IN,
+            direction: Payment::DIRECTION_IN,
             amount: 40,
             cashAccount: $cashAccount,
             method: 'cash',
@@ -413,7 +485,7 @@ class ReportTest extends TestCase
         // Paying the supplier down by 20.
         app(RecordPaymentAction::class)->execute(
             party: $supplier,
-            direction: \App\Models\Payment::DIRECTION_OUT,
+            direction: Payment::DIRECTION_OUT,
             amount: 20,
             cashAccount: $cashAccount,
             method: 'cash',
@@ -462,7 +534,7 @@ class ReportTest extends TestCase
 
         app(RecordPaymentAction::class)->execute(
             party: $supplier,
-            direction: \App\Models\Payment::DIRECTION_OUT,
+            direction: Payment::DIRECTION_OUT,
             amount: 200,
             cashAccount: $cashAccount,
             method: 'cash',

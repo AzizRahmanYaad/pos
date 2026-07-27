@@ -401,7 +401,9 @@
         "no_cash_accounts": "No active cash accounts.",
         "current_balance": "Current balance",
         "cash_in": "Cash in",
-        "cash_out": "Cash out"
+        "cash_out": "Cash out",
+        "total_discounts": "Discounts given",
+        "net_revenue": "Net revenue"
     },
     "journal_page": {
         "title": "Daily Journal",

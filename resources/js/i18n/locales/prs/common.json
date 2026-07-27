@@ -401,7 +401,9 @@
         "no_cash_accounts": "هیچ حساب نقدی فعالی وجود ندارد.",
         "current_balance": "بیلانس فعلی",
         "cash_in": "نقدی ورودی",
-        "cash_out": "نقدی خروجی"
+        "cash_out": "نقدی خروجی",
+        "total_discounts": "تخفیفات داده‌شده",
+        "net_revenue": "عواید خالص"
     },
     "journal_page": {
         "title": "روزنامچه یومیه",

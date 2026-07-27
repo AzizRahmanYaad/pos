@@ -401,7 +401,9 @@
         "no_cash_accounts": "کوم فعال نغدي حساب نشته.",
         "current_balance": "اوسنی بیلانس",
         "cash_in": "نغدي ننوت",
-        "cash_out": "نغدي وتون"
+        "cash_out": "نغدي وتون",
+        "total_discounts": "ورکړل شوي تخفیفونه",
+        "net_revenue": "خالص عاید"
     },
     "journal_page": {
         "title": "ورځنۍ یادداشت",

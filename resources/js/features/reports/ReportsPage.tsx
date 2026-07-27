@@ -299,6 +299,12 @@ export function ReportsPage() {
                     </Typography>
                     <Stack spacing={1.25}>
                         <PnlRow label={t('fields.revenue')} value={money(pnl.revenue)} />
+                        <PnlRow
+                            label={t('reports_page.total_discounts')}
+                            value={`−${money(pnl.discounts)}`}
+                            muted
+                        />
+                        <PnlRow label={t('reports_page.net_revenue')} value={money(pnl.net_revenue)} />
                         <PnlRow label={t('fields.cogs')} value={`−${money(pnl.cogs)}`} muted />
                         <PnlRow label={t('fields.gross_profit')} value={money(pnl.gross_profit)} bold divider />
                     </Stack>

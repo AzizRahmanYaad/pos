@@ -53,6 +53,14 @@
             <td class="num">{{ $money($data['revenue']) }}</td>
         </tr>
         <tr class="deduction">
+            <td class="label">{{ __('Discounts given') }}</td>
+            <td class="num">−{{ $money($data['discounts']) }}</td>
+        </tr>
+        <tr class="subtotal">
+            <td>{{ __('Net revenue') }}</td>
+            <td class="num">{{ $money($data['net_revenue']) }}</td>
+        </tr>
+        <tr class="deduction">
             <td class="label">{{ __('Cost of goods sold') }}</td>
             <td class="num">−{{ $money($data['cogs']) }}</td>
         </tr>

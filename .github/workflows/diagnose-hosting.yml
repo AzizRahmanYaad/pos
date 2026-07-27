@@ -50,6 +50,16 @@ jobs:
             echo "| IPv4 | **$n4** |"
             echo "| IPv6 | **$n6** |"
             echo
+            # Printed because they are the thing to change, and because a
+            # public DNS record is not a secret. After the records are
+            # corrected these should be the hosting plan's server address.
+            echo "Currently answering with:"
+            echo
+            echo '```'
+            echo "$v4"
+            echo "$v6"
+            echo '```'
+            echo
             if [ "$n4" -gt 2 ] || [ "$n6" -gt 2 ]; then
               echo "A site pinned to one server answers with the same one or two"
               echo "addresses every time. Answering with many different ones means"

@@ -234,6 +234,72 @@ function patchList(body: unknown, apply: (rows: Record<string, unknown>[]) => Re
 }
 
 /**
+ * The API path a "<thing>_id" field points at.
+ *
+ * Fields are snake_case and paths are kebab-case, so expense_category_id
+ * lives at /expense-categories — not /expense_categorys, which is what a
+ * naive pluraliser produces and what silently found nothing.
+ */
+function lookupPath(base: string): string {
+    const kebab = base.replace(/_/g, '-');
+
+    if (kebab.endsWith('y')) return `${kebab.slice(0, -1)}ies`;
+    if (/(s|x|z|ch|sh)$/.test(kebab)) return `${kebab}es`;
+
+    return `${kebab}s`;
+}
+
+/**
+ * Fill in the names a list column shows but a form never sends.
+ *
+ * A product form posts category_id and unit_id; the products table draws
+ * category_name and unit_short_name. Storing the raw payload therefore
+ * produced a row with blank columns — which is why a product created with
+ * no connection looked like nothing had happened, while a customer (whose
+ * form happens to carry every column the list shows) appeared correctly.
+ *
+ * Every "<thing>_id" is resolved against the cached list of those things,
+ * which the device already holds.
+ */
+function withResolvedNames(
+    record: Record<string, unknown>,
+    caches: CachedResponse[],
+): Record<string, unknown> {
+    const enriched = { ...record };
+
+    for (const [field, value] of Object.entries(record)) {
+        if (!field.endsWith('_id') || typeof value !== 'number') continue;
+
+        const base = field.slice(0, -3);
+        const prefix = `GET /api/v1/${lookupPath(base)}`;
+        const source = caches.find((entry) => entry.key.startsWith(prefix));
+        const body = source?.body as { data?: unknown } | undefined;
+        const rows = Array.isArray(body?.data) ? (body.data as Record<string, unknown>[]) : [];
+        const match = rows.find((row) => row.id === value);
+
+        if (!match) continue;
+
+        // Lists do not always spell the column the way the field is spelled:
+        // an expense carries expense_category_id and the table draws
+        // category_name. Set both the full name and the short one so the
+        // column is filled whichever the screen asked for.
+        const short = base.split('_').slice(-1)[0];
+
+        if (typeof match.name === 'string') {
+            enriched[`${base}_name`] = match.name;
+            enriched[`${short}_name`] = match.name;
+        }
+
+        if (typeof match.short_name === 'string') {
+            enriched[`${base}_short_name`] = match.short_name;
+            enriched[`${short}_short_name`] = match.short_name;
+        }
+    }
+
+    return enriched;
+}
+
+/**
  * Show a queued change on the device that made it.
  *
  * Without this the queue works perfectly and the user sees nothing: they
@@ -265,7 +331,10 @@ export async function applyWriteLocally(entry: OutboxEntry): Promise<Record<stri
             let body = cached.body;
 
             if (entry.method === 'POST' && targetId === null) {
-                optimistic = { ...payload, id: tempId, [PENDING_FLAG]: true };
+                optimistic = optimistic ?? withResolvedNames(
+                    { ...payload, id: tempId, [PENDING_FLAG]: true },
+                    all,
+                );
                 body = patchList(body, (rows) => [optimistic as Record<string, unknown>, ...rows]);
             } else if ((entry.method === 'PUT' || entry.method === 'PATCH') && targetId !== null) {
                 body = patchList(body, (rows) =>

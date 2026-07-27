@@ -4,6 +4,7 @@ import type { AuthUser } from '@/features/auth/api';
 import { clearCacheFor } from '@/offline/db';
 import { setOfflineUser } from '@/offline/interceptors';
 import { useSyncStore } from '@/offline/syncStore';
+import { warmOfflineCache } from '@/offline/prefetch';
 
 type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'guest';
 
@@ -31,6 +32,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             setOfflineUser(user.id);
             set({ user, status: 'authenticated', error: null });
             void useSyncStore.getState().refresh(user.id);
+            // Put the shop on the device now, while there is a line to do it.
+            void warmOfflineCache(user.id);
         } catch (error) {
             set({ status: 'guest', error: 'Invalid email or password' });
             throw error;
@@ -60,6 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ user, status: 'authenticated' });
             void useSyncStore.getState().refresh(user.id);
             void useSyncStore.getState().sync(user.id);
+            void warmOfflineCache(user.id);
         } catch {
             set({ user: null, status: 'guest' });
         }

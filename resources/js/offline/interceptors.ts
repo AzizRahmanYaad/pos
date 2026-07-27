@@ -1,6 +1,6 @@
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import i18n from '@/i18n/i18n';
-import { enqueue, readCache, writeCache, type OutboxEntry } from '@/offline/db';
+import { applyWriteLocally, enqueue, readCacheForPath, writeCache, type OutboxEntry } from '@/offline/db';
 import { IDEMPOTENCY_HEADER } from '@/offline/rawClient';
 import { reportReachable, refreshUnsentCount, useSyncStore } from '@/offline/syncStore';
 
@@ -187,7 +187,11 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
             }
 
             if (method === 'GET') {
-                const hit = await readCache(cacheKey(config), currentUserId);
+                const hit = await readCacheForPath(
+                    cacheKey(config),
+                    `${config.baseURL ?? ''}${config.url ?? ''}`,
+                    currentUserId,
+                );
 
                 if (hit) {
                     return {
@@ -230,12 +234,18 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                     return Promise.reject(error);
                 }
 
+                // Show it on the screen that made it. Queuing silently is
+                // indistinguishable, to the user, from being ignored.
+                const optimistic = await applyWriteLocally(entry);
+
                 await refreshUnsentCount(currentUserId);
 
                 // The change is safely on the device. Telling the caller it
-                // succeeded is what lets the till keep serving customers.
+                // succeeded is what lets the till keep serving customers,
+                // and handing back the record itself is what lets screens
+                // that expect one carry on as they do online.
                 return {
-                    data: { data: null, queued: true, queue_id: entry.id },
+                    data: { data: optimistic, queued: true, queue_id: entry.id },
                     status: 202,
                     statusText: 'Queued offline',
                     headers: { [IDEMPOTENCY_HEADER]: entry.id },

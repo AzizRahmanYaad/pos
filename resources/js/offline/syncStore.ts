@@ -93,6 +93,11 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 
         set({ status: 'online', lastSyncedAt: Date.now() });
         await get().refresh(userId);
+
+        // The device has been showing its own optimistic copies; replace them
+        // with what the server actually recorded, temporary ids and all.
+        const { warmOfflineCache } = await import('@/offline/prefetch');
+        void warmOfflineCache(userId);
     },
 
     async dismissConflict(id, userId) {

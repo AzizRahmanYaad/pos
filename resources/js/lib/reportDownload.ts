@@ -13,7 +13,13 @@ export async function downloadOrToast<T>(action: () => Promise<T>): Promise<T | 
     try {
         return await action();
     } catch {
-        showToast(i18n.t('common.action_failed'), 'error');
+        // A PDF is rendered by the server from live data. There is no honest
+        // way to produce one on the device, so say so plainly rather than
+        // failing with a generic error the user cannot act on.
+        const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+
+        showToast(i18n.t(offline ? 'offline.print_needs_connection' : 'common.action_failed'), offline ? 'warning' : 'error');
+
         return undefined;
     }
 }

@@ -94,6 +94,45 @@ export async function readCache(key: string, userId: number): Promise<CachedResp
     }
 }
 
+/**
+ * The cached answer for this request, or failing that for the same screen
+ * asked slightly differently.
+ *
+ * Keys carry their query string, so "/customers" and "/customers?page=1" are
+ * different entries — and a list screen almost always asks with paging or a
+ * search term attached. Insisting on an exact match meant a device could
+ * hold a perfectly good copy of the customer list and still show the user
+ * an empty table. A near miss is worth far more than nothing here: the
+ * alternative is not fresher data, it is no data.
+ */
+export async function readCacheForPath(
+    key: string,
+    path: string,
+    userId: number,
+): Promise<CachedResponse | undefined> {
+    const exact = await readCache(key, userId);
+
+    if (exact) return exact;
+
+    try {
+        const all = await (await db()).getAllFromIndex('responses', 'byUser', userId);
+        const prefix = `GET ${path}`;
+
+        return all
+            .filter((entry) => {
+                if (!entry.key.startsWith(prefix)) return false;
+
+                // "/customers" must not answer for "/customer-groups".
+                const rest = entry.key.slice(prefix.length);
+
+                return rest === '' || rest.startsWith('?') || rest.startsWith('{');
+            })
+            .sort((a, b) => b.fetchedAt - a.fetchedAt)[0];
+    } catch {
+        return undefined;
+    }
+}
+
 export async function writeCache(entry: CachedResponse): Promise<void> {
     try {
         await (await db()).put('responses', entry);
@@ -150,4 +189,100 @@ export async function countUnsent(userId: number): Promise<number> {
     const entries = await pendingEntries(userId);
 
     return entries.filter((entry) => entry.state !== 'conflict').length;
+}
+
+/** A record that exists only on this device so far. */
+export const PENDING_FLAG = '__pending';
+
+/** Temporary, negative, and stable per queue entry so it never collides. */
+function temporaryId(entryId: string): number {
+    let hash = 0;
+
+    for (let i = 0; i < entryId.length; i += 1) {
+        hash = (hash * 31 + entryId.charCodeAt(i)) | 0;
+    }
+
+    return -Math.abs(hash || 1);
+}
+
+/** "/customers/42" -> "/customers"; "/customers" -> "/customers". */
+function resourceRoot(url: string): string {
+    const [path] = url.split('?');
+
+    return '/' + (path.replace(/^\//, '').split('/')[0] ?? '');
+}
+
+function idFromUrl(url: string): number | null {
+    const parts = url.split('?')[0].split('/').filter(Boolean);
+    const last = Number(parts[parts.length - 1]);
+
+    return Number.isFinite(last) ? last : null;
+}
+
+function patchList(body: unknown, apply: (rows: Record<string, unknown>[]) => Record<string, unknown>[]): unknown {
+    if (body === null || typeof body !== 'object') return body;
+
+    const shaped = body as { data?: unknown };
+
+    if (Array.isArray(shaped.data)) {
+        return { ...shaped, data: apply(shaped.data as Record<string, unknown>[]) };
+    }
+
+    if (Array.isArray(body)) return apply(body as Record<string, unknown>[]);
+
+    return body;
+}
+
+/**
+ * Show a queued change on the device that made it.
+ *
+ * Without this the queue works perfectly and the user sees nothing: they
+ * add a customer offline, the list does not change, and as far as they are
+ * concerned the application simply ignored them. Every cached list for the
+ * same resource is patched so the record appears, marked as not yet sent.
+ */
+export async function applyWriteLocally(entry: OutboxEntry): Promise<Record<string, unknown> | null> {
+    try {
+        const database = await db();
+        const tx = database.transaction('responses', 'readwrite');
+        const all = await tx.store.index('byUser').getAll(entry.userId);
+        const root = resourceRoot(entry.url);
+        const targetId = idFromUrl(entry.url);
+        const payload = (entry.data ?? {}) as Record<string, unknown>;
+        const tempId = temporaryId(entry.id);
+
+        let optimistic: Record<string, unknown> | null = null;
+
+        for (const cached of all) {
+            // Only caches for this resource; "/customers" must not touch
+            // "/customer-groups", hence the boundary check.
+            const after = cached.key.split(root)[1];
+
+            if (!cached.key.includes(root) || (after !== undefined && after !== '' && !/^[/?]/.test(after))) {
+                continue;
+            }
+
+            let body = cached.body;
+
+            if (entry.method === 'POST' && targetId === null) {
+                optimistic = { ...payload, id: tempId, [PENDING_FLAG]: true };
+                body = patchList(body, (rows) => [optimistic as Record<string, unknown>, ...rows]);
+            } else if ((entry.method === 'PUT' || entry.method === 'PATCH') && targetId !== null) {
+                body = patchList(body, (rows) =>
+                    rows.map((row) => (row.id === targetId ? { ...row, ...payload, [PENDING_FLAG]: true } : row)));
+            } else if (entry.method === 'DELETE' && targetId !== null) {
+                body = patchList(body, (rows) => rows.filter((row) => row.id !== targetId));
+            } else {
+                continue;
+            }
+
+            await tx.store.put({ ...cached, body });
+        }
+
+        await tx.done;
+
+        return optimistic;
+    } catch {
+        return null;
+    }
 }

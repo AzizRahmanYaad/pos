@@ -3,13 +3,13 @@ name: Diagnose hosting
 # Answers one question: when the site cannot be reached, is the fault the
 # server, the web server's configuration, or the domain's DNS?
 #
-# It has to run on the server itself. From anywhere else all three failures
-# look identical — the browser simply cannot connect, and says so in the
-# same way whether the machine is down, the domain is unknown to it, or the
-# name points somewhere else entirely.
+# From a browser all three look identical — it simply cannot connect, and
+# says so the same way whether the machine is down, the domain is unknown
+# to it, or the name points somewhere else entirely. So this measures
+# instead of guessing, from a network that is neither the shop's nor the
+# server's.
 #
-# Run it from the Actions tab: "Diagnose hosting" -> "Run workflow".
-# Nothing is deployed and nothing is changed.
+# It deploys nothing and changes nothing.
 
 on:
   # Also on a change to this file: the repository's default branch is not
@@ -31,40 +31,101 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    name: Ask the server what it sees
+    name: Measure what is actually reachable
 
     steps:
-      - name: What the outside world sees
+      - name: How the domain resolves from outside
         env:
           DOMAIN: ${{ inputs.domain || 'soft-afghan.com' }}
         run: |
-          echo "== How $DOMAIN resolves from outside =="
-          # A healthy site answers with the same one or two addresses every
-          # time. A long, changing list means the name is not pinned to the
-          # server the app is on, and every visitor is sent somewhere else.
-          for i in 1 2 3 4 5 6; do
-            getent ahostsv4 "$DOMAIN" | awk '{print $1}' | sort -u | paste -sd, -
-          done | sort | uniq -c | sort -rn
-          echo
-          echo "distinct IPv4 addresses seen over 6 lookups:"
-          for i in 1 2 3 4 5 6; do getent ahostsv4 "$DOMAIN" | awk '{print $1}'; done | sort -u | tee /tmp/outside-v4 | wc -l
-          echo "distinct IPv6 addresses seen over 6 lookups:"
-          for i in 1 2 3 4 5 6; do getent ahostsv6 "$DOMAIN" | awk '{print $1}'; done | sort -u | wc -l
+          {
+            echo "## 1. How \`$DOMAIN\` resolves"
+            echo
+            v4=$(for i in $(seq 1 8); do getent ahostsv4 "$DOMAIN" | awk '{print $1}'; done | sort -u)
+            v6=$(for i in $(seq 1 8); do getent ahostsv6 "$DOMAIN" | awk '{print $1}'; done | sort -u)
+            n4=$(echo "$v4" | grep -c . || true)
+            n6=$(echo "$v6" | grep -c . || true)
+            echo "| | distinct addresses over 8 lookups |"
+            echo "|---|---|"
+            echo "| IPv4 | **$n4** |"
+            echo "| IPv6 | **$n6** |"
+            echo
+            if [ "$n4" -gt 2 ] || [ "$n6" -gt 2 ]; then
+              echo "A site pinned to one server answers with the same one or two"
+              echo "addresses every time. Answering with many different ones means"
+              echo "visitors are being sent to different machines, and only the one"
+              echo "hosting this app can serve them."
+            else
+              echo "Stable — the name is pinned to a small, consistent set."
+            fi
+            echo
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Check whether the deploy secrets are configured
-        id: cfg
+      - name: Whether the deploy target is a fixed address, and how often it answers
         env:
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          # Never printed. Only its shape and its reachability are reported.
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
         run: |
-          if [ -n "$HOSTINGER_SSH_HOST" ]; then
-            echo "ssh=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ssh=false" >> "$GITHUB_OUTPUT"
-            echo "No SSH secrets set - only the outside view above is available."
-          fi
+          {
+            echo "## 2. The server the app is deployed to"
+            echo
+            if [ -z "$SSH_HOST" ]; then
+              echo "No deploy host is configured, so nothing can be measured here."
+              exit 0
+            fi
+
+            # A deploy target given as a name is resolved afresh every time,
+            # so it inherits whatever the domain's DNS is doing. Given as an
+            # address it always reaches the same machine. Which of the two it
+            # is decides whether an intermittent deploy is a server problem
+            # or a naming problem.
+            if echo "$SSH_HOST" | grep -qE '^[0-9]+(\.[0-9]+){3}$'; then
+              echo "The deploy target is a **fixed IP address**."
+              SHAPE=ip
+            else
+              echo "The deploy target is a **host name**, not a fixed address."
+              SHAPE=name
+              n=$(for i in $(seq 1 8); do getent ahostsv4 "$SSH_HOST" | awk '{print $1}'; done | sort -u | grep -c . || true)
+              echo
+              echo "It resolves to **$n distinct addresses** over 8 lookups."
+              if [ "$n" -gt 2 ]; then
+                echo
+                echo "That is the same instability as the domain above: each deploy,"
+                echo "and each visitor, is sent to a different machine."
+              fi
+            fi
+
+            echo
+            echo "### Can it actually be reached?"
+            echo
+            ok=0; bad=0
+            for i in $(seq 1 6); do
+              if timeout 8 bash -c "exec 3<>/dev/tcp/$SSH_HOST/$SSH_PORT" 2>/dev/null; then
+                ok=$((ok+1))
+              else
+                bad=$((bad+1))
+              fi
+            done
+            echo "Six connection attempts from GitHub's network: **$ok succeeded, $bad timed out**."
+            echo
+            if [ "$ok" -eq 6 ]; then
+              echo "The server answers every time. It is up, and reachable."
+            elif [ "$ok" -eq 0 ]; then
+              echo "The server never answered. Either it is down, the hosting"
+              echo "account is suspended, or this address is not the server."
+            else
+              echo "**The server answers only sometimes.** This is the fault, and it"
+              echo "is not the application: the same address is reachable on one"
+              echo "attempt and not the next, from a network that has nothing to do"
+              echo "with the shop. It is why a deploy fails and then succeeds when"
+              echo "re-run, and why the site opens on one computer and not another."
+            fi
+            echo
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Ask the server itself
-        if: steps.cfg.outputs.ssh == 'true'
+        continue-on-error: true
         uses: appleboy/ssh-action@v1
         env:
           DOMAIN: ${{ inputs.domain || 'soft-afghan.com' }}
@@ -77,68 +138,50 @@ jobs:
           script: |
             APP_PATH="${{ secrets.HOSTINGER_APP_PATH }}"
 
-            echo "================ 1. Is this machine alive and is the app on it?"
-            echo "uptime:      $(uptime 2>/dev/null | sed 's/^ *//')"
+            echo "== Is the app on this machine?"
             if [ -f "$APP_PATH/public/index.php" ]; then
-              echo "PASS  the application is present at $APP_PATH"
-              echo "      last deployed: $(date -r "$APP_PATH/public/index.php" 2>/dev/null || echo unknown)"
+              echo "PASS  present, last deployed $(date -r "$APP_PATH/public/index.php" 2>/dev/null || echo unknown)"
             else
-              echo "FAIL  no application found at $APP_PATH"
+              echo "FAIL  no application at $APP_PATH"
             fi
 
             echo
-            echo "================ 2. Does the app answer on the server itself?"
-            # /up is the framework's own health endpoint. Asking for it here,
-            # over the loopback, takes DNS and the whole internet out of the
-            # picture: if this answers, the application and PHP are fine and
-            # the fault is entirely in front of them.
-            LOCAL=""
+            echo "== Does the app answer here, with the internet taken out of it?"
+            # /up is the framework's own health endpoint. Over the loopback
+            # this reaches PHP without DNS or the network in the way: if it
+            # answers, everything from PHP inwards is healthy and the fault
+            # is entirely in front of it.
             for target in "http://127.0.0.1/up" "https://127.0.0.1/up"; do
               code=$(curl -sS -k -m 15 -o /dev/null -w '%{http_code}' -H "Host: $DOMAIN" "$target" 2>/dev/null || echo 000)
               echo "  $target  ->  HTTP $code"
-              [ "$code" = "200" ] && LOCAL="yes"
             done
-            if [ -n "$LOCAL" ]; then
-              echo "PASS  the application serves $DOMAIN on this machine."
-              echo "      Everything from PHP inwards is healthy."
-            else
-              echo "FAIL  the application did not answer for $DOMAIN on this machine."
-              echo "      Either the domain is not attached to this hosting account,"
-              echo "      or its document root does not point at the app's public/ folder."
-            fi
 
             echo
-            echo "================ 3. Does the domain point at THIS machine?"
-            # The server's own public address is what the DNS record has to
-            # contain. Rather than printing it -- it may be a masked secret --
-            # the two are compared here and only the verdict is shown.
-            MINE=$(curl -sS -m 15 https://api.ipify.org 2>/dev/null || curl -sS -m 15 https://ifconfig.me 2>/dev/null || echo "")
+            echo "== Does the domain point at THIS machine?"
+            # Compared rather than printed: the address may be a masked secret.
+            MINE=$(curl -sS -m 15 https://api.ipify.org 2>/dev/null || echo "")
             THEIRS=$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk '{print $1}' | sort -u)
-
             if [ -z "$MINE" ]; then
               echo "SKIP  could not determine this machine's public address."
-            elif [ -z "$THEIRS" ]; then
-              echo "FAIL  $DOMAIN does not resolve to any IPv4 address at all."
             elif echo "$THEIRS" | grep -qx "$MINE"; then
               echo "PASS  $DOMAIN resolves to this machine."
             else
               echo "FAIL  $DOMAIN does NOT resolve to this machine."
-              echo "      It resolves to $(echo "$THEIRS" | wc -l) other address(es)."
-              echo "      This is the fault: visitors are being sent to servers"
-              echo "      that do not host this site. Point the A record (and the"
-              echo "      AAAA record) at this machine in the hosting panel."
+              echo "      Point its A and AAAA records at this server."
             fi
 
             echo
-            echo "================ 4. Configuration the app was given"
-            if [ -f "$APP_PATH/.env" ]; then
-              # Only these three. The rest of the file holds credentials.
-              grep -E '^(APP_ENV|APP_URL|APP_DEBUG)=' "$APP_PATH/.env" || echo "  (none of APP_ENV/APP_URL/APP_DEBUG are set)"
-            else
-              echo "FAIL  no .env on the server - the app cannot start without it."
-            fi
+            echo "== Configuration"
+            grep -E '^(APP_ENV|APP_URL|APP_DEBUG)=' "$APP_PATH/.env" 2>/dev/null || echo "  no .env, or none of those keys set"
 
+      - name: What the server said
+        if: always()
+        run: |
+          {
+            echo "## 3. Reading the server's own answers"
             echo
-            echo "================ 5. Is there a certificate for the domain?"
-            code=$(curl -sS -m 15 -o /dev/null -w '%{http_code}' "https://$DOMAIN/up" 2>/dev/null || echo 000)
-            echo "  https://$DOMAIN/up  ->  HTTP $code  (000 means it could not connect)"
+            echo "If the step above could not connect, that is itself the finding:"
+            echo "the machine was unreachable from here at that moment. Its output,"
+            echo "when it does connect, appears in the \"Ask the server itself\" step."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -133,6 +133,64 @@ class ReportTest extends TestCase
             ]);
     }
 
+    public function test_a_sale_reports_what_it_actually_earned(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $cashier = User::factory()->create();
+        $product = Product::factory()->create(['sale_price' => 100, 'default_cost' => 60]);
+
+        app(RecordStockMovementAction::class)->execute($product, $warehouse, StockMovement::TYPE_OPENING, 10, 60);
+
+        $sale = app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => now(), 'discount' => 40],
+            items: [[
+                'product_id' => $product->id, 'quantity' => 3,
+                'unit_id' => $product->unit_id, 'unit_price' => 100,
+            ]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 260]],
+            cashierId: $cashier->id,
+        );
+
+        // 300 rung up, 40 off, 180 of stock gone: eighty earned.
+        $this->actingAs($this->manager())
+            ->getJson('/api/v1/sales/'.$sale->id)
+            ->assertOk()
+            ->assertJsonPath('data.cost_total', fn ($v) => (float) $v === 180.0)
+            ->assertJsonPath('data.profit', fn ($v) => (float) $v === 80.0);
+    }
+
+    public function test_the_sales_summary_reports_the_profit_for_each_period(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $cashier = User::factory()->create();
+        $product = Product::factory()->create(['sale_price' => 100, 'default_cost' => 60]);
+
+        app(RecordStockMovementAction::class)->execute($product, $warehouse, StockMovement::TYPE_OPENING, 10, 60);
+
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => now(), 'discount' => 40],
+            items: [[
+                'product_id' => $product->id, 'quantity' => 3,
+                'unit_id' => $product->unit_id, 'unit_price' => 100,
+            ]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 260]],
+            cashierId: $cashier->id,
+        );
+
+        $rows = $this->actingAs($this->manager())
+            ->getJson('/api/v1/reports/sales-summary?from='.now()->toDateString().'&to='.now()->toDateString())
+            ->assertOk()
+            ->json('rows');
+
+        $this->assertCount(1, $rows);
+        $this->assertEqualsWithDelta(300.0, $rows[0]['total'], 0.001);
+        $this->assertEqualsWithDelta(40.0, $rows[0]['discount'], 0.001);
+        $this->assertEqualsWithDelta(180.0, $rows[0]['cost'], 0.001);
+        $this->assertEqualsWithDelta(80.0, $rows[0]['profit'], 0.001);
+    }
+
     public function test_the_daily_journal_also_takes_the_discount_off_the_day(): void
     {
         $warehouse = Warehouse::factory()->create();

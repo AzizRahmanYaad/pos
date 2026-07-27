@@ -63,6 +63,10 @@ export interface SalesSummaryRow {
     period: string;
     sale_count: number;
     total: number;
+    discount: number;
+    cost: number;
+    /** Kept after the discount, less what the goods cost. */
+    profit: number;
 }
 
 export interface ExpenseCategoryRow {

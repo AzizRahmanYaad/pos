@@ -80,6 +80,37 @@ function today(): string {
     return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * A summary as bars. Every one of these reports is a list of labels and
+ * amounts, so they all draw the same way rather than each inventing its
+ * own picture.
+ */
+function SummaryChart({
+    data,
+    money,
+    color,
+}: {
+    data: { label: string; value: number }[];
+    money: (v: number) => string;
+    color: string;
+}) {
+    if (data.length === 0) return null;
+
+    return (
+        <Box sx={{ height: 260, px: 1, pt: 2 }}>
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 48 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <RechartsTooltip formatter={(v: number) => money(v)} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={color} />
+                </BarChart>
+            </ResponsiveContainer>
+        </Box>
+    );
+}
+
 export function ReportsPage() {
     const { t, i18n } = useTranslation();
     const theme = useTheme();
@@ -470,6 +501,11 @@ export function ReportsPage() {
 
             {!isLoading && tab === 'sales-summary' && salesRows && (
                 <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                    <SummaryChart
+                        data={salesRows.map((row) => ({ label: row.period, value: row.total }))}
+                        money={money}
+                        color={theme.palette.primary.main}
+                    />
                     <TableContainer>
                         <Table size="small">
                             <TableHead>
@@ -477,6 +513,9 @@ export function ReportsPage() {
                                     <TableCell>{t('reports_page.period')}</TableCell>
                                     <TableCell align="right">{t('reports_page.sale_count')}</TableCell>
                                     <TableCell align="right">{t('fields.total')}</TableCell>
+                                    <TableCell align="right">{t('reports_page.total_discounts')}</TableCell>
+                                    <TableCell align="right">{t('fields.cogs')}</TableCell>
+                                    <TableCell align="right">{t('fields.net_profit')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -487,11 +526,46 @@ export function ReportsPage() {
                                         <TableCell align="right" sx={{ fontWeight: 600 }}>
                                             {money(row.total)}
                                         </TableCell>
+                                        <TableCell align="right">{deduction(row.discount)}</TableCell>
+                                        <TableCell align="right">{deduction(row.cost)}</TableCell>
+                                        <TableCell
+                                            align="right"
+                                            sx={{ fontWeight: 700, color: row.profit >= 0 ? 'success.main' : 'error.main' }}
+                                        >
+                                            {money(row.profit)}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
+                                {salesRows.length > 0 && (
+                                    <TableRow sx={{ '& td': { fontWeight: 800, bgcolor: 'action.hover' } }}>
+                                        <TableCell>{t('fields.total')}</TableCell>
+                                        <TableCell align="right">
+                                            {salesRows.reduce((sum, r) => sum + r.sale_count, 0)}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            {money(salesRows.reduce((sum, r) => sum + r.total, 0))}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            {deduction(salesRows.reduce((sum, r) => sum + r.discount, 0))}
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            {deduction(salesRows.reduce((sum, r) => sum + r.cost, 0))}
+                                        </TableCell>
+                                        <TableCell
+                                            align="right"
+                                            sx={{
+                                                color: salesRows.reduce((sum, r) => sum + r.profit, 0) >= 0
+                                                    ? 'success.main'
+                                                    : 'error.main',
+                                            }}
+                                        >
+                                            {money(salesRows.reduce((sum, r) => sum + r.profit, 0))}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                                 {salesRows.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={3}>
+                                        <TableCell colSpan={6}>
                                             <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
                                                 {t('reports_page.no_data')}
                                             </Typography>
@@ -506,6 +580,11 @@ export function ReportsPage() {
 
             {!isLoading && tab === 'purchase-summary' && purchaseRows && (
                 <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                    <SummaryChart
+                        data={purchaseRows.map((row) => ({ label: row.period, value: row.total }))}
+                        money={money}
+                        color={theme.palette.warning.main}
+                    />
                     <TableContainer>
                         <Table size="small">
                             <TableHead>
@@ -542,6 +621,11 @@ export function ReportsPage() {
 
             {!isLoading && tab === 'expenses-by-category' && expenseRows && (
                 <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                    <SummaryChart
+                        data={expenseRows.map((row) => ({ label: row.category, value: row.total }))}
+                        money={money}
+                        color={theme.palette.error.main}
+                    />
                     <TableContainer>
                         <Table size="small">
                             <TableHead>

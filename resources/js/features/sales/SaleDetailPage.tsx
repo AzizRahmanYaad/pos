@@ -146,6 +146,22 @@ export function SaleDetailPage() {
                         {formatDate(sale.sale_date, i18n.language)}
                     </Typography>
                 </Box>
+                {/* What this one sale actually earned, where the person
+                    looking at it will see it first. */}
+                {sale.profit !== undefined && (
+                    <Box sx={{ textAlign: 'end', minWidth: 130 }}>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                            {sale.profit >= 0 ? t('fields.net_profit') : t('reports_page.net_loss')}
+                        </Typography>
+                        <Typography
+                            variant="h6"
+                            fontWeight={800}
+                            color={sale.profit >= 0 ? 'success.main' : 'error.main'}
+                        >
+                            {money(sale.profit)}
+                        </Typography>
+                    </Box>
+                )}
                 <Chip
                     color={STATUS_COLOR[sale.status] ?? 'default'}
                     variant="filled"

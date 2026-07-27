@@ -28,6 +28,22 @@ class SaleResource extends JsonResource
             'grand_total' => (float) $this->grand_total,
             'paid_amount' => (float) $this->paid_amount,
             'due_amount' => (float) $this->due_amount,
+            // What the shop actually made on this sale: what was kept after
+            // any discount, less what the goods had cost it. Refunded
+            // quantities are excluded from both sides, so a refunded line
+            // neither earns nor costs anything.
+            'cost_total' => $this->when($this->relationLoaded('items'), fn () => round(
+                $this->items->sum(fn ($item) => ((float) $item->quantity - (float) $item->refunded_quantity) * (float) $item->cost_price_snapshot),
+                2,
+            )),
+            'profit' => $this->when($this->relationLoaded('items'), function () {
+                $revenue = $this->items->sum(fn ($item) => (float) $item->quantity > 0
+                    ? (float) $item->line_total * ((float) $item->quantity - (float) $item->refunded_quantity) / (float) $item->quantity
+                    : 0.0);
+                $cost = $this->items->sum(fn ($item) => ((float) $item->quantity - (float) $item->refunded_quantity) * (float) $item->cost_price_snapshot);
+
+                return round($revenue - (float) $this->discount - $cost, 2);
+            }),
             'items' => SaleItemResource::collection($this->whenLoaded('items')),
             'payments' => SalePaymentResource::collection($this->whenLoaded('payments')),
         ];

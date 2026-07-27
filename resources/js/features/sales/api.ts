@@ -36,6 +36,9 @@ export interface SaleListItem {
     discount: number;
     tax: number;
     grand_total: number;
+    /** Revenue kept on this sale, less what the goods cost. */
+    profit?: number;
+    cost_total?: number;
     paid_amount: number;
     due_amount: number;
 }

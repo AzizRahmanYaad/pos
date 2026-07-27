@@ -514,16 +514,29 @@ class ReportController extends Controller
         [$from, $to] = $this->resolveRange($request);
         $byMonth = $request->query('group_by') === 'month';
 
+        // Cost and discount travel with the takings so the period can show
+        // what was actually earned, not merely what was rung up.
         return $this->completedSaleItems($from, $to)
-            ->selectRaw('sales.id as sale_id, sales.sale_date as sale_date, SUM(sale_items.line_total * (sale_items.quantity - sale_items.refunded_quantity) / sale_items.quantity) as net_total')
-            ->groupBy('sales.id', 'sales.sale_date')
+            ->selectRaw('sales.id as sale_id, sales.sale_date as sale_date, sales.discount as discount, '
+                .'SUM(sale_items.line_total * (sale_items.quantity - sale_items.refunded_quantity) / sale_items.quantity) as net_total, '
+                .'SUM((sale_items.quantity - sale_items.refunded_quantity) * sale_items.cost_price_snapshot) as net_cost')
+            ->groupBy('sales.id', 'sales.sale_date', 'sales.discount')
             ->get()
             ->groupBy(fn ($row) => Carbon::parse($row->sale_date)->format($byMonth ? 'Y-m' : 'Y-m-d'))
-            ->map(fn ($rows, $period) => [
-                'period' => $period,
-                'sale_count' => $rows->count(),
-                'total' => round((float) $rows->sum('net_total'), 2),
-            ])
+            ->map(function ($rows, $period) {
+                $total = (float) $rows->sum('net_total');
+                $discount = (float) $rows->sum('discount');
+                $cost = (float) $rows->sum('net_cost');
+
+                return [
+                    'period' => $period,
+                    'sale_count' => $rows->count(),
+                    'total' => round($total, 2),
+                    'discount' => round($discount, 2),
+                    'cost' => round($cost, 2),
+                    'profit' => round($total - $discount - $cost, 2),
+                ];
+            })
             ->sortBy('period')
             ->values();
     }

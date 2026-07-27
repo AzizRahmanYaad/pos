@@ -30,6 +30,24 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // The application never sees a visitor directly: on shared hosting
+        // every request arrives through the provider's web server, which
+        // puts the real client in X-Forwarded-For. Without this, Laravel
+        // takes that front-end machine to be the visitor, and *every*
+        // signed-out request in the country shares one identity.
+        //
+        // That is not cosmetic. The API rate limiter buckets guests by IP,
+        // so one shop's staff signing in would spend a limit shared with
+        // everyone else behind the same front end, and the rest would be
+        // turned away at the login screen with no explanation. It also made
+        // the audit log record the proxy against every action instead of
+        // the person who took it.
+        //
+        // Trusting any proxy is the right setting here precisely because
+        // the app cannot be reached except through that front end, which
+        // replaces these headers rather than passing a visitor's through.
+        $middleware->trustProxies(at: '*');
+
         $middleware->statefulApi();
         $middleware->throttleApi();
         $middleware->api(append: [SetLocale::class, EnsureAccessNotExpired::class, PreventApiCaching::class, EnsureIdempotentWrites::class, RecordRequestActivity::class]);

@@ -210,7 +210,12 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                 return Promise.reject(error);
             }
 
-            if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
+            // Signing in and out are not changes to the business; queuing
+            // them would replay a stale login later and, worse, made the
+            // login screen report a perfectly good password as invalid.
+            const isAuthCall = (config.url ?? '').startsWith('/auth/');
+
+            if (!isAuthCall && (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE')) {
                 const entry: OutboxEntry = {
                     // The key the request went out with — so if it did in
                     // fact land before the connection died, the replay is

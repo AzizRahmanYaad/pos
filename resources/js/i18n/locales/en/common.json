@@ -64,7 +64,8 @@
         "feature_reports": "Clear profit and sales reports",
         "brand_secure": "Secured with role-based access control",
         "contact_admin": "Need an account? Contact your administrator.",
-        "toggle_password": "Show or hide password"
+        "toggle_password": "Show or hide password",
+        "offline_login_failed": "No connection, and this device does not recognise that email and password. Sign in once while online first — after that you can sign in here with no internet."
     },
     "fields": {
         "sku": "SKU",

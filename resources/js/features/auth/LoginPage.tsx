@@ -62,7 +62,18 @@ export function LoginPage() {
             navigate('/', { replace: true });
         } catch (err) {
             const code = isAxiosError(err) ? err.response?.data?.code : undefined;
-            setError(code === 'access_expired' ? t('auth.access_expired') : t('auth.login_error'));
+            // No response at all means the server could not be reached, not
+            // that the password was wrong — telling somebody their correct
+            // password is invalid is the worst thing this screen can do.
+            const unreachable = isAxiosError(err) && err.response === undefined;
+
+            setError(
+                code === 'access_expired'
+                    ? t('auth.access_expired')
+                    : unreachable
+                      ? t('auth.offline_login_failed')
+                      : t('auth.login_error'),
+            );
         } finally {
             setSubmitting(false);
         }

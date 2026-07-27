@@ -226,6 +226,49 @@ class IdempotentWritesTest extends TestCase
         $this->assertSame(0, Sale::query()->count());
     }
 
+    /**
+     * The device drains its queue on a timer, so it has to know which
+     * refusals will clear on their own. "Already being processed" will;
+     * "you have no stock" never will, and retrying it every half minute
+     * would keep a refused sale cycling quietly instead of putting it in
+     * front of the person who made it.
+     */
+    public function test_a_refusal_worth_retrying_says_so_and_a_final_one_does_not(): void
+    {
+        $product = $this->stockedProduct();
+        $key = (string) Str::uuid();
+
+        IdempotencyKey::create([
+            'key' => $key,
+            'user_id' => $this->cashier->id,
+            'tenant_id' => $this->cashier->tenant_id,
+            'method' => 'POST',
+            'path' => 'api/v1/sales',
+            'request_fingerprint' => hash('sha256', implode('|', [
+                'POST', 'api/v1/sales', json_encode($this->salePayload($product)),
+            ])),
+        ]);
+
+        $this->sell($product, $key)
+            ->assertStatus(409)
+            ->assertHeader(EnsureIdempotentWrites::PENDING_HEADER, 'true');
+
+        // Selling stock that is not there is a 409 as well, and no amount of
+        // retrying will make it one — so it must not carry the marker.
+        $bare = Product::create([
+            'name' => 'Tea 1kg', 'sku' => 'T1', 'unit_id' => $this->unit->id,
+            'sale_price' => 100, 'default_cost' => 60, 'reorder_level' => 1,
+            'type' => Product::TYPE_STANDARD, 'pricing_mode' => Product::PRICING_FIXED,
+            'track_inventory' => true, 'is_active' => true,
+        ]);
+
+        $response = $this->withHeader(EnsureIdempotentWrites::HEADER, (string) Str::uuid())
+            ->postJson('/api/v1/sales', $this->salePayload($bare));
+
+        $response->assertStatus(409);
+        $this->assertNull($response->headers->get(EnsureIdempotentWrites::PENDING_HEADER));
+    }
+
     public function test_requests_without_a_key_are_untouched(): void
     {
         $product = $this->stockedProduct();

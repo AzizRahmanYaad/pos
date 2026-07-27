@@ -27,6 +27,17 @@ class EnsureIdempotentWrites
 {
     public const HEADER = 'Idempotency-Key';
 
+    /**
+     * Marks the one refusal here that is worth sending again.
+     *
+     * A device draining its queue has to tell "this is already running,
+     * come back in a moment" apart from "you cannot sell stock you do not
+     * have" — both are a 409, but one clears itself and the other never
+     * will. Without the distinction a refused sale is retried every half
+     * minute for ever and the cashier is never told anything is wrong.
+     */
+    public const PENDING_HEADER = 'Idempotency-Pending';
+
     /** How long a remembered answer stays available for replay. */
     public const RETENTION_DAYS = 30;
 
@@ -66,7 +77,7 @@ class EnsureIdempotentWrites
         } catch (QueryException) {
             return response()->json([
                 'message' => __('This change is already being processed. Try again in a moment.'),
-            ], 409);
+            ], 409)->header(self::PENDING_HEADER, 'true');
         }
 
         $response = $next($request);
@@ -109,7 +120,7 @@ class EnsureIdempotentWrites
             // way, repeating the work now risks doing it twice.
             return response()->json([
                 'message' => __('This change is already being processed. Try again in a moment.'),
-            ], 409);
+            ], 409)->header(self::PENDING_HEADER, 'true');
         }
 
         return response(

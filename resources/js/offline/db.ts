@@ -31,6 +31,21 @@ export interface OutboxEntry {
     errorStatus?: number;
 }
 
+/**
+ * What the server called a record that this device had to name for itself.
+ *
+ * A customer added with no connection gets a temporary id, and a sale made
+ * to that customer minutes later — still with no connection — refers to it.
+ * When the queue finally drains, the server knows nothing of that temporary
+ * id, so the sale would be refused and the day's takings lost. This is how
+ * the one becomes the other on the way out.
+ */
+export interface IdAlias {
+    tempId: number;
+    realId: number;
+    userId: number;
+}
+
 interface OfflineDb extends DBSchema {
     responses: {
         key: string;
@@ -42,10 +57,15 @@ interface OfflineDb extends DBSchema {
         value: OutboxEntry;
         indexes: { byUser: number; byCreatedAt: number; byState: string };
     };
+    idmap: {
+        key: number;
+        value: IdAlias;
+        indexes: { byUser: number };
+    };
 }
 
 const DB_NAME = 'asan-hesab-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let connection: Promise<IDBPDatabase<OfflineDb>> | null = null;
 
@@ -58,14 +78,23 @@ let connection: Promise<IDBPDatabase<OfflineDb>> | null = null;
 export function db(): Promise<IDBPDatabase<OfflineDb>> {
     if (!connection) {
         connection = openDB<OfflineDb>(DB_NAME, DB_VERSION, {
-            upgrade(database) {
-                const responses = database.createObjectStore('responses', { keyPath: 'key' });
-                responses.createIndex('byUser', 'userId');
+            // Each step runs only for devices that have not had it yet, so an
+            // upgrade never destroys a queue somebody is still waiting on.
+            upgrade(database, oldVersion) {
+                if (oldVersion < 1) {
+                    const responses = database.createObjectStore('responses', { keyPath: 'key' });
+                    responses.createIndex('byUser', 'userId');
 
-                const outbox = database.createObjectStore('outbox', { keyPath: 'id' });
-                outbox.createIndex('byUser', 'userId');
-                outbox.createIndex('byCreatedAt', 'createdAt');
-                outbox.createIndex('byState', 'state');
+                    const outbox = database.createObjectStore('outbox', { keyPath: 'id' });
+                    outbox.createIndex('byUser', 'userId');
+                    outbox.createIndex('byCreatedAt', 'createdAt');
+                    outbox.createIndex('byState', 'state');
+                }
+
+                if (oldVersion < 2) {
+                    const idmap = database.createObjectStore('idmap', { keyPath: 'tempId' });
+                    idmap.createIndex('byUser', 'userId');
+                }
             },
         });
     }
@@ -195,7 +224,7 @@ export async function countUnsent(userId: number): Promise<number> {
 export const PENDING_FLAG = '__pending';
 
 /** Temporary, negative, and stable per queue entry so it never collides. */
-function temporaryId(entryId: string): number {
+export function temporaryId(entryId: string): number {
     let hash = 0;
 
     for (let i = 0; i < entryId.length; i += 1) {
@@ -203,6 +232,54 @@ function temporaryId(entryId: string): number {
     }
 
     return -Math.abs(hash || 1);
+}
+
+/** Record what the server called something this device had named itself. */
+export async function rememberRealId(tempId: number, realId: number, userId: number): Promise<void> {
+    try {
+        await (await db()).put('idmap', { tempId, realId, userId });
+    } catch {
+        // Ignore: the alias is only ever an improvement on the raw id.
+    }
+}
+
+export async function idAliases(userId: number): Promise<Map<number, number>> {
+    try {
+        const rows = await (await db()).getAllFromIndex('idmap', 'byUser', userId);
+
+        return new Map(rows.map((row) => [row.tempId, row.realId]));
+    } catch {
+        return new Map();
+    }
+}
+
+/**
+ * Swap every temporary id in a queued change for the real one.
+ *
+ * Ids appear at any depth — a sale carries its customer at the top and a
+ * product inside each line — so this walks the whole payload rather than
+ * naming the fields it knows about, which would quietly miss the next one
+ * somebody adds.
+ */
+export function resolveAliases<T>(value: T, aliases: Map<number, number>): T {
+    if (aliases.size === 0) return value;
+
+    if (typeof value === 'number') {
+        return (aliases.get(value) ?? value) as T;
+    }
+
+    if (Array.isArray(value)) {
+        return value.map((item) => resolveAliases(item, aliases)) as T;
+    }
+
+    if (value !== null && typeof value === 'object') {
+        return Object.fromEntries(
+            Object.entries(value as Record<string, unknown>)
+                .map(([field, item]) => [field, resolveAliases(item, aliases)]),
+        ) as T;
+    }
+
+    return value;
 }
 
 /** "/customers/42" -> "/customers"; "/customers" -> "/customers". */
@@ -219,18 +296,40 @@ function idFromUrl(url: string): number | null {
     return Number.isFinite(last) ? last : null;
 }
 
-function patchList(body: unknown, apply: (rows: Record<string, unknown>[]) => Record<string, unknown>[]): unknown {
-    if (body === null || typeof body !== 'object') return body;
+/** The rows of a list response, whether it is wrapped in "data" or bare. */
+function listRows(body: unknown): Record<string, unknown>[] | null {
+    if (Array.isArray(body)) return body as Record<string, unknown>[];
 
-    const shaped = body as { data?: unknown };
+    if (body !== null && typeof body === 'object') {
+        const shaped = body as { data?: unknown };
 
-    if (Array.isArray(shaped.data)) {
-        return { ...shaped, data: apply(shaped.data as Record<string, unknown>[]) };
+        if (Array.isArray(shaped.data)) return shaped.data as Record<string, unknown>[];
     }
 
-    if (Array.isArray(body)) return apply(body as Record<string, unknown>[]);
+    return null;
+}
 
-    return body;
+function patchList(body: unknown, apply: (rows: Record<string, unknown>[]) => Record<string, unknown>[]): unknown {
+    const rows = listRows(body);
+
+    if (rows === null) return body;
+
+    const next = apply(rows);
+
+    if (Array.isArray(body)) return next;
+
+    const shaped = body as { data?: unknown; meta?: unknown };
+
+    // A paginated screen prints the count and sizes its pager from meta. Left
+    // alone it would say "24 products" over a table of 25, and the last page
+    // would be unreachable.
+    const meta = shaped.meta;
+    const patchedMeta =
+        meta !== null && typeof meta === 'object' && typeof (meta as { total?: unknown }).total === 'number'
+            ? { ...meta, total: Math.max(0, (meta as { total: number }).total + (next.length - rows.length)) }
+            : meta;
+
+    return { ...shaped, data: next, ...(patchedMeta === undefined ? {} : { meta: patchedMeta }) };
 }
 
 /**
@@ -299,6 +398,64 @@ function withResolvedNames(
     return enriched;
 }
 
+/** The empty value of whatever type a column holds. */
+function emptyLike(value: unknown): unknown {
+    if (typeof value === 'number') return 0;
+    if (typeof value === 'boolean') return false;
+    if (typeof value === 'string') return '';
+    if (Array.isArray(value)) return [];
+
+    return null;
+}
+
+/**
+ * Give a queued record the same shape the server would have sent back.
+ *
+ * A list screen does more than print what it is given: it calls
+ * average_cost.toFixed(2), formats amount, counts total_stock. A record
+ * built from the form's payload alone has none of those, and React does not
+ * quietly skip such a row — it throws mid-render and takes the entire table
+ * with it. That is why creating a product with no connection *emptied* the
+ * products list instead of adding to it: strictly worse than doing nothing.
+ *
+ * The shape is copied from a record the server already sent for this same
+ * resource, so no column has to be listed by hand here and no screen can be
+ * left out — whatever fields a row has, the queued one has too, each filled
+ * with the empty value of its own type.
+ */
+function withListShape(
+    record: Record<string, unknown>,
+    sample: Record<string, unknown> | null,
+): Record<string, unknown> {
+    if (!sample) return record;
+
+    const shaped = { ...record };
+
+    for (const [field, value] of Object.entries(sample)) {
+        if (!(field in shaped)) shaped[field] = emptyLike(value);
+    }
+
+    return shaped;
+}
+
+/**
+ * Whether a cached response belongs to the resource being written to.
+ *
+ * The remainder after the resource name has to be a path segment, a query
+ * string, or the JSON of the request's params — that last one being how
+ * every list screen that pages or filters is keyed. Omitting it meant a
+ * queued change was applied only to a bare "/expenses" and never to the
+ * "/expenses{"per_page":500}" the screen actually reads, so the record was
+ * saved, kept, and synced correctly, and remained invisible throughout.
+ */
+function belongsToResource(key: string, root: string): boolean {
+    if (!key.includes(root)) return false;
+
+    const after = key.split(root)[1];
+
+    return after === undefined || after === '' || /^[/?{]/.test(after);
+}
+
 /**
  * Show a queued change on the device that made it.
  *
@@ -317,23 +474,24 @@ export async function applyWriteLocally(entry: OutboxEntry): Promise<Record<stri
         const payload = (entry.data ?? {}) as Record<string, unknown>;
         const tempId = temporaryId(entry.id);
 
+        // "/customers" must not touch "/customer-groups", hence the boundary
+        // check on every cache considered here.
+        const mine = all.filter((cached) => belongsToResource(cached.key, root));
+
+        // Any row the server has already sent for this resource, to copy the
+        // shape of. Lists are asked for in several ways; the first one that
+        // actually holds a row will do.
+        const sample = mine.map((cached) => listRows(cached.body)?.[0] ?? null).find(Boolean) ?? null;
+
         let optimistic: Record<string, unknown> | null = null;
 
-        for (const cached of all) {
-            // Only caches for this resource; "/customers" must not touch
-            // "/customer-groups", hence the boundary check.
-            const after = cached.key.split(root)[1];
-
-            if (!cached.key.includes(root) || (after !== undefined && after !== '' && !/^[/?]/.test(after))) {
-                continue;
-            }
-
+        for (const cached of mine) {
             let body = cached.body;
 
             if (entry.method === 'POST' && targetId === null) {
-                optimistic = optimistic ?? withResolvedNames(
-                    { ...payload, id: tempId, [PENDING_FLAG]: true },
-                    all,
+                optimistic = optimistic ?? withListShape(
+                    withResolvedNames({ ...payload, id: tempId, [PENDING_FLAG]: true }, all),
+                    sample,
                 );
                 body = patchList(body, (rows) => [optimistic as Record<string, unknown>, ...rows]);
             } else if ((entry.method === 'PUT' || entry.method === 'PATCH') && targetId !== null) {

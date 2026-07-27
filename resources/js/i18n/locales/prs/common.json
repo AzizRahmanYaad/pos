@@ -431,7 +431,8 @@
         "type_customer_collection": "وصولی",
         "type_supplier_payment": "پرداخت به تهیه کننده",
         "type_expense": "مصرف",
-        "wa_message": "روزنامچه یومیه از {{company}} برای {{date}} — نتیجه {{result}}"
+        "wa_message": "روزنامچه یومیه از {{company}} برای {{date}} — نتیجه {{result}}",
+        "salaries": "معاشات پرداخت‌شده"
     },
     "dashboard_page": {
         "today_sales": "فروش امروز",

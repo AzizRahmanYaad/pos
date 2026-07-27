@@ -26,6 +26,7 @@ import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import { useTranslation } from 'react-i18next';
 import { BrandSpinner } from '@/components/BrandSpinner';
 import { DualDateField } from '@/components/DualDateField';
@@ -89,6 +90,18 @@ export function DailyJournalPage() {
               { key: 'purchases', label: t('journal_page.purchases'), value: journal.purchases_total, icon: <ShoppingCartOutlinedIcon fontSize="small" />, tone: 'secondary' },
               { key: 'supplier_payments', label: t('journal_page.supplier_payments'), value: journal.supplier_payments_total, icon: <LocalShippingOutlinedIcon fontSize="small" />, tone: 'error' },
               { key: 'expenses', label: t('journal_page.expenses'), value: journal.expenses_total, icon: <ReceiptLongOutlinedIcon fontSize="small" />, tone: 'error' },
+              // Wages are paid on a handful of days a month. On every other
+              // day this tile would be a zero taking up space, so it is only
+              // here when there is something to report.
+              ...(journal.salaries_total > 0
+                  ? [{
+                        key: 'salaries',
+                        label: t('journal_page.salaries'),
+                        value: journal.salaries_total,
+                        icon: <BadgeOutlinedIcon fontSize="small" />,
+                        tone: 'error' as Tone,
+                    }]
+                  : []),
           ]
         : [];
 

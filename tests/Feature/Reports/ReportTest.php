@@ -133,6 +133,34 @@ class ReportTest extends TestCase
             ]);
     }
 
+    /**
+     * Wages are paid on a handful of days a month. The journal reports them
+     * on those days and stays silent on the rest, rather than printing a
+     * zero every day of the year.
+     */
+    public function test_the_journal_reports_salaries_only_on_the_day_they_were_paid(): void
+    {
+        $cashAccount = CashAccount::factory()->create();
+        $cashier = User::factory()->create();
+        Employee::factory()->create(['salary_amount' => 500]);
+
+        $run = app(CreatePayrollRunAction::class)->execute((int) now()->month, (int) now()->year, $cashier->id);
+        app(PayPayrollRunAction::class)->execute($run, $cashAccount, $cashier->id);
+
+        $this->actingAs($this->manager())
+            ->getJson('/api/v1/reports/daily-journal?date='.now()->toDateString())
+            ->assertOk()
+            ->assertJsonPath('salaries_total', fn ($v) => (float) $v === 500.0)
+            // Wages paid today are today's cost, so the day is down by them.
+            ->assertJsonPath('profit_or_loss', fn ($v) => (float) $v === -500.0);
+
+        // A day nobody was paid reports nothing, and the screen shows no tile.
+        $this->actingAs($this->manager())
+            ->getJson('/api/v1/reports/daily-journal?date='.now()->subDay()->toDateString())
+            ->assertOk()
+            ->assertJsonPath('salaries_total', fn ($v) => (float) $v === 0.0);
+    }
+
     public function test_a_sale_reports_what_it_actually_earned(): void
     {
         $warehouse = Warehouse::factory()->create();

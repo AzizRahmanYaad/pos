@@ -274,7 +274,7 @@ class ReportController extends Controller
      * ledger entries, so it always reconciles with the Cash Report) and a
      * same-day profit/loss figure.
      *
-     * @return array{date:string,sales_total:float,credit_sales_total:float,customer_collections_total:float,purchases_total:float,supplier_payments_total:float,discounts_total:float,expenses_total:float,cash_in_total:float,cash_out_total:float,net_cash_movement:float,profit_or_loss:float,transactions:array<int,array{type:string,time:string,description:string,amount:float,direction:string}>}
+     * @return array{date:string,sales_total:float,credit_sales_total:float,customer_collections_total:float,purchases_total:float,supplier_payments_total:float,discounts_total:float,expenses_total:float,salaries_total:float,cash_in_total:float,cash_out_total:float,net_cash_movement:float,profit_or_loss:float,transactions:array<int,array{type:string,time:string,description:string,amount:float,direction:string}>}
      */
     private function computeDailyJournal(Request $request): array
     {
@@ -299,6 +299,14 @@ class ReportController extends Controller
             ->whereIn('status', [Sale::STATUS_COMPLETED, Sale::STATUS_PARTIALLY_REFUNDED])
             ->whereBetween('sale_date', [$start, $end])
             ->sum('discount');
+        // Salaries paid today are today's cost, exactly as the expenses
+        // below are. On the great majority of days this is nothing at all,
+        // and the screen says nothing rather than showing a row of zeroes.
+        $salariesTotal = (float) PayrollItem::query()
+            ->whereHas('payrollRun', function ($query) use ($start, $end) {
+                $query->where('status', PayrollRun::STATUS_PAID)->whereBetween('paid_at', [$start, $end]);
+            })
+            ->sum('net_pay');
         $cogs = (float) (clone $saleItems)
             ->selectRaw('COALESCE(SUM((sale_items.quantity - sale_items.refunded_quantity) * sale_items.cost_price_snapshot), 0) as total')
             ->value('total');
@@ -395,10 +403,11 @@ class ReportController extends Controller
             'supplier_payments_total' => round($supplierPaymentsTotal, 2),
             'discounts_total' => round($discountsTotal, 2),
             'expenses_total' => round($operatingExpensesTotal, 2),
+            'salaries_total' => round($salariesTotal, 2),
             'cash_in_total' => round($cashIn, 2),
             'cash_out_total' => round($cashOut, 2),
             'net_cash_movement' => round($cashIn - $cashOut, 2),
-            'profit_or_loss' => round($salesTotal - $discountsTotal - $cogs - $operatingExpensesTotal, 2),
+            'profit_or_loss' => round($salesTotal - $discountsTotal - $cogs - $operatingExpensesTotal - $salariesTotal, 2),
             'transactions' => $transactions->values()->all(),
         ];
     }

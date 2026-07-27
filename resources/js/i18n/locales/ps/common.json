@@ -431,7 +431,8 @@
         "type_customer_collection": "راټولونه",
         "type_supplier_payment": "عرضه کوونکي ته تادیه",
         "type_expense": "لګښت",
-        "wa_message": "ورځنۍ یادداشت د {{company}} لپاره {{date}} — پایله {{result}}"
+        "wa_message": "ورځنۍ یادداشت د {{company}} لپاره {{date}} — پایله {{result}}",
+        "salaries": "ورکړل شوي معاشونه"
     },
     "dashboard_page": {
         "today_sales": "د نن پلورنې",

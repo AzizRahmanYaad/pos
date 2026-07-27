@@ -431,7 +431,8 @@
         "type_customer_collection": "Collection",
         "type_supplier_payment": "Supplier payment",
         "type_expense": "Expense",
-        "wa_message": "Daily journal from {{company}} for {{date}} — result {{result}}"
+        "wa_message": "Daily journal from {{company}} for {{date}} — result {{result}}",
+        "salaries": "Salaries paid"
     },
     "dashboard_page": {
         "today_sales": "Today's sales",

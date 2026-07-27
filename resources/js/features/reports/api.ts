@@ -96,6 +96,8 @@ export interface DailyJournal {
     purchases_total: number;
     supplier_payments_total: number;
     expenses_total: number;
+    /** Wages paid on this day; zero on the days nobody was paid. */
+    salaries_total: number;
     cash_in_total: number;
     cash_out_total: number;
     net_cash_movement: number;

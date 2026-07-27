@@ -319,27 +319,27 @@ export function AppLayout() {
                     <Box sx={{ flexGrow: 1 }} />
 
                     {/* Selling is what this application is for, so the till
-                        is reachable from every screen — centred, larger than
-                        anything else up here, and impossible to miss. */}
+                        stays reachable from every screen. It reads as the
+                        primary action through placement and colour rather
+                        than through size — a toolbar button, not a banner. */}
                     <Can permission="pos.access">
                         <Tooltip title={t('nav.pos')}>
                             <Button
                                 component={RouterLink}
                                 to="/pos"
                                 variant="contained"
-                                size="large"
-                                startIcon={<PointOfSaleOutlinedIcon sx={{ fontSize: '28px !important' }} />}
+                                size="small"
+                                disableElevation
+                                startIcon={<PointOfSaleOutlinedIcon sx={{ fontSize: '18px !important' }} />}
                                 sx={{
                                     flexShrink: 0,
-                                    px: { xs: 1.5, md: 3 },
-                                    py: 1.1,
-                                    borderRadius: 3,
-                                    fontSize: { md: '1rem' },
-                                    fontWeight: 800,
-                                    letterSpacing: 0.3,
-                                    boxShadow: 3,
-                                    '& .MuiButton-startIcon': { mr: { xs: 0, md: 1 } },
-                                    '&:hover': { boxShadow: 6 },
+                                    px: { xs: 1.25, md: 2 },
+                                    py: 0.6,
+                                    borderRadius: 2,
+                                    fontSize: '0.8125rem',
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    '& .MuiButton-startIcon': { mr: { xs: 0, md: 0.75 } },
                                 }}
                             >
                                 <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     Avatar,
@@ -11,6 +11,7 @@ import {
     TableBody,
     TableCell,
     TableContainer,
+    TablePagination,
     TableHead,
     TableRow,
     Tooltip,
@@ -62,6 +63,18 @@ export function DailyJournalPage() {
     const { t, i18n } = useTranslation();
     const theme = useTheme();
     const [date, setDate] = useState(todayIso());
+    // A busy shop's day runs to hundreds of lines; the table shows a page of
+    // them rather than all of it at once. The figures above are the whole
+    // day either way, and so are the printed and exported copies — paging is
+    // only about what is on screen.
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(25);
+
+    // Reading a different day starts that day at the beginning. Staying on
+    // page five of a day that has two pages just shows an empty table.
+    useEffect(() => {
+        setPage(0);
+    }, [date]);
 
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
     const sym = settings?.currency_symbol ?? '';
@@ -246,8 +259,10 @@ export function DailyJournalPage() {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {journal.transactions.map((tx, index) => (
-                                        <TableRow key={`${tx.type}-${index}`} hover>
+                                    {journal.transactions
+                                        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                                        .map((tx, index) => (
+                                        <TableRow key={`${tx.type}-${page}-${index}`} hover>
                                             <TableCell sx={{ whiteSpace: 'nowrap' }}>
                                                 {new Date(tx.time).toLocaleTimeString(i18n.language, {
                                                     hour: '2-digit',
@@ -305,6 +320,20 @@ export function DailyJournalPage() {
                                 </TableBody>
                             </Table>
                         </TableContainer>
+                        {journal.transactions.length > 0 && (
+                            <TablePagination
+                                component="div"
+                                count={journal.transactions.length}
+                                page={page}
+                                onPageChange={(_, next) => setPage(next)}
+                                rowsPerPage={rowsPerPage}
+                                rowsPerPageOptions={[25, 50, 100]}
+                                onRowsPerPageChange={(event) => {
+                                    setRowsPerPage(Number(event.target.value));
+                                    setPage(0);
+                                }}
+                            />
+                        )}
                     </Paper>
                 </>
             )}

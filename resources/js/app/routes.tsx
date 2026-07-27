@@ -87,7 +87,9 @@ export const router = createBrowserRouter([
                     { path: 'period-closing/:id', element: guarded('period-closing.view', <PeriodClosingDetailPage />) },
                     { path: 'reports', element: guarded('reports.view', <ReportsPage />) },
                     { path: 'journal', element: guarded('journal.view', <DailyJournalPage />) },
-                    { path: 'settings', element: guarded('settings.view', <SettingsPage />) },
+                    // No permission: the page carries your own account
+                    // details and password, which every user must reach.
+                    { path: 'settings', element: <SettingsPage /> },
                     { path: 'activity-log', element: guarded('activity.view', <ActivityLogPage />) },
                 ],
             },

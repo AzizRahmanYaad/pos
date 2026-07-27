@@ -28,8 +28,10 @@ export interface NavLink {
     to: string;
     labelKey: string;
     icon: ReactNode;
-    /** Hidden entirely unless the signed-in user holds this. */
-    permission: string;
+    /** Hidden entirely unless the signed-in user holds this. Omitted for
+     *  the few screens everyone reaches — Settings holds your own name,
+     *  photo and password, which belong to you whatever else you may do. */
+    permission?: string;
 }
 
 export interface NavGroup {
@@ -42,7 +44,7 @@ export interface NavGroup {
 
 export type NavEntry = NavLink | NavGroup;
 
-const link = (to: string, labelKey: string, icon: ReactNode, permission: string): NavLink => ({
+const link = (to: string, labelKey: string, icon: ReactNode, permission?: string): NavLink => ({
     kind: 'link',
     to,
     labelKey,
@@ -128,7 +130,7 @@ export const NAVIGATION: NavEntry[] = [
         children: [
             link('/users', 'nav.users', <ManageAccountsOutlinedIcon />, 'users.view'),
             link('/activity-log', 'nav.activity_log', <HistoryOutlinedIcon />, 'activity.view'),
-            link('/settings', 'nav.settings', <SettingsOutlinedIcon />, 'settings.view'),
+            link('/settings', 'nav.settings', <SettingsOutlinedIcon />),
         ],
     },
 ];
@@ -140,11 +142,13 @@ export const NAVIGATION: NavEntry[] = [
  */
 export function visibleNavigation(can: (permission: string) => boolean): NavEntry[] {
     return NAVIGATION.reduce<NavEntry[]>((entries, entry) => {
+        const visible = (child: NavLink) => child.permission === undefined || can(child.permission);
+
         if (entry.kind === 'link') {
-            return can(entry.permission) ? [...entries, entry] : entries;
+            return visible(entry) ? [...entries, entry] : entries;
         }
 
-        const children = entry.children.filter((child) => can(child.permission));
+        const children = entry.children.filter(visible);
 
         return children.length > 0 ? [...entries, { ...entry, children }] : entries;
     }, []);

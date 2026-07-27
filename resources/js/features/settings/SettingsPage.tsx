@@ -165,15 +165,17 @@ function BusinessSettingsForm() {
                         />
                     </Grid>
                 </Grid>
-                <Box>
-                    <LoadingButton
-                        variant="contained"
-                        loading={mutation.isPending}
-                        onClick={() => mutation.mutate(form)}
-                    >
-                        {t('actions.save')}
-                    </LoadingButton>
-                </Box>
+                <Can permission="settings.edit">
+                    <Box>
+                        <LoadingButton
+                            variant="contained"
+                            loading={mutation.isPending}
+                            onClick={() => mutation.mutate(form)}
+                        >
+                            {t('actions.save')}
+                        </LoadingButton>
+                    </Box>
+                </Can>
             </Stack>
         </Paper>
     );
@@ -266,7 +268,7 @@ export function SettingsPage() {
                     one with no access to the business settings below. */}
                 <MyAccountForm />
                 <ChangePasswordForm />
-                <Can permission="settings.edit">
+                <Can permission="settings.view">
                     <BusinessSettingsForm />
                 </Can>
             </Stack>

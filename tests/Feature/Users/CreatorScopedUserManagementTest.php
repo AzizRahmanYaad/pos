@@ -162,12 +162,59 @@ class CreatorScopedUserManagementTest extends TestCase
 
         $names = collect($this->actingAs($superadmin)->getJson('/api/v1/users')->assertOk()->json('data'))
             ->pluck('name');
-        $this->assertContains('Somebody', $names);
+        // The business owner, yes; the person that owner hired, no.
         $this->assertContains($admin->name, $names);
+        $this->assertNotContains('Somebody', $names);
 
         $roles = collect($this->actingAs($superadmin)->getJson('/api/v1/roles')->json())->pluck('name');
         $this->assertContains('superadmin', $roles);
         $this->assertContains('admin', $roles);
+    }
+
+    /**
+     * The platform owner keeps the businesses, not their staff. Listing
+     * every cashier of every shop turns that screen into an unreadable
+     * directory and puts the platform owner in the middle of decisions that
+     * belong to the shop.
+     */
+    public function test_the_platform_owner_sees_the_businesses_not_their_staff(): void
+    {
+        $superadmin = User::factory()->create();
+        $superadmin->assignRole('superadmin');
+
+        $tenant = Tenant::create(['name' => 'Kabul Mart']);
+        $admin = $this->admin($tenant);
+        $this->staffOf($admin, 'Their Cashier');
+
+        $names = collect($this->actingAs($superadmin)->getJson('/api/v1/users')->assertOk()->json('data'))
+            ->pluck('name');
+
+        // The business owner is theirs to manage; the person that owner
+        // hired is not.
+        $this->assertContains($admin->name, $names);
+        $this->assertNotContains('Their Cashier', $names);
+    }
+
+    public function test_the_platform_owner_still_sees_staff_they_provisioned_themselves(): void
+    {
+        $superadmin = User::factory()->create();
+        $superadmin->assignRole('superadmin');
+
+        $tenant = Tenant::create(['name' => 'Kabul Mart']);
+
+        $this->actingAs($superadmin)->postJson('/api/v1/users', [
+            'name' => 'Placed By Platform',
+            'email' => 'placed@example.test',
+            'password' => 'Secret123!',
+            'password_confirmation' => 'Secret123!',
+            'locale' => 'en',
+            'roles' => ['cashier'],
+            'tenant_id' => $tenant->id,
+        ])->assertCreated();
+
+        $names = collect($this->actingAs($superadmin)->getJson('/api/v1/users')->json('data'))->pluck('name');
+
+        $this->assertContains('Placed By Platform', $names);
     }
 
     public function test_a_new_business_starts_on_the_standard_five_staff_allowance(): void

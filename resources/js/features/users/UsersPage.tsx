@@ -269,7 +269,10 @@ export function UsersPage() {
                 logo: form.logo,
                 locale: form.locale,
                 // Own roles/status cannot be changed — the backend rejects it.
-                ...(editingSelf ? {} : { is_active: form.isActive, roles: [form.role] }),
+                // Staff created by a shop are cashiers as far as the role
+                // system is concerned; what they may actually do comes from
+                // the permissions ticked below, not from this word.
+                ...(editingSelf ? {} : { is_active: form.isActive, roles: [form.role || 'cashier'] }),
                 ...(STAFF_ROLES.includes(form.role) && form.tenantId !== ''
                     ? { tenant_id: form.tenantId }
                     : {}),
@@ -326,7 +329,9 @@ export function UsersPage() {
     const canSave =
         form.name !== '' &&
         form.email !== '' &&
-        form.role !== '' &&
+        // A Company Admin is not shown the role field, so it cannot be a
+        // requirement for them; their staff are described by permissions.
+        (canManageCompanies ? form.role !== '' : true) &&
         // Only the platform owner chooses which business a staff account
         // joins, so only they have a business to pick. For a Company Admin
         // the field is not shown at all — the backend takes their own.
@@ -469,8 +474,12 @@ export function UsersPage() {
                             <TableRow sx={{ '& th': { fontWeight: 600, bgcolor: 'action.hover' } }}>
                                 <TableCell>{t('fields.name')}</TableCell>
                                 <TableCell>{t('fields.phone')}</TableCell>
-                                <TableCell>{t('users_page.role')}</TableCell>
-                                <TableCell>{t('users_page.expires')}</TableCell>
+                                {/* Roles and the paid-access expiry are the
+                                    platform owner's to set. A shop's own
+                                    screen shows neither, so nothing on it
+                                    invites a decision that is not theirs. */}
+                                {canManageCompanies && <TableCell>{t('users_page.role')}</TableCell>}
+                                {canManageCompanies && <TableCell>{t('users_page.expires')}</TableCell>}
                                 <TableCell>{t('fields.status')}</TableCell>
                                 <TableCell align="right"> </TableCell>
                             </TableRow>
@@ -514,6 +523,7 @@ export function UsersPage() {
                                         </Stack>
                                     </TableCell>
                                     <TableCell>{user.phone ?? '—'}</TableCell>
+                                    {canManageCompanies && (
                                     <TableCell>
                                         {user.roles.map((role) => (
                                             <Chip
@@ -542,7 +552,8 @@ export function UsersPage() {
                                             </Typography>
                                         )}
                                     </TableCell>
-                                    <TableCell>{renderExpiry(user)}</TableCell>
+                                    )}
+                                    {canManageCompanies && <TableCell>{renderExpiry(user)}</TableCell>}
                                     <TableCell>
                                         <Chip
                                             size="small"
@@ -563,7 +574,7 @@ export function UsersPage() {
                                         />
                                     </TableCell>
                                     <TableCell align="right">
-                                        {!user.roles.includes('superadmin') && (
+                                        {canManageCompanies && !user.roles.includes('superadmin') && (
                                             <Tooltip title={t('users_page.extend')}>
                                                 <IconButton
                                                     size="small"
@@ -692,6 +703,12 @@ export function UsersPage() {
                                     ))}
                                 </TextField>
                             </Grid>
+                            {/* Roles belong to the platform owner. What a
+                                shop's own staff may do is decided by the
+                                permission matrix below, which is the real
+                                control — a role on top of it was a second
+                                answer to the same question. */}
+                            {canManageCompanies && (
                             <Grid item xs={12} sm={6}>
                                 <TextField
                                     select
@@ -713,6 +730,7 @@ export function UsersPage() {
                                     ))}
                                 </TextField>
                             </Grid>
+                            )}
                             {canManageCompanies && form.role === 'admin' && editing === null && (
                                 <Grid item xs={12} sm={6}>
                                     <TextField

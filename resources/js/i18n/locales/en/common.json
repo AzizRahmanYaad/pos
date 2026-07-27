@@ -552,7 +552,7 @@
             "subtitle": "Choose exactly what this user can do in each part of the system.",
             "select_all": "Select all",
             "clear_all": "Clear all",
-            "preset": "Start from a role",
+            "preset": "Start from a preset",
             "apply_preset": "Apply",
             "granted": "{{count}} of {{total}}",
             "none_granted": "No access",

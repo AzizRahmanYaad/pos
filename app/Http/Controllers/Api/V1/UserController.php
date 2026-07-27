@@ -35,6 +35,16 @@ class UserController extends Controller
                     ->where(fn ($scope) => $scope
                         ->where('created_by', $actor->id)
                         ->orWhere('id', $actor->id)))
+                // The platform owner keeps the businesses, not their staff.
+                // A shop's own people are that shop's to manage; listing
+                // every cashier of every company turns this screen into an
+                // unreadable directory and puts the platform owner in the
+                // middle of decisions that are not theirs.
+                ->when($actor->isPlatformOwner(), fn ($query) => $query
+                    ->where(fn ($scope) => $scope
+                        ->whereNull('created_by')
+                        ->orWhereHas('creator', fn ($creator) => $creator
+                            ->whereHas('roles', fn ($role) => $role->where('name', 'superadmin')))))
                 ->orderBy('name')
                 ->paginate(20)
         );

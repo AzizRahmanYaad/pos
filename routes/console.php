@@ -14,4 +14,8 @@ Schedule::command('period:close-daily')->dailyAt('23:59');
 // history is kept (config/activitylog.php); anything older is dropped
 // overnight rather than being allowed to fill the database.
 Schedule::command('activitylog:clean')->weeklyOn(5, '02:30');
+
+// Remembered answers to offline writes. A device that has not synced in a
+// month has bigger problems than a duplicated sale.
+Schedule::command('idempotency:prune')->dailyAt('03:15');
 Schedule::command('queue:work --stop-when-empty --max-time=50')->everyMinute()->withoutOverlapping();

@@ -22,6 +22,13 @@ export interface CreateSalePayload {
 }
 
 export interface SaleReceipt {
+    /**
+     * True when the till took the sale with no connection. The money and the
+     * goods have changed hands either way, so the cashier still gets a
+     * receipt — it simply carries a provisional number until the server has
+     * seen it and issued the real one.
+     */
+    queued?: boolean;
     id: number;
     invoice_number: string;
     customer_name: string;
@@ -42,7 +49,30 @@ export interface SaleReceipt {
     payments: Array<{ method: string; amount: number }>;
 }
 
-export async function createSale(payload: CreateSalePayload): Promise<SaleReceipt> {
-    const { data } = await apiClient.post('/sales', payload);
-    return data.data;
+/**
+ * @param draft what the till already knows about this sale — product names,
+ *              totals, tender — used to print a receipt when the sale could
+ *              not be sent and there is no server answer to print from.
+ */
+export async function createSale(
+    payload: CreateSalePayload,
+    draft: Omit<SaleReceipt, 'id' | 'invoice_number' | 'queued'>,
+): Promise<SaleReceipt> {
+    const response = await apiClient.post('/sales', payload);
+
+    if (response.status === 202 && response.data?.queued) {
+        const reference = String(response.data.queue_id ?? '').slice(0, 8).toUpperCase();
+
+        return {
+            ...draft,
+            queued: true,
+            id: 0,
+            // Deliberately not in the server's numbering sequence: nobody
+            // should mistake this for a real invoice number, and two tills
+            // offline at once must not both claim the same one.
+            invoice_number: `OFF-${reference}`,
+        };
+    }
+
+    return response.data.data;
 }

@@ -189,7 +189,10 @@ export function PosPage() {
     };
 
     const mutation = useMutation({
-        mutationFn: createSale,
+        mutationFn: ({ payload, draft }: {
+            payload: Parameters<typeof createSale>[0];
+            draft: Parameters<typeof createSale>[1];
+        }) => createSale(payload, draft),
         onSuccess: (sale) => {
             setReceipt(sale);
             clearSale();
@@ -215,25 +218,52 @@ export function PosPage() {
             .reverse()
             .filter((tender) => tender.amount > 0);
 
-        mutation.mutate({
-            customer_id: customerId || null,
-            warehouse_id: warehouseId,
-            discount: discountValue || undefined,
+        // Built before the request, because if there is no connection there
+        // will be no server answer to print a receipt from — and a customer
+        // who has paid is owed a receipt either way.
+        const draft = {
+            customer_name: customers?.find((c) => c.id === customerId)?.name ?? t('common.walk_in'),
+            warehouse_name: warehouses?.find((w) => w.id === warehouseId)?.name ?? '',
+            sale_date: new Date().toISOString(),
+            subtotal,
+            discount: discountValue,
+            tax: 0,
+            grand_total: grandTotal,
+            paid_amount: round2(payments.reduce((sum, tender) => sum + tender.amount, 0)),
+            due_amount: round2(grandTotal - payments.reduce((sum, tender) => sum + tender.amount, 0)),
             items: cart.map((line) => ({
-                product_id: line.product.id,
+                product_name: line.product.name,
                 quantity: line.quantity,
-                unit_id: line.product.unit_id,
                 unit_price: line.unitPrice,
+                line_total: round2(line.quantity * line.unitPrice),
             })),
-            payments,
+            payments: payments.map((tender) => ({ method: tender.method, amount: tender.amount })),
+        };
+
+        mutation.mutate({
+            payload: {
+                customer_id: customerId || null,
+                warehouse_id: warehouseId,
+                discount: discountValue || undefined,
+                items: cart.map((line) => ({
+                    product_id: line.product.id,
+                    quantity: line.quantity,
+                    unit_id: line.product.unit_id,
+                    unit_price: line.unitPrice,
+                })),
+                payments,
+            },
+            draft,
         });
     };
 
     if (receipt) {
         return (
             <Box>
-                <Alert severity="success" sx={{ mb: 2 }}>
-                    {t('pos_page.sale_completed', { invoice: receipt.invoice_number })}
+                <Alert severity={receipt.queued ? 'info' : 'success'} sx={{ mb: 2 }}>
+                    {receipt.queued
+                        ? t('pos_page.sale_completed_offline', { invoice: receipt.invoice_number })
+                        : t('pos_page.sale_completed', { invoice: receipt.invoice_number })}
                 </Alert>
                 <ReceiptView sale={receipt} />
                 <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>

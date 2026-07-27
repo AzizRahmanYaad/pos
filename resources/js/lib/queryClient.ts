@@ -21,7 +21,19 @@ function extractErrorMessage(error: unknown): string {
  */
 export const queryClient = new QueryClient({
     defaultOptions: {
+        mutations: {
+            // Without this, TanStack Query holds every mutation in a paused
+            // state the moment the browser reports no connection, and only
+            // releases it when the network returns. That is a reasonable
+            // default for an app that has nothing better to offer — but here
+            // it meant the offline queue never saw a single write, because
+            // the request was never attempted. The offline layer in the api
+            // client is what decides what happens to a failed request, so
+            // the request has to be made.
+            networkMode: 'always',
+        },
         queries: {
+            networkMode: 'always',
             // Retrying a refusal or a missing record can only ever produce
             // the same answer. It used to turn one refused request into
             // three identical ones, all of them landing in the activity log.

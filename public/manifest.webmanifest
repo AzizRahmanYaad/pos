@@ -1,0 +1,19 @@
+{
+    "name": "اسان حساب",
+    "short_name": "اسان حساب",
+    "description": "Point of sale, stock and accounts — works with or without the internet.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#ffffff",
+    "theme_color": "#8a6d1f",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

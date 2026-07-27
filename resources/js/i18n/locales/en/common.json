@@ -32,7 +32,8 @@
         "view": "View",
         "receive": "Receive",
         "pay": "Pay",
-        "adjust": "Adjust"
+        "adjust": "Adjust",
+        "close": "Close"
     },
     "common": {
         "welcome": "Welcome",
@@ -258,7 +259,8 @@
         "price_adjusted": "Price adjusted (list price {{original}})",
         "change_due": "Change to return: {{amount}}",
         "walk_in_must_pay": "A walk-in sale must be fully paid before completing.",
-        "out_of_stock": "\"{{name}}\" is out of stock."
+        "out_of_stock": "\"{{name}}\" is out of stock.",
+        "sale_completed_offline": "Sale {{invoice}} taken offline — it will be sent when the connection returns."
     },
     "receipt": {
         "customer": "Customer",
@@ -797,5 +799,27 @@
             "activity": "Activity Log",
             "account": "Account"
         }
+    },
+    "offline": {
+        "title": "Connection and unsent changes",
+        "offline": "Working offline",
+        "offline_with_pending": "Offline — {{count}} waiting",
+        "pending": "{{count}} waiting to sync",
+        "pending_hint": "These are saved on this device and will be sent automatically as soon as the connection returns. It is safe to close the app.",
+        "pending_label": {
+            "created": "{{resource}} — created",
+            "updated": "{{resource}} — changed",
+            "deleted": "{{resource}} — deleted",
+            "changed": "{{resource}} — changed"
+        },
+        "syncing": "Syncing…",
+        "sync_now": "Sync now",
+        "tap_for_detail": "Connection and unsent changes",
+        "explain_offline": "There is no connection to the server. You can keep working — sales, payments and everything else are stored on this device and sent when the connection returns.",
+        "explain_online": "Connected. Anything still listed below is on its way to the server.",
+        "conflicts": "{{count}} could not be saved",
+        "conflicts_title": "Changes the server refused",
+        "conflicts_hint": "These were made on this device but the server would not accept them — usually because somebody else changed the same thing first, or the period has since been closed. Check the record on the server, then discard the copy here.",
+        "discard": "Discard"
     }
 }

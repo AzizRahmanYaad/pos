@@ -58,6 +58,7 @@ import { alpha } from '@mui/material/styles';
 import { LogoMark } from '@/components/AppLogo';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Can } from '@/components/Can';
+import { ConnectionStatus } from '@/offline/ConnectionStatus';
 import { visibleNavigation, type NavEntry } from '@/app/navigation';
 import { BrandSpinner } from '@/components/BrandSpinner';
 import { useAuthStore } from '@/store/authStore';
@@ -349,6 +350,9 @@ export function AppLayout() {
                         </Tooltip>
                     </Can>
                     <Box sx={{ flexGrow: 1 }} />
+
+                    {/* Silent while everything is sent and the line is up. */}
+                    <ConnectionStatus />
 
                     {canViewCash && (
                         <Tooltip

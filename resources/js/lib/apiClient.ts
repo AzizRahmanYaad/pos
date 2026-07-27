@@ -1,11 +1,18 @@
 import axios from 'axios';
 import i18n from '@/i18n/i18n';
 import { useRequestLoadingStore } from '@/lib/loadingStore';
+import { installOfflineInterceptors } from '@/offline/interceptors';
 
 export const apiClient = axios.create({
     baseURL: '/api/v1',
     withCredentials: true,
     withXSRFToken: true,
+    // A shop's connection does not always fail cleanly. A router that is up
+    // with no route beyond it leaves requests hanging until TCP gives up
+    // minutes later, and a till frozen mid-sale is worse than one that knows
+    // it is offline. After this, the request is treated as unreachable and
+    // the change is queued.
+    timeout: 20_000,
     headers: {
         Accept: 'application/json',
     },
@@ -44,3 +51,9 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
     },
 );
+
+// Registered last so it runs after the handler above: that one turns 401s
+// and closed periods into app events, this one decides whether a failure
+// was the network — in which case the read is served from the device and
+// the write is queued rather than lost.
+installOfflineInterceptors(apiClient);

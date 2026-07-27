@@ -134,6 +134,45 @@ jobs:
             echo
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: Which of the addresses actually serve the site
+        env:
+          DOMAIN: ${{ inputs.domain || 'soft-afghan.com' }}
+        run: |
+          {
+            echo "## 3. Does each address actually serve the site?"
+            echo
+            echo "The domain answers with different addresses depending on who"
+            echo "asks. Each is asked here for the site's health endpoint, with"
+            echo "the right host name attached, so the answer is about that"
+            echo "machine alone and not about whoever happened to be sent there."
+            echo
+            echo "| address | reply |"
+            echo "|---|---|"
+
+            # Whatever this runner is given right now, plus the addresses a
+            # machine that cannot open the site was given.
+            candidates=$(getent ahostsv4 "$DOMAIN" | awk '{print $1}' | sort -u)
+            candidates="$candidates 92.113.23.20 92.113.16.252"
+
+            for ip in $(echo "$candidates" | tr ' ' '\n' | sort -u); do
+              [ -z "$ip" ] && continue
+              code=$(curl -sS -k -m 12 -o /dev/null -w '%{http_code}' \
+                --resolve "$DOMAIN:443:$ip" "https://$DOMAIN/up" 2>/dev/null || echo 000)
+              case "$code" in
+                200) verdict="**200 — serves the site**" ;;
+                000) verdict="no reply (timed out)" ;;
+                *)   verdict="HTTP $code" ;;
+              esac
+              echo "| \`$ip\` | $verdict |"
+            done
+
+            echo
+            echo "GitHub's runners have no IPv6, so the AAAA addresses cannot be"
+            echo "tested from here — which matters, because Windows tries IPv6"
+            echo "first and the failing machine was handed IPv6 first."
+            echo
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Ask the server itself
         continue-on-error: true
         uses: appleboy/ssh-action@v1

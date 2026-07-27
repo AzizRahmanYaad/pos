@@ -41,6 +41,7 @@ import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { useTranslation } from 'react-i18next';
+import { AddButton } from '@/components/AddButton';
 import { LoadingButton } from '@/components/LoadingButton';
 import {
     createUser,
@@ -383,19 +384,18 @@ export function UsersPage() {
                         {t('users_page.subtitle')}
                     </Typography>
                 </Box>
-                <Tooltip title={limitReached ? t('users_page.limit.reached', { max: limit?.max_users }) : ''}>
-                    <span>
-                        <Button
-                            variant="contained"
-                            size="large"
-                            startIcon={<PersonAddAlt1Icon />}
-                            onClick={openCreate}
-                            disabled={limitReached}
-                        >
-                            {t('users_page.new_user')}
-                        </Button>
-                    </span>
-                </Tooltip>
+                {/* When the allowance is spent the tooltip has to say so —
+                    that reason matters more than the button's own name. */}
+                <AddButton
+                    label={
+                        limitReached
+                            ? t('users_page.limit.reached', { max: limit?.max_users })
+                            : t('users_page.new_user')
+                    }
+                    icon={<PersonAddAlt1Icon sx={{ fontSize: 18 }} />}
+                    onClick={openCreate}
+                    disabled={limitReached}
+                />
             </Box>
 
             {canManageCompanies && <CompanyLimitsPanel />}

@@ -27,6 +27,7 @@ import {
     Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import { AddButton } from '@/components/AddButton';
 import { LoadingButton } from '@/components/LoadingButton';
 import { useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
@@ -123,9 +124,7 @@ export function EmployeesListPage() {
                         {t('employees_page.subtitle')}
                     </Typography>
                 </Box>
-                <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
-                    {t('employees_page.new_employee')}
-                </Button>
+                <AddButton label={t('employees_page.new_employee')} onClick={() => setAddOpen(true)} />
             </Stack>
 
             <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>

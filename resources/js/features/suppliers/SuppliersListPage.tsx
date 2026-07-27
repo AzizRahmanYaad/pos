@@ -4,7 +4,6 @@ import {
     Alert,
     Avatar,
     Box,
-    Button,
     Chip,
     CircularProgress,
     Grid,
@@ -32,6 +31,7 @@ import TrendingDownOutlinedIcon from '@mui/icons-material/TrendingDownOutlined';
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { AddButton } from '@/components/AddButton';
 import { fetchSuppliersPage, fetchSupplierSummary, type SupplierListItem } from '@/features/suppliers/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
 import { AddPartyDialog } from '@/components/AddPartyDialog';
@@ -105,9 +105,7 @@ export function SuppliersListPage() {
                     </Typography>
                 </Box>
                 <Can permission="suppliers.create">
-                    <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
-                        {t('parties.new_supplier')}
-                    </Button>
+                    <AddButton label={t('parties.new_supplier')} onClick={() => setAddOpen(true)} />
                 </Can>
             </Box>
 

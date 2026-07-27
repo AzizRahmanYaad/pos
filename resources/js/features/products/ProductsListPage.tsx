@@ -38,6 +38,7 @@ import AutoModeOutlinedIcon from '@mui/icons-material/AutoModeOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useTranslation } from 'react-i18next';
+import { AddButton } from '@/components/AddButton';
 import { LoadingButton } from '@/components/LoadingButton';
 import {
     fetchProductsPage,
@@ -174,9 +175,7 @@ export function ProductsListPage() {
                         size="medium"
                     />
                     <Can permission="products.create">
-                        <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
-                            {t('products_page.new_product')}
-                        </Button>
+                        <AddButton label={t('products_page.new_product')} onClick={() => setAddOpen(true)} />
                     </Can>
                 </Stack>
             </Box>

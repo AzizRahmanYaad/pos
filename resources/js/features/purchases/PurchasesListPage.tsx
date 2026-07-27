@@ -3,7 +3,6 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import {
     Alert,
     Box,
-    Button,
     Chip,
     CircularProgress,
     IconButton,
@@ -29,6 +28,7 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
+import { AddButton } from '@/components/AddButton';
 import { fetchPurchasesPage, cancelPurchase, type PurchaseListItem } from '@/features/purchases/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
 import { ReceivePurchaseDialog } from '@/features/purchases/ReceivePurchaseDialog';
@@ -100,9 +100,7 @@ export function PurchasesListPage() {
                         {t('purchases_page.subtitle')}
                     </Typography>
                 </Box>
-                <Button variant="contained" size="large" component={RouterLink} to="/purchases/new">
-                    {t('purchases_page.new_purchase')}
-                </Button>
+                <AddButton label={t('purchases_page.new_purchase')} component={RouterLink} to="/purchases/new" />
             </Box>
 
             {isError && <Alert severity="error">{t('common.loading')}</Alert>}

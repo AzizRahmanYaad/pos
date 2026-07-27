@@ -28,6 +28,7 @@ import {
     Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import { AddButton } from '@/components/AddButton';
 import { LoadingButton } from '@/components/LoadingButton';
 import { downloadOrToast } from '@/lib/reportDownload';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
@@ -198,9 +199,7 @@ export function ExpensesPage() {
                         {t('expenses_page.subtitle')}
                     </Typography>
                 </Box>
-                <Button variant="contained" size="large" onClick={() => setDialogOpen(true)}>
-                    {t('expenses_page.new_expense')}
-                </Button>
+                <AddButton label={t('expenses_page.new_expense')} onClick={() => setDialogOpen(true)} />
             </Stack>
 
             {/* Toolbar: date range + report actions */}

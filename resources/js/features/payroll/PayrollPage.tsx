@@ -31,6 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
+import { AddButton } from '@/components/AddButton';
 import { fetchPayrollRunsPage, createPayrollRun } from '@/features/payroll/api';
 import { fetchEmployees } from '@/features/employees/api';
 import { useAuthStore } from '@/store/authStore';
@@ -124,9 +125,7 @@ export function PayrollPage() {
                         {t('payroll_page.subtitle')}
                     </Typography>
                 </Box>
-                <Button variant="contained" size="large" onClick={() => setNewOpen(true)}>
-                    {t('payroll_page.new_run')}
-                </Button>
+                <AddButton label={t('payroll_page.new_run')} onClick={() => setNewOpen(true)} />
             </Stack>
 
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>

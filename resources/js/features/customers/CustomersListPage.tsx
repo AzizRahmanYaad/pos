@@ -4,7 +4,6 @@ import {
     Alert,
     Avatar,
     Box,
-    Button,
     Chip,
     CircularProgress,
     Grid,
@@ -38,6 +37,7 @@ import {
     downloadCustomerListPdf,
     type CustomerListItem,
 } from '@/features/customers/api';
+import { AddButton } from '@/components/AddButton';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
 import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
@@ -118,9 +118,7 @@ export function CustomersListPage() {
                         size="medium"
                     />
                     <Can permission="customers.create">
-                        <Button variant="contained" size="large" onClick={() => setAddOpen(true)}>
-                            {t('parties.new_customer')}
-                        </Button>
+                        <AddButton label={t('parties.new_customer')} onClick={() => setAddOpen(true)} />
                     </Can>
                 </Stack>
             </Box>

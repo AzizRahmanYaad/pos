@@ -403,7 +403,9 @@
         "cash_in": "نقدی ورودی",
         "cash_out": "نقدی خروجی",
         "total_discounts": "تخفیفات داده‌شده",
-        "net_revenue": "عواید خالص"
+        "net_revenue": "عواید خالص",
+        "total_salaries": "مجموع معاشات",
+        "breakdown_chart": "پول کجا مصرف شد"
     },
     "journal_page": {
         "title": "روزنامچه یومیه",

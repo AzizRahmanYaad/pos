@@ -403,7 +403,9 @@
         "cash_in": "Cash in",
         "cash_out": "Cash out",
         "total_discounts": "Discounts given",
-        "net_revenue": "Net revenue"
+        "net_revenue": "Net revenue",
+        "total_salaries": "Total salaries",
+        "breakdown_chart": "Where the money went"
     },
     "journal_page": {
         "title": "Daily Journal",

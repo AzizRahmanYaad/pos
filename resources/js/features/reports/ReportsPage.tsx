@@ -46,6 +46,16 @@ import { fetchBusinessSettings } from '@/features/settings/api';
 import { DualDateField } from '@/components/DualDateField';
 import { ReportActions } from '@/components/ReportActions';
 import { formatDate } from '@/lib/calendar';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    ResponsiveContainer,
+    Tooltip as RechartsTooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
 
 type ReportTab =
     | 'profit-loss'
@@ -86,6 +96,10 @@ export function ReportsPage() {
     const companyName = settings?.company_name ?? '';
     const money = (v: number) =>
         `${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${sym ? ` ${sym}` : ''}`;
+
+    /** A deduction of nothing is not a negative amount; "−0.00" reads as a
+     *  mistake to anyone checking their own figures. */
+    const deduction = (v: number) => (v > 0 ? `−${money(v)}` : money(0));
 
     const { data: pnl, isFetching: pnlLoading } = useQuery({
         queryKey: ['report-pnl', from, to],
@@ -292,6 +306,8 @@ export function ReportsPage() {
 
             {isLoading && <BrandSpinner fullPage minHeight={240} label={t('common.loading')} />}
 
+            {/* A deduction of nothing is not a negative amount: "−0.00"
+                reads as an error to anyone checking their own figures. */}
             {!isLoading && tab === 'profit-loss' && pnl && (
                 <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, maxWidth: 640 }}>
                     <Typography variant="overline" color="text.secondary" dir="ltr" sx={{ display: 'block', mb: 1 }}>
@@ -301,11 +317,11 @@ export function ReportsPage() {
                         <PnlRow label={t('fields.revenue')} value={money(pnl.revenue)} />
                         <PnlRow
                             label={t('reports_page.total_discounts')}
-                            value={`−${money(pnl.discounts)}`}
+                            value={deduction(pnl.discounts)}
                             muted
                         />
                         <PnlRow label={t('reports_page.net_revenue')} value={money(pnl.net_revenue)} />
-                        <PnlRow label={t('fields.cogs')} value={`−${money(pnl.cogs)}`} muted />
+                        <PnlRow label={t('fields.cogs')} value={deduction(pnl.cogs)} muted />
                         <PnlRow label={t('fields.gross_profit')} value={money(pnl.gross_profit)} bold divider />
                     </Stack>
 
@@ -326,7 +342,7 @@ export function ReportsPage() {
                                             <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
                                                 <Typography variant="body2">{row.category}</Typography>
                                                 <Typography variant="body2" fontWeight={600} color="error.main">
-                                                    −{money(row.total)}
+                                                    {deduction(row.total)}
                                                 </Typography>
                                             </Stack>
                                             <Box sx={{ height: 6, borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
@@ -353,13 +369,26 @@ export function ReportsPage() {
                                 {t('reports_page.total_operating_expenses')}
                             </Typography>
                             <Typography variant="body2" fontWeight={700} color="error.main">
-                                −{money(pnl.operating_expenses)}
+                                {deduction(pnl.operating_expenses)}
+                            </Typography>
+                        </Stack>
+                    </Box>
+
+                    {/* Salaries carry the same weight as the expenses above
+                        them, so they are presented the same way rather than
+                        as a single line lost under the total. */}
+                    <Box sx={{ mb: 2, p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.text.primary, 0.03) }}>
+                        <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="body2" fontWeight={700}>
+                                {t('reports_page.total_salaries')}
+                            </Typography>
+                            <Typography variant="body2" fontWeight={700} color="error.main">
+                                {deduction(pnl.payroll_cost)}
                             </Typography>
                         </Stack>
                     </Box>
 
                     <Stack spacing={1.25}>
-                        <PnlRow label={t('fields.payroll_cost')} value={`−${money(pnl.payroll_cost)}`} muted />
                         <PnlRow
                             label={pnl.net_profit >= 0 ? t('fields.net_profit') : t('reports_page.net_loss')}
                             value={money(pnl.net_profit)}
@@ -369,6 +398,43 @@ export function ReportsPage() {
                             color={pnl.net_profit >= 0 ? theme.palette.success.main : theme.palette.error.main}
                         />
                     </Stack>
+
+                    {/* The same figures as a picture: what came in, what each
+                        thing took out of it, and what was left. */}
+                    <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 3, mb: 1.5 }}>
+                        {t('reports_page.breakdown_chart')}
+                    </Typography>
+                    <Box sx={{ height: 260 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                data={[
+                                    { name: t('fields.revenue'), value: pnl.revenue, kind: 'in' },
+                                    { name: t('reports_page.total_discounts'), value: pnl.discounts, kind: 'out' },
+                                    { name: t('fields.cogs'), value: pnl.cogs, kind: 'out' },
+                                    { name: t('reports_page.total_operating_expenses'), value: pnl.operating_expenses, kind: 'out' },
+                                    { name: t('reports_page.total_salaries'), value: pnl.payroll_cost, kind: 'out' },
+                                    { name: pnl.net_profit >= 0 ? t('fields.net_profit') : t('reports_page.net_loss'), value: Math.abs(pnl.net_profit), kind: pnl.net_profit >= 0 ? 'in' : 'out' },
+                                ]}
+                                margin={{ top: 8, right: 8, left: -12, bottom: 48 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={60} />
+                                <YAxis tick={{ fontSize: 11 }} />
+                                <RechartsTooltip formatter={(v: number) => money(v)} />
+                                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                                    {[
+                                        'in', 'out', 'out', 'out', 'out',
+                                        pnl.net_profit >= 0 ? 'in' : 'out',
+                                    ].map((kind, index) => (
+                                        <Cell
+                                            key={index}
+                                            fill={kind === 'in' ? theme.palette.success.main : theme.palette.error.main}
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </Box>
 
                     <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 3, mb: 1.5 }}>
                         {t('reports_page.financial_position')}

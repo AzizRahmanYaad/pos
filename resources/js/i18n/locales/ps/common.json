@@ -403,7 +403,9 @@
         "cash_in": "نغدي ننوت",
         "cash_out": "نغدي وتون",
         "total_discounts": "ورکړل شوي تخفیفونه",
-        "net_revenue": "خالص عاید"
+        "net_revenue": "خالص عاید",
+        "total_salaries": "د معاشونو ټولټال",
+        "breakdown_chart": "پیسې چیرته ولګېدې"
     },
     "journal_page": {
         "title": "ورځنۍ یادداشت",

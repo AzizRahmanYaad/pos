@@ -487,7 +487,17 @@
         "my_account_hint": "Your own name, contact details and photo. These appear on the documents you issue.",
         "logo_hint": "Square image, up to 2 MB.",
         "profile_saved": "Your details were saved",
-        "profile_failed": "Could not save your details. Please try again."
+        "profile_failed": "Could not save your details. Please try again.",
+        "warehouses": "Warehouses",
+        "warehouses_hint": "Where your stock is kept. Every product movement belongs to one of these.",
+        "new_warehouse": "New warehouse",
+        "default_warehouse": "Default",
+        "make_default": "Make default",
+        "cannot_delete_default": "The default warehouse cannot be removed. Make another one the default first.",
+        "warehouse_saved": "Warehouse saved",
+        "warehouse_failed": "The warehouse could not be saved",
+        "warehouse_deleted": "Warehouse removed",
+        "warehouse_delete_failed": "The warehouse could not be removed"
     },
     "users_page": {
         "title": "User Management",

@@ -22,6 +22,7 @@ import {
 } from '@/features/settings/api';
 import { Can } from '@/components/Can';
 import { MyAccountForm } from '@/features/settings/MyAccountForm';
+import { WarehousesForm } from '@/features/settings/WarehousesForm';
 
 function BusinessSettingsForm() {
     const { t } = useTranslation();
@@ -270,6 +271,11 @@ export function SettingsPage() {
                 <ChangePasswordForm />
                 <Can permission="settings.view">
                     <BusinessSettingsForm />
+                </Can>
+                {/* Gated on the same permission the endpoint itself checks,
+                    so the screen never offers what the server would refuse. */}
+                <Can permission="inventory.adjust">
+                    <WarehousesForm />
                 </Can>
             </Stack>
         </Box>

@@ -7,7 +7,7 @@ body,
 }
 
 /*
- * Shrinks the entire rendered app to 90% — every screen, dialog, and menu,
+ * Shrinks the entire rendered app to 80% — every screen, dialog, and menu,
  * not just the elements a component-level style could reach. Dialogs,
  * drawers and menus portal straight to <body>, so scaling only the app's
  * own root would leave them full-size while everything behind them shrank.
@@ -15,7 +15,7 @@ body,
  * and hit-testing consistent with what is actually drawn.
  */
 html {
-    zoom: 0.9;
+    zoom: 0.8;
 }
 
 /* A receipt is measured for the paper it prints on; shrinking it would

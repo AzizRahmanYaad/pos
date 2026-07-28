@@ -3,6 +3,7 @@ import i18n from '@/i18n/i18n';
 import {
     allCaches,
     applyWriteLocally,
+    refundShare,
     enqueue,
     pendingEntries,
     readCacheForPath,
@@ -10,8 +11,8 @@ import {
     type OutboxEntry,
 } from '@/offline/db';
 import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
-import { buildQueuedSale, queuedSaleDetail } from '@/offline/sales';
-import { foldQueuedIntoLedger, isLedgerPath, recordFromList } from '@/offline/records';
+import { buildQueuedSale, queuedSaleDetail, saleIdFor } from '@/offline/sales';
+import { foldQueuedIntoLedger, foldQueuedIntoParties, isLedgerPath, isPartyPath, recordFromList } from '@/offline/records';
 import { IDEMPOTENCY_HEADER } from '@/offline/rawClient';
 import { reportReachable, refreshUnsentCount, useSyncStore } from '@/offline/syncStore';
 
@@ -162,14 +163,55 @@ function failFastWhenKnownOffline(config: InternalAxiosRequestConfig): InternalA
 async function withQueuedWork(body: unknown, path: string, userId: number): Promise<unknown> {
     const dated = isDatedReport(path);
     const ledger = isLedgerPath(path);
+    const party = isPartyPath(path);
 
-    if (!dated && !ledger) return body;
+    if (!dated && !ledger && !party) return body;
 
     const entries = await pendingEntries(userId);
 
     if (ledger) return foldQueuedIntoLedger(body, path, entries);
+    if (party) return foldQueuedIntoParties(body, path, entries);
 
     return foldQueuedIntoJournal(body, entries, await allCaches(userId));
+}
+
+/**
+ * What a queued return forgives the customer, measured before the local
+ * copy of the sale is changed by that same return.
+ */
+async function refundEffect(entry: OutboxEntry, userId: number): Promise<OutboxEntry['effect'] | null> {
+    const match = entry.url.split('?')[0].match(/^\/sales\/(-?\d+)\/refund$/);
+
+    if (!match) return null;
+
+    const saleId = Number(match[1]);
+    const caches = await allCaches(userId);
+
+    let sale = caches
+        .filter((cached) => cached.key === `GET /api/v1/sales/${saleId}`)
+        .map((cached) => (cached.body as { data?: unknown })?.data as Record<string, unknown> | undefined)
+        .find(Boolean) ?? null;
+
+    if (!sale) {
+        const queued = (await pendingEntries(userId)).find((row) => row.method === 'POST'
+            && row.url.split('?')[0] === '/sales'
+            && saleIdFor(row) === saleId);
+
+        sale = queued ? buildQueuedSale(queued, caches) : null;
+    }
+
+    if (!sale || typeof sale.customer_id !== 'number') return null;
+
+    const { dueForgiven } = refundShare(sale, (entry.data ?? {}) as Record<string, unknown>);
+
+    if (dueForgiven <= 0) return null;
+
+    return {
+        partyKind: 'customer',
+        partyId: sale.customer_id,
+        balanceShift: -dueForgiven,
+        label: typeof sale.invoice_number === 'string' ? `Refund ${sale.invoice_number}` : 'Refund',
+    };
 }
 
 /**
@@ -247,7 +289,8 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                 const queued = queuedSaleDetail(path, await pendingEntries(currentUserId), caches)
                     // A customer or supplier the device holds in a list but
                     // never fetched on its own. The row is the record.
-                    ?? recordFromList(path, caches);
+                    ?? foldQueuedIntoParties(recordFromList(path, caches), path,
+                        await pendingEntries(currentUserId));
 
                 if (queued !== null) {
                     return {
@@ -284,6 +327,11 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                     state: 'pending',
                     attempts: 0,
                 };
+
+                // Before anything local is patched: a return's effect on what
+                // the customer owes depends on the sale as it stands *now*,
+                // and applyWriteLocally is about to change that.
+                entry.effect = await refundEffect(entry, currentUserId) ?? undefined;
 
                 try {
                     await enqueue(entry);

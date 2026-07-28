@@ -29,6 +29,22 @@ export interface OutboxEntry {
     /** Why the server refused it, once it has. */
     error?: string;
     errorStatus?: number;
+    /**
+     * What this change does to somebody's balance, worked out at the moment
+     * it was made.
+     *
+     * Deliberately recorded rather than re-derived. A return's effect is a
+     * function of the sale *before* the return — and the local copy of that
+     * sale is patched the instant the return is queued, so anything asking
+     * the question later gets zero. Recording the answer once, while it is
+     * still knowable, is the only version of this that cannot drift.
+     */
+    effect?: {
+        partyKind: 'customer' | 'supplier';
+        partyId: number;
+        balanceShift: number;
+        label?: string;
+    };
 }
 
 /**
@@ -382,12 +398,60 @@ export function refundLocally(record: Record<string, unknown>, payload: Record<s
 
     const fully = nextItems.every((item) => (Number(item.refundable_quantity) || 0) <= 0.0001);
 
+    // The money side, by the same arithmetic the server uses: what came back
+    // as a share of the whole sale, applied to what was tendered and to what
+    // was still owed. A return that leaves the amounts untouched reads as a
+    // sale that was returned and paid for anyway.
+    const { cashRefunded, dueForgiven } = refundShare(record, payload);
+
     return {
         ...record,
         items: nextItems,
         status: fully ? 'refunded' : 'partially_refunded',
+        paid_amount: Math.max(0, Math.round(((Number(record.paid_amount) || 0) - cashRefunded) * 100) / 100),
+        due_amount: Math.max(0, Math.round(((Number(record.due_amount) || 0) - dueForgiven) * 100) / 100),
         [PENDING_FLAG]: true,
     };
+}
+
+/**
+ * How much of a sale a return gives back, in money.
+ *
+ * Mirrors RefundSaleAction: the value returned as a fraction of the whole
+ * sale, that fraction of each tender handed back, and that fraction of what
+ * was *originally* owed forgiven — originally, because a second partial
+ * return would otherwise under-forgive against an already-reduced balance.
+ */
+export function refundShare(
+    record: Record<string, unknown>,
+    payload: Record<string, unknown>,
+): { fraction: number; cashRefunded: number; dueForgiven: number } {
+    const asked = Array.isArray(payload.items) ? (payload.items as Record<string, unknown>[]) : null;
+    const items = Array.isArray(record.items) ? (record.items as Record<string, unknown>[]) : [];
+    const payments = Array.isArray(record.payments) ? (record.payments as Record<string, unknown>[]) : [];
+
+    let refundValue = 0;
+
+    for (const item of items) {
+        const quantity = Number(item.quantity) || 0;
+        const already = Number(item.refunded_quantity) || 0;
+        const asking = asked === null
+            ? quantity - already
+            : Number(asked.find((row) => row.sale_item_id === item.id)?.quantity ?? 0);
+
+        if (quantity > 0) refundValue += (Number(item.line_total) || 0) * (asking / quantity);
+    }
+
+    refundValue = Math.round(refundValue * 100) / 100;
+
+    const grandTotal = Number(record.grand_total) || 0;
+    const fraction = grandTotal > 0 ? Math.min(1, refundValue / grandTotal) : 0;
+
+    const tendered = payments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
+    const cashRefunded = Math.round(tendered * fraction * 100) / 100;
+    const originalDue = Math.max(0, Math.round((grandTotal - tendered) * 100) / 100);
+
+    return { fraction, cashRefunded, dueForgiven: Math.round(originalDue * fraction * 100) / 100 };
 }
 
 /** Local effects of an action on an existing record, where we know them. */

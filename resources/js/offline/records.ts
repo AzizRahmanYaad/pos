@@ -63,6 +63,85 @@ export function recordFromList(path: string, caches: CachedResponse[]): unknown 
     return row ? { data: row } : null;
 }
 
+/**
+ * How much a party's balance moves for everything still in the queue.
+ *
+ * Payments carry their own amount. Anything else — a return, so far —
+ * carries a recorded effect instead, because its size depends on the record
+ * as it was before the change was applied locally, which is no longer
+ * available by the time anyone asks.
+ */
+function balanceShift(entries: OutboxEntry[], kind: string, partyId: number): number {
+    return entries.reduce((total, entry) => {
+        if (entry.method !== 'POST' || entry.state === 'conflict') return total;
+
+        if (entry.effect) {
+            const { partyKind, partyId: id, balanceShift: shift } = entry.effect;
+
+            return partyKind === kind && id === partyId ? total + shift : total;
+        }
+
+        if (entry.url.split('?')[0] !== '/payments') return total;
+
+        const payload = (entry.data ?? {}) as Record<string, unknown>;
+
+        if (payload.party_type !== kind || payload.party_id !== partyId) return total;
+
+        // Debit adds to what the party owes, credit takes away — the rule
+        // the server posts every ledger entry by.
+        return total + (payload.direction === 'in' ? -num(payload.amount) : num(payload.amount));
+    }, 0);
+}
+
+/** The party paths whose rows carry a balance worth correcting. */
+const BALANCE_PATHS: Record<string, string> = { '/customers': 'customer', '/suppliers': 'supplier' };
+
+export function isPartyPath(path: string): boolean {
+    return /\/api\/v1\/(customers|suppliers)(\/-?\d+)?(\?|\{|$)/.test(path);
+}
+
+/**
+ * Take payments still in the queue off what the list says each party owes.
+ *
+ * The statement was corrected but the list beside it was not, so a customer
+ * who had just handed over money still showed the full amount outstanding
+ * on the screen the shopkeeper actually looks at. Two numbers for the same
+ * debt, disagreeing, is worse than one that is merely out of date.
+ */
+export function foldQueuedIntoParties(body: unknown, path: string, entries: OutboxEntry[]): unknown {
+    const resource = Object.keys(BALANCE_PATHS).find((key) => path.includes(`/api/v1${key}`));
+
+    if (!resource || body === null || typeof body !== 'object') return body;
+
+    const kind = BALANCE_PATHS[resource];
+
+    const correct = (row: Record<string, unknown>): Record<string, unknown> => {
+        if (typeof row?.id !== 'number') return row;
+
+        const shift = balanceShift(entries, kind, row.id);
+
+        if (shift === 0) return row;
+
+        return {
+            ...row,
+            current_balance: Math.round((num(row.current_balance) + shift) * 100) / 100,
+            __pending: true,
+        };
+    };
+
+    const shaped = body as { data?: unknown };
+
+    if (Array.isArray(shaped.data)) {
+        return { ...shaped, data: (shaped.data as Record<string, unknown>[]).map(correct) };
+    }
+
+    if (shaped.data !== null && typeof shaped.data === 'object') {
+        return { ...shaped, data: correct(shaped.data as Record<string, unknown>) };
+    }
+
+    return body;
+}
+
 /** "/api/v1/customers/42/ledger" -> { resource: '/customers', id: 42 } */
 function ledgerTarget(path: string): { resource: string; id: number } | null {
     const match = path.match(/\/api\/v1(\/[a-z-]+)\/(-?\d+)\/ledger$/);
@@ -99,6 +178,13 @@ export function foldQueuedIntoLedger(
 
     const mine = entries.filter((entry) => {
         if (entry.method !== 'POST' || entry.state === 'conflict') return false;
+
+        // A return credits the customer just as a payment does, and the
+        // statement is where somebody goes to check that it did.
+        if (entry.effect) {
+            return entry.effect.partyKind === kind && entry.effect.partyId === target.id;
+        }
+
         if (entry.url.split('?')[0] !== '/payments') return false;
 
         const payload = (entry.data ?? {}) as Record<string, unknown>;
@@ -114,20 +200,23 @@ export function foldQueuedIntoLedger(
     // Oldest first so each running balance follows the one before it.
     for (const entry of [...mine].sort((a, b) => a.createdAt - b.createdAt)) {
         const payload = (entry.data ?? {}) as Record<string, unknown>;
-        const amount = num(payload.amount);
-        const debit = payload.direction !== 'in';
+        const shift = entry.effect ? entry.effect.balanceShift
+            : (payload.direction === 'in' ? -num(payload.amount) : num(payload.amount));
+        const amount = Math.abs(shift);
+        const debit = shift > 0;
 
-        balance = Math.round((balance + (debit ? amount : -amount)) * 100) / 100;
+        balance = Math.round((balance + shift) * 100) / 100;
 
         added.push({
             id: -added.length - 1,
             entry_type: debit ? 'debit' : 'credit',
             amount,
             running_balance: balance,
-            description: typeof payload.description === 'string' && payload.description
-                ? payload.description
-                : null,
-            source_type: 'Payment',
+            description: entry.effect?.label
+                ?? (typeof payload.description === 'string' && payload.description
+                    ? payload.description
+                    : null),
+            source_type: entry.effect ? 'Sale' : 'Payment',
             transaction_date: new Date(entry.createdAt).toISOString(),
             archived_at: null,
             created_by: null,

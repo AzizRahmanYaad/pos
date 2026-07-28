@@ -66,8 +66,8 @@ import { fetchBusinessSettings } from '@/features/settings/api';
 import { fetchStockAlerts } from '@/features/inventory/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 
-const DRAWER_WIDTH = 220;
-const COLLAPSED_WIDTH = 68;
+const DRAWER_WIDTH = 244;
+const COLLAPSED_WIDTH = 76;
 const COLLAPSE_KEY = 'pos_sidebar_collapsed';
 
 

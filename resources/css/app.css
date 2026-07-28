@@ -6,6 +6,26 @@ body,
     padding: 0;
 }
 
+/*
+ * Shrinks the entire rendered app to 90% — every screen, dialog, and menu,
+ * not just the elements a component-level style could reach. Dialogs,
+ * drawers and menus portal straight to <body>, so scaling only the app's
+ * own root would leave them full-size while everything behind them shrank.
+ * zoom (not transform) is what keeps fixed/sticky positioning, scrollbars
+ * and hit-testing consistent with what is actually drawn.
+ */
+html {
+    zoom: 0.9;
+}
+
+/* A receipt is measured for the paper it prints on; shrinking it would
+   misalign the print, not just the screen. */
+@media print {
+    html {
+        zoom: 1;
+    }
+}
+
 * {
     box-sizing: border-box;
 }

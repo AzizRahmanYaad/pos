@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+    Alert,
     Avatar,
     Box,
     Button,
@@ -51,7 +52,7 @@ export function SaleDetailPage() {
     const [busyPdf, setBusyPdf] = useState(false);
     const [returning, setReturning] = useState(false);
 
-    const { data: sale, isLoading } = useQuery({
+    const { data: sale, isLoading, isError } = useQuery({
         queryKey: ['sale', id],
         queryFn: () => fetchSale(id),
     });
@@ -122,8 +123,20 @@ export function SaleDetailPage() {
         }
     };
 
-    if (isLoading || !sale) {
+    if (isLoading) {
         return <BrandSpinner fullPage minHeight={280} label={t('common.loading')} />;
+    }
+
+    // A sale this device has never held, asked for with no connection. The
+    // spinner used to stay up for ever here, which reads as a broken app
+    // rather than as the one thing that is actually true: it cannot be
+    // fetched right now.
+    if (isError || !sale) {
+        return (
+            <Alert severity="info" sx={{ mt: 2 }}>
+                {t('offline.record_unavailable')}
+            </Alert>
+        );
     }
 
     const canReturn = sale.status === 'completed' || sale.status === 'partially_refunded';

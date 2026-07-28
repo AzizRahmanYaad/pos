@@ -391,6 +391,18 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                                                 />
                                             )}
                                             <Typography variant="body2">{entry.description ?? '—'}</Typography>
+                                            {/* Taken on this device and not yet sent. A statement
+                                                shown to a customer has to say which side of the
+                                                connection each line is on. */}
+                                            {entry.__pending && (
+                                                <Chip
+                                                    size="small"
+                                                    color="warning"
+                                                    variant="outlined"
+                                                    label={t('offline.not_sent_yet')}
+                                                    sx={{ height: 18, fontSize: 10 }}
+                                                />
+                                            )}
                                         </Stack>
                                         {entry.created_by && (
                                             <Typography variant="caption" color="text.secondary">

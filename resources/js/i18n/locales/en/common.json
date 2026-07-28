@@ -838,6 +838,7 @@
         "conflicts_hint": "These were made on this device but the server would not accept them — usually because somebody else changed the same thing first, or the period has since been closed. Check the record on the server, then discard the copy here.",
         "discard": "Discard",
         "print_needs_connection": "Printing and PDFs need a connection. Everything else keeps working offline.",
-        "not_sent_yet": "Not sent yet"
+        "not_sent_yet": "Not sent yet",
+        "record_unavailable": "This record cannot be opened while there is no connection. It will be available again once the device is back online."
     }
 }

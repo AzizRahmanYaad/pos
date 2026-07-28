@@ -23,6 +23,8 @@ export interface LedgerEntry {
     transaction_date: string;
     archived_at: string | null;
     created_by: string | null;
+    /** Recorded on this device with no connection, still waiting to be sent. */
+    __pending?: boolean;
 }
 
 export interface LedgerPage {

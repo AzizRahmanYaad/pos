@@ -11,6 +11,7 @@ import {
 } from '@/offline/db';
 import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
 import { buildQueuedSale, queuedSaleDetail } from '@/offline/sales';
+import { foldQueuedIntoLedger, isLedgerPath, recordFromList } from '@/offline/records';
 import { IDEMPOTENCY_HEADER } from '@/offline/rawClient';
 import { reportReachable, refreshUnsentCount, useSyncStore } from '@/offline/syncStore';
 
@@ -159,11 +160,16 @@ function failFastWhenKnownOffline(config: InternalAxiosRequestConfig): InternalA
  * journal at closing time and be told the day was empty.
  */
 async function withQueuedWork(body: unknown, path: string, userId: number): Promise<unknown> {
-    if (!isDatedReport(path)) return body;
+    const dated = isDatedReport(path);
+    const ledger = isLedgerPath(path);
 
-    const [entries, caches] = await Promise.all([pendingEntries(userId), allCaches(userId)]);
+    if (!dated && !ledger) return body;
 
-    return foldQueuedIntoJournal(body, entries, caches);
+    const entries = await pendingEntries(userId);
+
+    if (ledger) return foldQueuedIntoLedger(body, path, entries);
+
+    return foldQueuedIntoJournal(body, entries, await allCaches(userId));
 }
 
 /**
@@ -237,11 +243,11 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                 // Nothing cached. It may still be a sale this device took
                 // itself and the server has never seen — opening it is the
                 // first thing a cashier does after taking one offline.
-                const queued = queuedSaleDetail(
-                    path,
-                    await pendingEntries(currentUserId),
-                    await allCaches(currentUserId),
-                );
+                const caches = await allCaches(currentUserId);
+                const queued = queuedSaleDetail(path, await pendingEntries(currentUserId), caches)
+                    // A customer or supplier the device holds in a list but
+                    // never fetched on its own. The row is the record.
+                    ?? recordFromList(path, caches);
 
                 if (queued !== null) {
                     return {

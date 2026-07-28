@@ -95,6 +95,50 @@ async function warmRecentSales(userId: number): Promise<void> {
 }
 
 /**
+ * The statements of everyone who owes money, or is owed it.
+ *
+ * A settled account is not the one anybody opens during an outage. The
+ * argument that needs a statement in front of it is always with someone
+ * carrying a balance, so those are the ledgers worth the requests — and
+ * there are rarely many.
+ */
+const OPEN_LEDGERS = 20;
+
+async function warmOpenLedgers(userId: number): Promise<void> {
+    for (const resource of ['/customers', '/suppliers'] as const) {
+        try {
+            const list = await rawClient.get(resource, { params: { per_page: 500 } });
+            const rows = Array.isArray(list.data?.data) ? list.data.data : [];
+            const owing = rows
+                .filter((row: Record<string, unknown>) => Math.abs(Number(row.current_balance) || 0) > 0.0001)
+                .slice(0, OPEN_LEDGERS);
+
+            for (const row of owing) {
+                if (typeof row?.id !== 'number') continue;
+
+                const params = { page: 1, per_page: 25 };
+
+                try {
+                    const ledger = await rawClient.get(`${resource}/${row.id}/ledger`, { params });
+
+                    await writeCache({
+                        key: `GET /api/v1${resource}/${row.id}/ledger${JSON.stringify(params)}`,
+                        userId,
+                        status: ledger.status,
+                        body: ledger.data,
+                        fetchedAt: Date.now(),
+                    });
+                } catch {
+                    // One statement short is not worth abandoning the rest.
+                }
+            }
+        } catch {
+            // No list, nothing to walk.
+        }
+    }
+}
+
+/**
  * The journal is asked for by date, so there is no one answer to keep — and
  * a day is exactly what a shop wants to see during an outage. Today gives
  * the queue something to be added to; the days either side cover a till
@@ -145,6 +189,7 @@ export async function warmOfflineCache(userId: number): Promise<void> {
         }
 
         await warmRecentSales(userId);
+        await warmOpenLedgers(userId);
     } finally {
         running = false;
     }

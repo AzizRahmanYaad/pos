@@ -31,6 +31,12 @@ export interface LedgerPage {
     data: LedgerEntry[];
     meta: PageMeta;
     current_balance: number;
+    /**
+     * Built on this device during an outage from what is still queued. The
+     * server may hold earlier entries this device never fetched, so the
+     * statement is shown as incomplete rather than as the whole history.
+     */
+    __partial?: boolean;
 }
 
 export interface LedgerParty {

@@ -10,9 +10,17 @@ import {
     writeCache,
     type OutboxEntry,
 } from '@/offline/db';
+import { foldQueuedIntoCashAccounts, isCashAccountPath } from '@/offline/cash';
 import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
 import { buildQueuedSale, queuedSaleDetail, saleIdFor } from '@/offline/sales';
-import { foldQueuedIntoLedger, foldQueuedIntoParties, isLedgerPath, isPartyPath, recordFromList } from '@/offline/records';
+import {
+    foldQueuedIntoLedger,
+    foldQueuedIntoParties,
+    isLedgerPath,
+    isPartyPath,
+    ledgerFromQueued,
+    recordFromList,
+} from '@/offline/records';
 import { IDEMPOTENCY_HEADER } from '@/offline/rawClient';
 import { reportReachable, refreshUnsentCount, useSyncStore } from '@/offline/syncStore';
 
@@ -164,20 +172,27 @@ async function withQueuedWork(body: unknown, path: string, userId: number): Prom
     const dated = isDatedReport(path);
     const ledger = isLedgerPath(path);
     const party = isPartyPath(path);
+    const cash = isCashAccountPath(path);
 
-    if (!dated && !ledger && !party) return body;
+    if (!dated && !ledger && !party && !cash) return body;
 
     const entries = await pendingEntries(userId);
 
     if (ledger) return foldQueuedIntoLedger(body, path, entries);
     if (party) return foldQueuedIntoParties(body, path, entries);
+    if (cash) return foldQueuedIntoCashAccounts(body, entries);
 
     return foldQueuedIntoJournal(body, entries, await allCaches(userId));
 }
 
 /**
- * What a queued return forgives the customer, measured before the local
+ * Everything a queued return does to the books, measured before the local
  * copy of the sale is changed by that same return.
+ *
+ * Three separate answers, all functions of the sale as it stands right now:
+ * what the customer stops owing, what leaves the drawer, and what the day
+ * stops having sold. Once the return is applied locally the sale no longer
+ * remembers what it was, so all three are worked out here or not at all.
  */
 async function refundEffect(entry: OutboxEntry, userId: number): Promise<OutboxEntry['effect'] | null> {
     const match = entry.url.split('?')[0].match(/^\/sales\/(-?\d+)\/refund$/);
@@ -200,17 +215,72 @@ async function refundEffect(entry: OutboxEntry, userId: number): Promise<OutboxE
         sale = queued ? buildQueuedSale(queued, caches) : null;
     }
 
-    if (!sale || typeof sale.customer_id !== 'number') return null;
+    if (!sale) return null;
 
-    const { dueForgiven } = refundShare(sale, (entry.data ?? {}) as Record<string, unknown>);
+    const payload = (entry.data ?? {}) as Record<string, unknown>;
+    const { fraction, dueForgiven } = refundShare(sale, payload);
+    const label = typeof sale.invoice_number === 'string' ? `Refund ${sale.invoice_number}` : 'Refund';
 
-    if (dueForgiven <= 0) return null;
+    // Given back into the accounts it was taken into, in the same proportion
+    // — the split RefundSaleAction makes when it credits each tender.
+    const payments = Array.isArray(sale.payments) ? (sale.payments as Record<string, unknown>[]) : [];
+    const cash = payments
+        .map((payment) => ({
+            accountId: payment.cash_account_id,
+            delta: -(Math.round(Number(payment.amount) * fraction * 100) / 100),
+        }))
+        .filter((row): row is { accountId: number; delta: number } =>
+            typeof row.accountId === 'number' && row.delta !== 0);
 
     return {
-        partyKind: 'customer',
-        partyId: sale.customer_id,
-        balanceShift: -dueForgiven,
-        label: typeof sale.invoice_number === 'string' ? `Refund ${sale.invoice_number}` : 'Refund',
+        // A walk-in has nobody to credit, but the money and the goods still
+        // moved, so the rest of the effect is recorded regardless.
+        ...(typeof sale.customer_id === 'number' && dueForgiven > 0
+            ? { partyKind: 'customer' as const, partyId: sale.customer_id, balanceShift: -dueForgiven }
+            : {}),
+        label,
+        cash,
+        refund: {
+            saleDate: typeof sale.sale_date === 'string' ? sale.sale_date : null,
+            ...refundedTrading(sale, payload),
+            dueForgiven,
+        },
+    };
+}
+
+/**
+ * What the returned goods were sold for and what they had cost.
+ *
+ * Both come off the day the sale was rung up on, exactly as the server's
+ * journal nets refunded quantities out of that day's takings and cost of
+ * goods — so the profit falls by the margin the shop no longer made.
+ */
+function refundedTrading(
+    sale: Record<string, unknown>,
+    payload: Record<string, unknown>,
+): { refundValue: number; refundedCost: number } {
+    const asked = Array.isArray(payload.items) ? (payload.items as Record<string, unknown>[]) : null;
+    const items = Array.isArray(sale.items) ? (sale.items as Record<string, unknown>[]) : [];
+
+    let refundValue = 0;
+    let refundedCost = 0;
+
+    for (const item of items) {
+        const quantity = Number(item.quantity) || 0;
+        const already = Number(item.refunded_quantity) || 0;
+        const asking = asked === null
+            ? quantity - already
+            : Number(asked.find((row) => row.sale_item_id === item.id)?.quantity ?? 0);
+
+        if (quantity <= 0 || asking <= 0) continue;
+
+        refundValue += (Number(item.line_total) || 0) * (asking / quantity);
+        refundedCost += (Number(item.cost_price_snapshot) || 0) * asking;
+    }
+
+    return {
+        refundValue: Math.round(refundValue * 100) / 100,
+        refundedCost: Math.round(refundedCost * 100) / 100,
     };
 }
 
@@ -286,11 +356,15 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                 // itself and the server has never seen — opening it is the
                 // first thing a cashier does after taking one offline.
                 const caches = await allCaches(currentUserId);
-                const queued = queuedSaleDetail(path, await pendingEntries(currentUserId), caches)
+                const unsent = await pendingEntries(currentUserId);
+                const queued = queuedSaleDetail(path, unsent, caches)
                     // A customer or supplier the device holds in a list but
                     // never fetched on its own. The row is the record.
-                    ?? foldQueuedIntoParties(recordFromList(path, caches), path,
-                        await pendingEntries(currentUserId));
+                    ?? foldQueuedIntoParties(recordFromList(path, caches), path, unsent)
+                    // Their statement, which nothing warms ahead of an
+                    // outage — so a payment taken during one had nowhere to
+                    // appear on the very screen it would be queried from.
+                    ?? ledgerFromQueued(path, unsent, caches);
 
                 if (queued !== null) {
                     return {

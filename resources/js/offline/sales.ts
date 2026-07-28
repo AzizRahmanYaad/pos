@@ -91,6 +91,9 @@ export function buildQueuedSale(entry: OutboxEntry, caches: CachedResponse[]): R
         id: -(index + 1),
         method: String(payment.method ?? 'cash'),
         amount: num(payment.amount),
+        // Carried, not just named: a return has to put the money back in the
+        // account it came out of, and a name cannot be posted against.
+        cash_account_id: typeof payment.cash_account_id === 'number' ? payment.cash_account_id : null,
         cash_account_name: nameById(caches, '/cash-accounts', payment.cash_account_id, ''),
     }));
 

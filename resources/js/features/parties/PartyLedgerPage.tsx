@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { DualDateField } from '@/components/DualDateField';
 import { LoadingButton } from '@/components/LoadingButton';
 import {
+    Alert,
     Avatar,
     Box,
     Button,
@@ -337,6 +338,15 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                     />
                 </Stack>
             </Paper>
+
+            {/* Assembled on this device during an outage. Said plainly,
+                because a statement that quietly omits ten years of history
+                is a worse answer than one that admits what it is missing. */}
+            {data?.__partial && (
+                <Alert severity="info" variant="outlined" sx={{ borderRadius: 3, mb: 2 }}>
+                    {t('offline.partial_statement')}
+                </Alert>
+            )}
 
             {/* Ledger table */}
             <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>

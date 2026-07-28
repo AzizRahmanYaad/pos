@@ -863,6 +863,7 @@
         "discard": "Discard",
         "print_needs_connection": "Printing and PDFs need a connection. Everything else keeps working offline.",
         "not_sent_yet": "Not sent yet",
-        "record_unavailable": "This record cannot be opened while there is no connection. It will be available again once the device is back online."
+        "record_unavailable": "This record cannot be opened while there is no connection. It will be available again once the device is back online.",
+        "partial_statement": "Only what was recorded on this device during the outage is shown. Earlier entries held by the server will appear once the connection returns."
     }
 }

@@ -184,12 +184,53 @@ function foldPayment(journal: Journal, entry: OutboxEntry, caches: CachedRespons
     });
 }
 
+/**
+ * Take a queued return back out of the day.
+ *
+ * The server does this by netting refunded quantities out of the day's
+ * takings and cost of goods, which lands the loss on the day the goods were
+ * *sold* — not the day they came back. The cash, though, leaves the drawer
+ * today, because that is when the ledger entry is posted. So a return of
+ * this morning's sale moves everything, and a return of last week's moves
+ * only the money: the same split the server makes, and the reason a return
+ * cannot simply be a sale with a minus sign.
+ */
+function foldRefund(journal: Journal, entry: OutboxEntry): void {
+    const refund = entry.effect?.refund;
+
+    if (!refund) return;
+
+    // Cash out lands on the journal being read, which is the day the return
+    // was taken — the caller has already established that much.
+    for (const { delta } of entry.effect?.cash ?? []) {
+        if (delta < 0) journal.cash_out_total += -delta;
+        else journal.cash_in_total += delta;
+    }
+
+    const soldOn = refund.saleDate ? localDate(Date.parse(refund.saleDate)) : null;
+
+    if (soldOn !== journal.date) return;
+
+    journal.sales_total -= refund.refundValue;
+    journal.credit_sales_total = Math.max(0, journal.credit_sales_total - refund.dueForgiven);
+    journal.profit_or_loss -= refund.refundValue - refund.refundedCost;
+}
+
 /** Writes that change a day's money. Anything else leaves the journal alone. */
 const FOLDERS: Record<string, (j: Journal, e: OutboxEntry, c: CachedResponse[]) => void> = {
     '/sales': foldSale,
     '/expenses': foldExpense,
     '/payments': foldPayment,
 };
+
+/** "/sales/12/refund" — done to a sale, not a new one. */
+function folderFor(url: string): ((j: Journal, e: OutboxEntry, c: CachedResponse[]) => void) | undefined {
+    const path = url.split('?')[0];
+
+    if (/^\/sales\/-?\d+\/refund$/.test(path)) return foldRefund;
+
+    return FOLDERS[path];
+}
 
 /**
  * Add everything still queued for this day to the journal the server last
@@ -218,7 +259,7 @@ export function foldQueuedIntoJournal(
         if (entry.method !== 'POST' || entry.state === 'conflict') continue;
         if (localDate(entry.createdAt) !== journal.date) continue;
 
-        const fold = FOLDERS[entry.url.split('?')[0]];
+        const fold = folderFor(entry.url);
 
         if (!fold) continue;
 

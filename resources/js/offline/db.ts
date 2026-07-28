@@ -30,20 +30,34 @@ export interface OutboxEntry {
     error?: string;
     errorStatus?: number;
     /**
-     * What this change does to somebody's balance, worked out at the moment
-     * it was made.
+     * What this change does to balances, cash and the day's trading, worked
+     * out at the moment it was made.
      *
      * Deliberately recorded rather than re-derived. A return's effect is a
      * function of the sale *before* the return — and the local copy of that
      * sale is patched the instant the return is queued, so anything asking
      * the question later gets zero. Recording the answer once, while it is
      * still knowable, is the only version of this that cannot drift.
+     *
+     * Only returns carry one. Everything else states its own effect plainly
+     * in its payload, and reading it there cannot go stale.
      */
     effect?: {
-        partyKind: 'customer' | 'supplier';
-        partyId: number;
-        balanceShift: number;
+        /** Absent on a walk-in return, which has no party to credit. */
+        partyKind?: 'customer' | 'supplier';
+        partyId?: number;
+        balanceShift?: number;
         label?: string;
+        /** Money leaving or entering each account. Negative is out. */
+        cash?: { accountId: number; delta: number }[];
+        /** What the return takes back out of the day it was sold on. */
+        refund?: {
+            /** The day the *sale* belongs to, which is the day it scored. */
+            saleDate: string | null;
+            refundValue: number;
+            refundedCost: number;
+            dueForgiven: number;
+        };
     };
 }
 

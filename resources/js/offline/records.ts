@@ -78,7 +78,9 @@ function balanceShift(entries: OutboxEntry[], kind: string, partyId: number): nu
         if (entry.effect) {
             const { partyKind, partyId: id, balanceShift: shift } = entry.effect;
 
-            return partyKind === kind && id === partyId ? total + shift : total;
+            // A walk-in return records its cash and its goods but names no
+            // party, so there is no balance here to move.
+            return partyKind === kind && id === partyId ? total + (shift ?? 0) : total;
         }
 
         if (entry.url.split('?')[0] !== '/payments') return total;
@@ -142,6 +144,56 @@ export function foldQueuedIntoParties(body: unknown, path: string, entries: Outb
     return body;
 }
 
+/**
+ * A statement for a party whose statement was never cached.
+ *
+ * Folding only ever corrected a ledger the device already held, and ledgers
+ * are not among the screens warmed ahead of an outage — so taking a payment
+ * from somebody whose statement had not been opened online left it showing
+ * nothing at all. The payment was safely queued and the customer's balance
+ * was right everywhere else, which made the one screen they were shown to
+ * settle the argument the only screen that denied it had happened.
+ *
+ * Built from the party's last known balance plus everything queued against
+ * them since. Where the server holds history this device never fetched, the
+ * page is told the statement is partial rather than being left to imply
+ * that a customer of ten years has two transactions.
+ */
+export function ledgerFromQueued(
+    path: string,
+    entries: OutboxEntry[],
+    caches: CachedResponse[],
+): unknown | null {
+    const target = ledgerTarget(path);
+
+    if (!target || !BALANCE_PATHS[target.resource]) return null;
+
+    const party = listRows(caches, target.resource).find((row) => row.id === target.id);
+
+    if (!party) return null;
+
+    const empty = {
+        data: [],
+        current_balance: num(party.current_balance),
+        // One page, because everything here was made on this device and
+        // there is nothing further to ask the server for.
+        meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 },
+    };
+
+    const folded = foldQueuedIntoLedger(empty, path, entries) as { data?: unknown[] };
+
+    // Nothing queued and nothing cached is not a statement, it is an absence
+    // — and answering with an empty one would claim the party has never
+    // traded. Only a party this device invented itself can honestly say that.
+    if (!folded.data?.length && party.__pending !== true) return null;
+
+    return {
+        ...folded,
+        /** The server may hold entries this device has never seen. */
+        __partial: party.__pending !== true,
+    };
+}
+
 /** "/api/v1/customers/42/ledger" -> { resource: '/customers', id: 42 } */
 function ledgerTarget(path: string): { resource: string; id: number } | null {
     const match = path.match(/\/api\/v1(\/[a-z-]+)\/(-?\d+)\/ledger$/);
@@ -200,7 +252,7 @@ export function foldQueuedIntoLedger(
     // Oldest first so each running balance follows the one before it.
     for (const entry of [...mine].sort((a, b) => a.createdAt - b.createdAt)) {
         const payload = (entry.data ?? {}) as Record<string, unknown>;
-        const shift = entry.effect ? entry.effect.balanceShift
+        const shift = entry.effect ? (entry.effect.balanceShift ?? 0)
             : (payload.direction === 'in' ? -num(payload.amount) : num(payload.amount));
         const amount = Math.abs(shift);
         const debit = shift > 0;

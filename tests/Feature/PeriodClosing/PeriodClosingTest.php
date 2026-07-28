@@ -111,6 +111,95 @@ class PeriodClosingTest extends TestCase
         );
     }
 
+    /**
+     * A closed period has to say what the shop *did*, not only what it was
+     * left holding. Balances alone cannot answer "did we make money?".
+     */
+    public function test_closing_a_period_records_what_it_traded(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $category = ExpenseCategory::factory()->create(['name' => 'Rent']);
+        $user = User::factory()->create();
+
+        app(RecordStockMovementAction::class)
+            ->execute($product, $warehouse, 'opening', 10, 4);
+
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => Carbon::parse('2026-03-05 10:00:00')],
+            items: [['product_id' => $product->id, 'quantity' => 2, 'unit_id' => $product->unit_id, 'unit_price' => 10]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 20]],
+            cashierId: $user->id,
+        );
+
+        app(CreateExpenseAction::class)->execute([
+            'expense_category_id' => $category->id,
+            'cash_account_id' => $cashAccount->id,
+            'amount' => 6,
+            'expense_date' => Carbon::parse('2026-03-06 09:00:00'),
+        ], $user->id);
+
+        $closing = app(ClosePeriodAction::class)->execute(
+            periodType: PeriodClosing::TYPE_MONTHLY,
+            periodStart: Carbon::parse('2026-03-01'),
+            periodEnd: Carbon::parse('2026-03-31'),
+            closedBy: $user->id,
+        );
+
+        $amountOf = fn (string $type) => (float) $closing->snapshots()
+            ->where('snapshot_type', $type)->value('amount');
+
+        // Sold 2 at 10 that cost 4 each; rent of 6 on top.
+        $this->assertEqualsWithDelta(20.0, $amountOf(PeriodClosingSnapshot::TYPE_REVENUE), 0.01);
+        $this->assertEqualsWithDelta(8.0, $amountOf(PeriodClosingSnapshot::TYPE_COGS), 0.01);
+        $this->assertEqualsWithDelta(12.0, $amountOf(PeriodClosingSnapshot::TYPE_GROSS_PROFIT), 0.01);
+        $this->assertEqualsWithDelta(6.0, $amountOf(PeriodClosingSnapshot::TYPE_NET_PROFIT), 0.01);
+
+        // Expenses are kept per category, so the biggest cost stays visible.
+        $rent = $closing->snapshots()
+            ->where('snapshot_type', PeriodClosingSnapshot::TYPE_OPERATING_EXPENSE)
+            ->where('reference_label', 'Rent')
+            ->first();
+        $this->assertNotNull($rent);
+        $this->assertEqualsWithDelta(6.0, (float) $rent->amount, 0.01);
+    }
+
+    /**
+     * Trading outside the period is somebody else's month, and a closing
+     * that swept it in would overstate every figure on the page.
+     */
+    public function test_trading_outside_the_period_is_left_out_of_it(): void
+    {
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $user = User::factory()->create();
+
+        app(RecordStockMovementAction::class)
+            ->execute($product, $warehouse, 'opening', 10, 4);
+
+        // A month after the period being closed.
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => Carbon::parse('2026-04-05 10:00:00')],
+            items: [['product_id' => $product->id, 'quantity' => 2, 'unit_id' => $product->unit_id, 'unit_price' => 10]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 20]],
+            cashierId: $user->id,
+        );
+
+        $closing = app(ClosePeriodAction::class)->execute(
+            periodType: PeriodClosing::TYPE_MONTHLY,
+            periodStart: Carbon::parse('2026-03-01'),
+            periodEnd: Carbon::parse('2026-03-31'),
+            closedBy: $user->id,
+        );
+
+        $revenue = (float) $closing->snapshots()
+            ->where('snapshot_type', PeriodClosingSnapshot::TYPE_REVENUE)->value('amount');
+
+        $this->assertEqualsWithDelta(0.0, $revenue, 0.01);
+    }
+
     public function test_creating_a_sale_after_the_closed_period_still_works(): void
     {
         $warehouse = Warehouse::factory()->create();

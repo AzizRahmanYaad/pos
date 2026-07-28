@@ -3,6 +3,7 @@
 namespace App\Domain\PeriodClosing\Actions;
 
 use App\Domain\PeriodClosing\Exceptions\InvalidPeriodClosingException;
+use App\Domain\Reports\PeriodResults;
 use App\Models\CashAccount;
 use App\Models\Customer;
 use App\Models\Employee;
@@ -58,6 +59,7 @@ class ClosePeriodAction
             $this->snapshotLedgerable($closing, Employee::class, PeriodClosingSnapshot::TYPE_EMPLOYEE_BALANCE);
             $this->snapshotLedgerable($closing, CashAccount::class, PeriodClosingSnapshot::TYPE_CASH_BALANCE);
             $this->snapshotInventory($closing);
+            $this->snapshotResults($closing, $periodStart, $periodEnd);
 
             return $closing->load('snapshots');
         });
@@ -77,6 +79,50 @@ class ClosePeriodAction
                 'amount' => $ledgerable->currentBalance(),
             ]);
         });
+    }
+
+    /**
+     * What the period traded, recorded at the moment it is closed.
+     *
+     * The balances say what the shop was worth when the books shut; these
+     * say what it did to get there. Written down rather than computed on
+     * demand because a closed period is a statement about a moment that has
+     * passed — a later correction, a backdated expense, a reopened month
+     * should not quietly rewrite what the closing said at the time.
+     */
+    private function snapshotResults(PeriodClosing $closing, Carbon $from, Carbon $to): void
+    {
+        $results = (new PeriodResults())->forRange($from->copy()->startOfDay(), $to->copy()->endOfDay());
+
+        $figures = [
+            PeriodClosingSnapshot::TYPE_REVENUE => $results['revenue'],
+            PeriodClosingSnapshot::TYPE_DISCOUNTS => $results['discounts'],
+            PeriodClosingSnapshot::TYPE_COGS => $results['cogs'],
+            PeriodClosingSnapshot::TYPE_GROSS_PROFIT => $results['gross_profit'],
+            PeriodClosingSnapshot::TYPE_PAYROLL_COST => $results['payroll_cost'],
+            PeriodClosingSnapshot::TYPE_NET_PROFIT => $results['net_profit'],
+            PeriodClosingSnapshot::TYPE_PURCHASES => $results['purchases_total'],
+        ];
+
+        foreach ($figures as $type => $amount) {
+            PeriodClosingSnapshot::create([
+                'period_closing_id' => $closing->id,
+                'snapshot_type' => $type,
+                'amount' => $amount,
+                // The sale count rides with revenue: it is the only figure
+                // here that is a tally rather than money.
+                'quantity' => $type === PeriodClosingSnapshot::TYPE_REVENUE ? $results['sales_count'] : null,
+            ]);
+        }
+
+        foreach ($results['operating_expenses_by_category'] as $row) {
+            PeriodClosingSnapshot::create([
+                'period_closing_id' => $closing->id,
+                'snapshot_type' => PeriodClosingSnapshot::TYPE_OPERATING_EXPENSE,
+                'reference_label' => $row['category'],
+                'amount' => $row['total'],
+            ]);
+        }
     }
 
     private function snapshotInventory(PeriodClosing $closing): void

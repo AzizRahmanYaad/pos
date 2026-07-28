@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Domain\Reports\PeriodResults;
 use App\Models\BusinessSetting;
 use App\Models\CashAccount;
 use App\Models\Customer;
@@ -419,46 +420,9 @@ class ReportController extends Controller
     {
         [$from, $to] = $this->resolveRange($request);
 
-        $revenue = (float) $this->completedSaleItems($from, $to)
-            ->selectRaw('COALESCE(SUM(sale_items.line_total * (sale_items.quantity - sale_items.refunded_quantity) / sale_items.quantity), 0) as total')
-            ->value('total');
-        $cogs = (float) $this->completedSaleItems($from, $to)
-            ->selectRaw('COALESCE(SUM((sale_items.quantity - sale_items.refunded_quantity) * sale_items.cost_price_snapshot), 0) as total')
-            ->value('total');
-
-        // Line totals already carry any discount given on the line itself,
-        // but a discount taken off the whole sale at the till never reached
-        // this figure — so revenue was reported as if it had been charged in
-        // full. It is money the shop chose not to take, and it belongs here
-        // beside the expenses rather than hidden inside the takings.
-        $discounts = (float) Sale::query()
-            ->when(TenantContext::id(), fn ($query, $tenantId) => $query->where('sales.tenant_id', $tenantId))
-            ->whereIn('status', [Sale::STATUS_COMPLETED, Sale::STATUS_PARTIALLY_REFUNDED])
-            ->whereBetween('sale_date', [$from, $to])
-            ->sum('discount');
-
-        $expensesByCategory = Expense::query()
-            ->join('expense_categories', 'expense_categories.id', '=', 'expenses.expense_category_id')
-            ->whereBetween('expense_date', [$from, $to])
-            ->where('is_landed_cost', false)
-            ->selectRaw('expense_categories.name as category, SUM(expenses.amount) as total')
-            ->groupBy('expense_categories.name')
-            ->orderByDesc('total')
-            ->get()
-            ->map(fn ($row) => ['category' => $row->category, 'total' => round((float) $row->total, 2)])
-            ->values();
-
-        $operatingExpenses = (float) $expensesByCategory->sum('total');
-
-        $payrollCost = (float) PayrollItem::query()
-            ->whereHas('payrollRun', function ($query) use ($from, $to) {
-                $query->where('status', PayrollRun::STATUS_PAID)->whereBetween('paid_at', [$from, $to]);
-            })
-            ->sum('net_pay');
-
-        $netRevenue = $revenue - $discounts;
-        $grossProfit = $netRevenue - $cogs;
-        $netProfit = $grossProfit - $operatingExpenses - $payrollCost;
+        // The trading half is shared with a closed period, so the two can
+        // never quote different numbers for the same dates.
+        $results = (new PeriodResults())->forRange($from, $to);
 
         // A live balance-sheet snapshot alongside the period's P&L — cash,
         // inventory, receivables, and payables are always "as of right
@@ -479,15 +443,15 @@ class ReportController extends Controller
         return [
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
-            'revenue' => round($revenue, 2),
-            'discounts' => round($discounts, 2),
-            'net_revenue' => round($netRevenue, 2),
-            'cogs' => round($cogs, 2),
-            'gross_profit' => round($grossProfit, 2),
-            'operating_expenses' => round($operatingExpenses, 2),
-            'operating_expenses_by_category' => $expensesByCategory->all(),
-            'payroll_cost' => round($payrollCost, 2),
-            'net_profit' => round($netProfit, 2),
+            'revenue' => $results['revenue'],
+            'discounts' => $results['discounts'],
+            'net_revenue' => $results['net_revenue'],
+            'cogs' => $results['cogs'],
+            'gross_profit' => $results['gross_profit'],
+            'operating_expenses' => $results['operating_expenses'],
+            'operating_expenses_by_category' => $results['operating_expenses_by_category'],
+            'payroll_cost' => $results['payroll_cost'],
+            'net_profit' => $results['net_profit'],
             'cash_balance' => round($cashBalance, 2),
             'inventory_value' => round($inventoryValue, 2),
             'receivables_total' => round($receivablesTotal, 2),

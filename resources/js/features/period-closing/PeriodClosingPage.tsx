@@ -94,24 +94,25 @@ function StatTile({
 }
 
 /**
- * What a period traded, pulled off the figures recorded when it closed.
+ * What a period traded.
  *
  * The list is the page reached by the Clearance menu, so a shopkeeper
  * should be able to see whether a month made money without opening it
- * first. Periods closed before these figures were kept simply have none.
+ * first. The server resolves each period's figures — recorded at closing
+ * where they exist, worked out from the records otherwise — so every
+ * period that traded shows a number here, not just the ones closed since
+ * the figures started being kept.
  */
 function resultsOf(closing: PeriodClosingDto) {
-    const snaps = closing.snapshots ?? [];
-    const figure = (type: string) => snaps.find((s) => s.snapshot_type === type)?.amount;
-
-    const revenue = figure('revenue');
-    if (revenue === undefined) return null;
+    const figures = closing.trading_figures;
+    if (!figures) return null;
 
     return {
-        revenue,
-        netProfit: figure('net_profit') ?? 0,
-        grossProfit: figure('gross_profit') ?? 0,
-        salesCount: snaps.find((s) => s.snapshot_type === 'revenue')?.quantity ?? 0,
+        revenue: figures.revenue,
+        netProfit: figures.net_profit,
+        grossProfit: figures.gross_profit,
+        salesCount: figures.sales_count,
+        computed: figures.source === 'computed',
     };
 }
 
@@ -320,9 +321,10 @@ export function PeriodClosingPage() {
                                     {(() => {
                                         const results = resultsOf(closing);
 
-                                        // A period closed before the figures
-                                        // were kept has none — an em dash is
-                                        // the truth, where 0.00 would be a lie.
+                                        // Only if the server could neither
+                                        // find recorded figures nor work them
+                                        // out — an em dash is the truth there,
+                                        // where 0.00 would be a lie.
                                         if (!results) {
                                             return (
                                                 <>
@@ -339,7 +341,21 @@ export function PeriodClosingPage() {
                                         return (
                                             <>
                                                 <TableCell align="right" sx={{ fontWeight: 600 }}>
-                                                    {money(results.revenue)}
+                                                    {/* Full weight either way — a
+                                                        computed figure is still
+                                                        the shop's own trading, and
+                                                        greying it out would suggest
+                                                        otherwise. The tooltip says
+                                                        where it came from. */}
+                                                    {results.computed ? (
+                                                        <Tooltip title={t('period_closing_page.results_computed')}>
+                                                            <Box component="span" sx={{ borderBottom: '1px dotted', borderColor: 'divider' }}>
+                                                                {money(results.revenue)}
+                                                            </Box>
+                                                        </Tooltip>
+                                                    ) : (
+                                                        money(results.revenue)
+                                                    )}
                                                 </TableCell>
                                                 <TableCell
                                                     align="right"

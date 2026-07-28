@@ -21,6 +21,12 @@ class PeriodClosingResource extends JsonResource
             'closed_by' => $this->whenLoaded('closer', fn () => $this->closer?->name),
             'status' => $this->status,
             'notes' => $this->notes,
+            // What the period traded, either as recorded when it was closed
+            // or, for periods closed before those figures were kept, worked
+            // out now from the same records the profit-and-loss report reads.
+            // The payload says which, so a figure derived today is never
+            // mistaken for one agreed when the books shut.
+            'trading_figures' => $this->trading_figures,
             'snapshots' => PeriodClosingSnapshotResource::collection($this->whenLoaded('snapshots')),
             'activities' => ActivityLogResource::collection($this->whenLoaded('activities')),
         ];

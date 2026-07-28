@@ -300,6 +300,131 @@ class PeriodClosingTest extends TestCase
         $this->assertTrue($activities->contains(fn ($a) => $a['description'] === 'period_reopened' && $a['causer_name'] === 'Admin Ali'));
     }
 
+    /**
+     * A period closed before the trading figures were kept has no snapshots
+     * of them, and used to render as a page saying only that nobody saved a
+     * number. The sales and expenses that prove it traded are still on file,
+     * so the figures are worked out from those and marked as computed.
+     */
+    public function test_a_period_closed_without_recorded_figures_has_them_worked_out(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $category = ExpenseCategory::factory()->create(['name' => 'Rent']);
+
+        app(RecordStockMovementAction::class)
+            ->execute($product, $warehouse, 'opening', 10, 4);
+
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => Carbon::parse('2026-03-05 10:00:00')],
+            items: [['product_id' => $product->id, 'quantity' => 2, 'unit_id' => $product->unit_id, 'unit_price' => 10]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 20]],
+            cashierId: $admin->id,
+        );
+
+        app(CreateExpenseAction::class)->execute([
+            'expense_category_id' => $category->id,
+            'cash_account_id' => $cashAccount->id,
+            'amount' => 6,
+            'expense_date' => Carbon::parse('2026-03-06 09:00:00'),
+        ], $admin->id);
+
+        $closing = app(ClosePeriodAction::class)->execute(
+            periodType: PeriodClosing::TYPE_MONTHLY,
+            periodStart: Carbon::parse('2026-03-01'),
+            periodEnd: Carbon::parse('2026-03-31'),
+            closedBy: $admin->id,
+        );
+
+        // Stand this period back in the state the old code left behind: the
+        // balances kept, the trading figures never written.
+        $closing->snapshots()
+            ->whereIn('snapshot_type', PeriodClosingSnapshot::RESULT_TYPES)
+            ->delete();
+
+        $response = $this->actingAs($admin)
+            ->getJson("/api/v1/period-closings/{$closing->id}")
+            ->assertOk();
+
+        $response->assertJsonPath('data.trading_figures.source', 'computed');
+
+        // The same trading the recorded figures would have described:
+        // 2 sold at 10 that cost 4 each, with rent of 6 on top.
+        $figures = $response->json('data.trading_figures');
+        $this->assertEqualsWithDelta(20.0, $figures['revenue'], 0.01);
+        $this->assertEqualsWithDelta(8.0, $figures['cogs'], 0.01);
+        $this->assertEqualsWithDelta(12.0, $figures['gross_profit'], 0.01);
+        $this->assertEqualsWithDelta(6.0, $figures['net_profit'], 0.01);
+        $this->assertSame(1, $figures['sales_count']);
+        $this->assertSame('Rent', $figures['operating_expenses_by_category'][0]['category']);
+
+        // And the list is the page the Clearance menu actually lands on, so
+        // it has to carry them too.
+        $list = $this->actingAs($admin)
+            ->getJson('/api/v1/period-closings')
+            ->assertOk()
+            ->assertJsonPath('data.0.trading_figures.source', 'computed');
+
+        $this->assertEqualsWithDelta(20.0, $list->json('data.0.trading_figures.revenue'), 0.01);
+    }
+
+    /**
+     * A closed period is a statement about a moment that has passed. Where
+     * figures were recorded at closing they are what the closing said, and
+     * trading that lands in the period afterwards must not rewrite them.
+     */
+    public function test_recorded_figures_are_served_as_recorded_and_not_recomputed(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+
+        app(RecordStockMovementAction::class)
+            ->execute($product, $warehouse, 'opening', 10, 4);
+
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => Carbon::parse('2026-03-05 10:00:00')],
+            items: [['product_id' => $product->id, 'quantity' => 2, 'unit_id' => $product->unit_id, 'unit_price' => 10]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 20]],
+            cashierId: $admin->id,
+        );
+
+        $closing = app(ClosePeriodAction::class)->execute(
+            periodType: PeriodClosing::TYPE_MONTHLY,
+            periodStart: Carbon::parse('2026-03-01'),
+            periodEnd: Carbon::parse('2026-03-31'),
+            closedBy: $admin->id,
+        );
+
+        // Reopen and trade inside the period again. Recomputing would now
+        // report 40; the closing said 20, and that is what it must keep
+        // saying.
+        app(ReopenPeriodAction::class)->execute($closing);
+
+        app(CreateSaleAction::class)->execute(
+            data: ['warehouse_id' => $warehouse->id, 'sale_date' => Carbon::parse('2026-03-07 10:00:00')],
+            items: [['product_id' => $product->id, 'quantity' => 2, 'unit_id' => $product->unit_id, 'unit_price' => 10]],
+            payments: [['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 20]],
+            cashierId: $admin->id,
+        );
+
+        $response = $this->actingAs($admin)
+            ->getJson("/api/v1/period-closings/{$closing->id}")
+            ->assertOk()
+            ->assertJsonPath('data.trading_figures.source', 'recorded');
+
+        $this->assertEqualsWithDelta(20.0, $response->json('data.trading_figures.revenue'), 0.01);
+    }
+
     public function test_manager_can_close_period_but_only_admin_can_reopen(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

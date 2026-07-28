@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+    Alert,
     Avatar,
     Box,
     Button,
@@ -53,12 +54,6 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 };
 
 const TYPE_ORDER = ['cash_balance', 'customer_balance', 'supplier_balance', 'employee_balance', 'inventory_value'];
-
-/** Figures about the period itself; everything else is a list of parties. */
-const RESULT_TYPES = [
-    'revenue', 'discounts', 'cogs', 'gross_profit',
-    'operating_expense', 'payroll_cost', 'net_profit', 'purchases',
-];
 
 /**
  * One bar chart, used for the trading breakdown and for the expense
@@ -229,39 +224,34 @@ export function PeriodClosingDetailPage() {
     }, [closing]);
 
     /**
-     * What the period traded, as recorded the moment it was closed. Periods
-     * closed before these figures were kept have none, and are shown as such
-     * rather than as a screen full of zeroes that look like a dead business.
+     * What the period traded. The server sends these already resolved: the
+     * figures recorded the moment the period closed where they exist, and
+     * otherwise the same arithmetic run over the records now, for periods
+     * closed before those figures were kept. Either way there is something
+     * to show, which is the point — a month that traded should never render
+     * as a screen of em dashes just because nobody saved a number at the
+     * time.
      */
     const results = useMemo(() => {
-        const snaps = closing?.snapshots ?? [];
-        if (!RESULT_TYPES.some((type) => snaps.some((s) => s.snapshot_type === type))) {
-            return null;
-        }
-
-        const figure = (type: string) => snaps.find((s) => s.snapshot_type === type);
-        const expenseRows = snaps
-            .filter((s) => s.snapshot_type === 'operating_expense')
-            .slice()
-            .sort((a, b) => b.amount - a.amount);
-
-        const revenueRow = figure('revenue');
-        const revenue = revenueRow?.amount ?? 0;
-        const discounts = figure('discounts')?.amount ?? 0;
-        const expenses = expenseRows.reduce((sum, row) => sum + row.amount, 0);
+        const figures = closing?.trading_figures;
+        if (!figures) return null;
 
         return {
-            revenue,
-            discounts,
-            netRevenue: revenue - discounts,
-            cogs: figure('cogs')?.amount ?? 0,
-            grossProfit: figure('gross_profit')?.amount ?? 0,
-            payroll: figure('payroll_cost')?.amount ?? 0,
-            netProfit: figure('net_profit')?.amount ?? 0,
-            purchases: figure('purchases')?.amount ?? 0,
-            salesCount: revenueRow?.quantity ?? 0,
-            expenses,
-            expenseRows,
+            revenue: figures.revenue,
+            discounts: figures.discounts,
+            netRevenue: figures.net_revenue,
+            cogs: figures.cogs,
+            grossProfit: figures.gross_profit,
+            payroll: figures.payroll_cost,
+            netProfit: figures.net_profit,
+            purchases: figures.purchases_total,
+            salesCount: figures.sales_count,
+            expenses: figures.operating_expenses,
+            expenseRows: figures.operating_expenses_by_category.map((row) => ({
+                label: row.category,
+                amount: row.total,
+            })),
+            computed: figures.source === 'computed',
         };
     }, [closing]);
 
@@ -388,6 +378,18 @@ export function PeriodClosingDetailPage() {
                         </Paper>
                     ) : (
                         <Grid container spacing={2}>
+                            {/* Said plainly, and once, at the top of the
+                                figures it applies to: these were worked out
+                                from the records just now, not agreed when the
+                                books shut, and a reopened period can still
+                                move them. */}
+                            {results.computed && (
+                                <Grid item xs={12}>
+                                    <Alert severity="info" variant="outlined" sx={{ borderRadius: 3 }}>
+                                        {t('period_closing_page.results_computed')}
+                                    </Alert>
+                                </Grid>
+                            )}
                             <Grid item xs={12} sm={6}>
                                 <FigureTile
                                     label={t('fields.revenue')}
@@ -578,7 +580,7 @@ export function PeriodClosingDetailPage() {
                                         <FigureChart
                                             money={money}
                                             data={results.expenseRows.map((row) => ({
-                                                label: row.reference_label ?? t('common.none'),
+                                                label: row.label ?? t('common.none'),
                                                 value: row.amount,
                                                 color: theme.palette.warning.main,
                                             }))}
@@ -586,8 +588,8 @@ export function PeriodClosingDetailPage() {
                                         <Stack spacing={1} sx={{ mt: 1 }}>
                                             {results.expenseRows.map((row) => (
                                                 <StatementRow
-                                                    key={row.id}
-                                                    label={row.reference_label ?? t('common.none')}
+                                                    key={row.label ?? 'uncategorised'}
+                                                    label={row.label ?? t('common.none')}
                                                     value={money(row.amount)}
                                                 />
                                             ))}

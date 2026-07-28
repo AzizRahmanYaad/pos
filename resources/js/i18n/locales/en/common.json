@@ -364,6 +364,7 @@
         "reopen_success": "Period reopened",
         "results": "What this period traded",
         "no_results": "Trading figures were not recorded when this period was closed. Close a new period to capture them.",
+        "results_computed": "No trading figures were saved when this period was closed, so these are worked out from the sales, expenses and payroll now on file.",
         "from_sales": "From {{count}} sales",
         "gross_margin": "{{percent}} gross margin",
         "net_margin": "{{percent}} net margin",

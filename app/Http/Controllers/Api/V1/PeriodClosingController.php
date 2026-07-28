@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\PeriodClosing\Actions\ClosePeriodAction;
 use App\Domain\PeriodClosing\Actions\ReopenPeriodAction;
+use App\Domain\PeriodClosing\TradingFigures;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PeriodClosing\StorePeriodClosingRequest;
 use App\Http\Resources\PeriodClosingResource;
@@ -13,6 +14,8 @@ use Carbon\Carbon;
 
 class PeriodClosingController extends Controller
 {
+    public function __construct(private TradingFigures $tradingFigures) {}
+
     public function index()
     {
         $this->authorize('viewAny', PeriodClosing::class);
@@ -20,15 +23,15 @@ class PeriodClosingController extends Controller
         // Only the figures describing each period, never the per-party
         // balance rows: a shop with a few hundred customers would otherwise
         // send thousands of ledger lines just to draw a list of months.
-        return PeriodClosingResource::collection(
-            PeriodClosing::query()
-                ->with([
-                    'closer',
-                    'snapshots' => fn ($query) => $query->whereIn('snapshot_type', PeriodClosingSnapshot::RESULT_TYPES),
-                ])
-                ->orderByDesc('period_end')
-                ->get()
-        );
+        $closings = PeriodClosing::query()
+            ->with([
+                'closer',
+                'snapshots' => fn ($query) => $query->whereIn('snapshot_type', PeriodClosingSnapshot::RESULT_TYPES),
+            ])
+            ->orderByDesc('period_end')
+            ->get();
+
+        return PeriodClosingResource::collection($this->tradingFigures->attachToMany($closings));
     }
 
     public function store(StorePeriodClosingRequest $request, ClosePeriodAction $closePeriod): PeriodClosingResource
@@ -41,16 +44,16 @@ class PeriodClosingController extends Controller
             notes: $request->validated('notes'),
         );
 
-        return new PeriodClosingResource($closing);
+        return new PeriodClosingResource($this->tradingFigures->attach($closing));
     }
 
     public function show(PeriodClosing $periodClosing): PeriodClosingResource
     {
         $this->authorize('viewAny', PeriodClosing::class);
 
-        return new PeriodClosingResource(
-            $periodClosing->load(['snapshots', 'closer', 'activities' => fn ($query) => $query->with('causer')->latest()])
-        );
+        $periodClosing->load(['snapshots', 'closer', 'activities' => fn ($query) => $query->with('causer')->latest()]);
+
+        return new PeriodClosingResource($this->tradingFigures->attach($periodClosing));
     }
 
     public function reopen(PeriodClosing $periodClosing, ReopenPeriodAction $reopenPeriod): PeriodClosingResource
@@ -58,9 +61,8 @@ class PeriodClosingController extends Controller
         $this->authorize('reopen', PeriodClosing::class);
 
         $reopened = $reopenPeriod->execute($periodClosing);
+        $reopened->load(['snapshots', 'closer', 'activities' => fn ($query) => $query->with('causer')->latest()]);
 
-        return new PeriodClosingResource(
-            $reopened->load(['snapshots', 'closer', 'activities' => fn ($query) => $query->with('causer')->latest()])
-        );
+        return new PeriodClosingResource($this->tradingFigures->attach($reopened));
     }
 }

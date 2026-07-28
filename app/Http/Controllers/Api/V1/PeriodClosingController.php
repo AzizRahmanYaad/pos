@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PeriodClosing\StorePeriodClosingRequest;
 use App\Http\Resources\PeriodClosingResource;
 use App\Models\PeriodClosing;
+use App\Models\PeriodClosingSnapshot;
 use Carbon\Carbon;
 
 class PeriodClosingController extends Controller
@@ -16,8 +17,17 @@ class PeriodClosingController extends Controller
     {
         $this->authorize('viewAny', PeriodClosing::class);
 
+        // Only the figures describing each period, never the per-party
+        // balance rows: a shop with a few hundred customers would otherwise
+        // send thousands of ledger lines just to draw a list of months.
         return PeriodClosingResource::collection(
-            PeriodClosing::query()->with('closer')->orderByDesc('period_end')->get()
+            PeriodClosing::query()
+                ->with([
+                    'closer',
+                    'snapshots' => fn ($query) => $query->whereIn('snapshot_type', PeriodClosingSnapshot::RESULT_TYPES),
+                ])
+                ->orderByDesc('period_end')
+                ->get()
         );
     }
 

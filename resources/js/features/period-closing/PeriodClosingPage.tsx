@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -33,11 +33,24 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
 import EventRepeatOutlinedIcon from '@mui/icons-material/EventRepeatOutlined';
 import { useTranslation } from 'react-i18next';
-import { fetchPeriodClosings, closePeriod } from '@/features/period-closing/api';
+import { fetchPeriodClosings, closePeriod, type PeriodClosingDto } from '@/features/period-closing/api';
+import { fetchBusinessSettings } from '@/features/settings/api';
 import { Can } from '@/components/Can';
 import { DualDateField } from '@/components/DualDateField';
 import { formatDate } from '@/lib/calendar';
 import { LoadingButton } from '@/components/LoadingButton';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Legend,
+    ResponsiveContainer,
+    Tooltip as RechartsTooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
+import SavingsOutlinedIcon from '@mui/icons-material/SavingsOutlined';
 
 function StatTile({
     icon,
@@ -80,12 +93,39 @@ function StatTile({
     );
 }
 
+/**
+ * What a period traded, pulled off the figures recorded when it closed.
+ *
+ * The list is the page reached by the Clearance menu, so a shopkeeper
+ * should be able to see whether a month made money without opening it
+ * first. Periods closed before these figures were kept simply have none.
+ */
+function resultsOf(closing: PeriodClosingDto) {
+    const snaps = closing.snapshots ?? [];
+    const figure = (type: string) => snaps.find((s) => s.snapshot_type === type)?.amount;
+
+    const revenue = figure('revenue');
+    if (revenue === undefined) return null;
+
+    return {
+        revenue,
+        netProfit: figure('net_profit') ?? 0,
+        grossProfit: figure('gross_profit') ?? 0,
+        salesCount: snaps.find((s) => s.snapshot_type === 'revenue')?.quantity ?? 0,
+    };
+}
+
 export function PeriodClosingPage() {
     const { t, i18n } = useTranslation();
     const theme = useTheme();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { data: closings, isLoading } = useQuery({ queryKey: ['period-closings'], queryFn: fetchPeriodClosings });
+    const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
+
+    const sym = settings?.currency_symbol ?? '';
+    const money = (v: number) =>
+        `${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${sym ? ` ${sym}` : ''}`;
 
     const [newOpen, setNewOpen] = useState(false);
     const [periodType, setPeriodType] = useState<'daily' | 'monthly' | 'custom'>('daily');
@@ -109,7 +149,30 @@ export function PeriodClosingPage() {
 
     const closedCount = closings?.filter((c) => c.status === 'closed').length ?? 0;
     const reopenedCount = closings?.filter((c) => c.status === 'reopened').length ?? 0;
-    const latest = closings?.[0];
+
+    // Totals and a trend across every period that recorded its trading.
+    const traded = useMemo(() => {
+        const rows = (closings ?? [])
+            .map((closing) => ({ closing, results: resultsOf(closing) }))
+            .filter((row): row is { closing: PeriodClosingDto; results: NonNullable<ReturnType<typeof resultsOf>> } =>
+                row.results !== null,
+            );
+
+        return {
+            any: rows.length > 0,
+            revenue: rows.reduce((sum, r) => sum + r.results.revenue, 0),
+            netProfit: rows.reduce((sum, r) => sum + r.results.netProfit, 0),
+            // Oldest first, so the chart reads left to right in time.
+            chart: rows
+                .slice()
+                .reverse()
+                .map((r) => ({
+                    label: formatDate(r.closing.period_end, i18n.language),
+                    revenue: r.results.revenue,
+                    profit: r.results.netProfit,
+                })),
+        };
+    }, [closings, i18n.language]);
 
     return (
         <Box>
@@ -154,7 +217,68 @@ export function PeriodClosingPage() {
                         color={theme.palette.warning.main}
                     />
                 </Grid>
+                {/* Counting closings says how often the books were shut. What
+                    the owner came to find out is what they were shut on. */}
+                {traded.any && (
+                    <>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <StatTile
+                                icon={<TrendingUpOutlinedIcon />}
+                                label={t('period_closing_page.total_revenue')}
+                                value={money(traded.revenue)}
+                                color={theme.palette.success.main}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <StatTile
+                                icon={<SavingsOutlinedIcon />}
+                                label={
+                                    traded.netProfit >= 0
+                                        ? t('period_closing_page.total_net_profit')
+                                        : t('reports_page.net_loss')
+                                }
+                                value={money(traded.netProfit)}
+                                color={
+                                    traded.netProfit >= 0 ? theme.palette.success.main : theme.palette.error.main
+                                }
+                            />
+                        </Grid>
+                    </>
+                )}
             </Grid>
+
+            {traded.chart.length > 0 && (
+                <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 2.5 }}>
+                    <Typography variant="overline" color="text.secondary">
+                        {t('period_closing_page.trend')}
+                    </Typography>
+                    <Box sx={{ height: 280, mt: 1 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={traded.chart} margin={{ top: 8, right: 8, left: -12, bottom: 40 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-25} textAnchor="end" height={56} />
+                                <YAxis tick={{ fontSize: 11 }} />
+                                <RechartsTooltip formatter={(v: number) => money(v)} />
+                                <Legend />
+                                <Bar
+                                    dataKey="revenue"
+                                    name={t('fields.revenue')}
+                                    fill={theme.palette.primary.main}
+                                    radius={[6, 6, 0, 0]}
+                                    maxBarSize={56}
+                                />
+                                <Bar
+                                    dataKey="profit"
+                                    name={t('fields.net_profit')}
+                                    fill={theme.palette.success.main}
+                                    radius={[6, 6, 0, 0]}
+                                    maxBarSize={56}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </Box>
+                </Paper>
+            )}
 
             <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
                 <TableContainer>
@@ -164,6 +288,8 @@ export function PeriodClosingPage() {
                                 <TableCell>{t('fields.type')}</TableCell>
                                 <TableCell>{t('fields.from')}</TableCell>
                                 <TableCell>{t('fields.to')}</TableCell>
+                                <TableCell align="right">{t('fields.revenue')}</TableCell>
+                                <TableCell align="right">{t('fields.net_profit')}</TableCell>
                                 <TableCell>{t('period_closing_page.closed_by')}</TableCell>
                                 <TableCell>{t('fields.status')}</TableCell>
                                 <TableCell align="right"> </TableCell>
@@ -172,7 +298,7 @@ export function PeriodClosingPage() {
                         <TableBody>
                             {isLoading && (
                                 <TableRow>
-                                    <TableCell colSpan={6}>
+                                    <TableCell colSpan={8}>
                                         <Box sx={{ py: 4, textAlign: 'center' }}>
                                             <CircularProgress size={28} />
                                         </Box>
@@ -191,6 +317,43 @@ export function PeriodClosingPage() {
                                     </TableCell>
                                     <TableCell>{formatDate(closing.period_start, i18n.language)}</TableCell>
                                     <TableCell>{formatDate(closing.period_end, i18n.language)}</TableCell>
+                                    {(() => {
+                                        const results = resultsOf(closing);
+
+                                        // A period closed before the figures
+                                        // were kept has none — an em dash is
+                                        // the truth, where 0.00 would be a lie.
+                                        if (!results) {
+                                            return (
+                                                <>
+                                                    <TableCell align="right" sx={{ color: 'text.disabled' }}>
+                                                        —
+                                                    </TableCell>
+                                                    <TableCell align="right" sx={{ color: 'text.disabled' }}>
+                                                        —
+                                                    </TableCell>
+                                                </>
+                                            );
+                                        }
+
+                                        return (
+                                            <>
+                                                <TableCell align="right" sx={{ fontWeight: 600 }}>
+                                                    {money(results.revenue)}
+                                                </TableCell>
+                                                <TableCell
+                                                    align="right"
+                                                    sx={{
+                                                        fontWeight: 700,
+                                                        color:
+                                                            results.netProfit >= 0 ? 'success.main' : 'error.main',
+                                                    }}
+                                                >
+                                                    {money(results.netProfit)}
+                                                </TableCell>
+                                            </>
+                                        );
+                                    })()}
                                     <TableCell>{closing.closed_by ?? '—'}</TableCell>
                                     <TableCell>
                                         <Chip
@@ -215,7 +378,7 @@ export function PeriodClosingPage() {
                             ))}
                             {closings && closings.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={6}>
+                                    <TableCell colSpan={8}>
                                         <Box sx={{ py: 6, textAlign: 'center' }}>
                                             <EventRepeatOutlinedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
                                             <Typography color="text.secondary">

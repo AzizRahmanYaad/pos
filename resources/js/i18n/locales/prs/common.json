@@ -381,7 +381,10 @@
         "staff_advances_hint": "پیش‌پرداخت‌هایی که کارمندان هنوز بازپرداخت نکرده‌اند",
         "customer_advances": "مشتریان همچنان {{amount}} پیش‌پرداخت نزد دکان دارند.",
         "gross_margin_label": "حاشیه ناخالص",
-        "net_margin_label": "حاشیه خالص"
+        "net_margin_label": "حاشیه خالص",
+        "total_revenue": "عواید بسته‌شده",
+        "total_net_profit": "فایده خالص بسته‌شده",
+        "trend": "عواید و فایده بر اساس دوره"
     },
     "reports_page": {
         "report_label": "راپور",

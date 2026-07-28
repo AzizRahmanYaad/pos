@@ -381,7 +381,10 @@
         "staff_advances_hint": "هغه پیشکي چې کارکوونکو لا نه دي بیرته ورکړي",
         "customer_advances": "پیرودونکي لا هم {{amount}} پیشکي له پلورنځي سره لري.",
         "gross_margin_label": "ناخالصه ګټه",
-        "net_margin_label": "خالصه ګټه"
+        "net_margin_label": "خالصه ګټه",
+        "total_revenue": "تړل شوی عاید",
+        "total_net_profit": "تړل شوې خالصه ګټه",
+        "trend": "عاید او ګټه د دورې له مخې"
     },
     "reports_page": {
         "report_label": "راپور",

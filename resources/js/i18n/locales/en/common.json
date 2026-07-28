@@ -381,7 +381,10 @@
         "staff_advances_hint": "Advances employees have yet to repay",
         "customer_advances": "Customers also hold {{amount}} in advances paid to the shop.",
         "gross_margin_label": "Gross margin",
-        "net_margin_label": "Net margin"
+        "net_margin_label": "Net margin",
+        "total_revenue": "Revenue closed",
+        "total_net_profit": "Net profit closed",
+        "trend": "Revenue and profit by period"
     },
     "reports_page": {
         "report_label": "Report",

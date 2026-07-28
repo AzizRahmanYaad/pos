@@ -1,0 +1,37 @@
+name: Clear server caches and logs
+
+# Run by hand when the site keeps showing an old version after a deploy, or
+# when the logs need emptying.
+#
+# It also reports which application bundle the server is actually serving.
+# That single line settles an argument that is otherwise unanswerable from
+# a browser: if the served bundle is the new one, the stale copy is in the
+# viewer's browser, and no amount of clearing on the server will help.
+#
+# It changes no data — only caches, logs, and compiled artefacts, all of
+# which the application rebuilds on demand.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clear:
+    runs-on: ubuntu-latest
+    name: Clear caches, empty logs, and report what is served
+
+    steps:
+      - name: Clear everything cached on the server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            export APP_PATH="${{ secrets.HOSTINGER_APP_PATH }}"
+            export PHP_BIN="${{ secrets.HOSTINGER_PHP_BIN }}"
+            bash "$APP_PATH/deploy/clear-caches.sh"

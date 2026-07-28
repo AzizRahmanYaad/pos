@@ -45,3 +45,18 @@ echo "Using PHP binary: $PHP_BIN"
 "$PHP_BIN" artisan config:cache
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
+
+# Laravel's caches and PHP's own are different things. Where OPcache is
+# configured not to re-check file timestamps, PHP-FPM goes on executing the
+# previous release's code even though the new files are already on disk —
+# the deploy reports success and nothing on screen changes. The CLI keeps a
+# separate OPcache of its own, so resetting from here would clear the wrong
+# one; it has to be asked for inside the process that serves the site.
+DOMAIN=$(sed -nE 's#^APP_URL=["'"'"']?https?://([^/"'"'"']+).*#\1#p' "$APP_PATH/.env" 2>/dev/null | head -1)
+TOKEN="opcache-reset-$(date +%s%N).php"
+trap 'rm -f "$APP_PATH/public/$TOKEN"' EXIT
+printf '%s\n' '<?php echo function_exists("opcache_reset") ? (opcache_reset() ? "reset" : "failed") : "not-enabled";' \
+    > "$APP_PATH/public/$TOKEN"
+echo "OPcache: $(curl -sS -k -m 20 -H "Host: ${DOMAIN:-localhost}" "https://127.0.0.1/$TOKEN" 2>/dev/null || echo unreachable)"
+rm -f "$APP_PATH/public/$TOKEN"
+trap - EXIT

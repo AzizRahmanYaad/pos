@@ -10,6 +10,11 @@ import '@fontsource/vazirmatn/500.css';
 import '@fontsource/vazirmatn/700.css';
 import '@/i18n/i18n';
 import { App } from '@/App';
+import { applyUiScale } from '@/theme/theme';
+
+// Before first paint, so the interface is never drawn once at its natural
+// size and then again a moment later at the scaled one.
+applyUiScale();
 
 // The service worker owns the application shell and its bundles, which is
 // what makes a cold start with no connection possible at all. Registered

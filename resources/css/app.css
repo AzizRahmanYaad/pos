@@ -6,23 +6,15 @@ body,
     padding: 0;
 }
 
-/*
- * Enlarges the entire rendered app to 120% — every screen, dialog, and
- * menu, not just the elements a component-level style could reach. Dialogs,
- * drawers and menus portal straight to <body>, so scaling only the app's
- * own root would leave them at their original size while everything behind
- * them grew. zoom (not transform) is what keeps fixed/sticky positioning,
- * scrollbars and hit-testing consistent with what is actually drawn.
- */
-html {
-    zoom: 1.2;
-}
+/* The interface scale is set from the theme (UI_SCALE), which writes it to
+   this element's font-size. It is not a `zoom`: zoom made every portalled
+   menu position itself twice over and land outside the window. */
 
-/* A receipt is measured for the paper it prints on; shrinking it would
+/* A receipt is measured for the paper it prints on; scaling it would
    misalign the print, not just the screen. */
 @media print {
     html {
-        zoom: 1;
+        font-size: 100%;
     }
 }
 

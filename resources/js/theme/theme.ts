@@ -20,11 +20,41 @@ export const GOLD_RAMP = ['#E7D28A', '#DCC063', '#C9A227', '#A6852F', '#7E6420',
 const LATIN_STACK = "'Plus Jakarta Sans', 'Vazirmatn', system-ui, -apple-system, sans-serif";
 const RTL_STACK = "'Vazirmatn', 'Plus Jakarta Sans', system-ui, sans-serif";
 
+/**
+ * How large the interface renders, as a multiple of its natural size.
+ *
+ * This was once a CSS `zoom` on <html>, which scaled everything but broke
+ * every menu in the app. Menus, selects and dialogs are rendered into a
+ * portal and positioned from the anchor's viewport coordinates; the browser
+ * reports those in device pixels, so the number MUI writes back as `left`
+ * is scaled a second time by the zoom it sits inside. A dropdown anchored
+ * near the right edge landed past the edge of the window and looked to the
+ * shopkeeper as though it simply refused to open.
+ *
+ * Scaling the type and spacing instead produces real layout, at real
+ * coordinates, so nothing can be positioned by a number that means two
+ * different things depending on where it is read.
+ */
+export const UI_SCALE = 1.08;
+
+/**
+ * MUI sizes its type in rem, so the root font size sets the scale for the
+ * whole interface. Applied from here rather than from the stylesheet so
+ * UI_SCALE stays the single place the size is decided.
+ */
+export function applyUiScale(): void {
+    document.documentElement.style.fontSize = `${UI_SCALE * 100}%`;
+}
+
 export function createAppTheme(direction: 'ltr' | 'rtl') {
     const fontFamily = direction === 'rtl' ? RTL_STACK : LATIN_STACK;
 
     return createTheme({
         direction,
+        // Spacing in rem rather than the default fixed 8px, so padding and
+        // gaps grow and shrink with the type instead of staying behind and
+        // leaving a scaled-up app looking cramped.
+        spacing: (factor: number) => `${0.5 * factor}rem`,
         palette: {
             mode: 'light',
             primary: { main: GOLD, dark: GOLD_DARK, light: '#DCC063', contrastText: '#ffffff' },

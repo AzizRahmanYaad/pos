@@ -66,8 +66,12 @@ import { fetchBusinessSettings } from '@/features/settings/api';
 import { fetchStockAlerts } from '@/features/inventory/api';
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 
-const DRAWER_WIDTH = 244;
-const COLLAPSED_WIDTH = 76;
+// In rem so the sidebar grows and shrinks with the rest of the interface
+// (see UI_SCALE). Left in pixels it would stay the same width while the
+// type around it changed, and the navigation would drift out of proportion
+// with every screen it sits beside.
+const DRAWER_WIDTH = '15.25rem'; // 244px at the natural scale
+const COLLAPSED_WIDTH = '4.75rem'; // 76px at the natural scale
 const COLLAPSE_KEY = 'pos_sidebar_collapsed';
 
 
@@ -297,8 +301,8 @@ export function AppLayout() {
             <AppBar
                 position="fixed"
                 sx={{
-                    width: { md: `calc(100% - ${currentWidth}px)` },
-                    ml: { md: `${currentWidth}px` },
+                    width: { md: `calc(100% - ${currentWidth})` },
+                    ml: { md: currentWidth },
                     transition: theme.transitions.create(['width', 'margin'], {
                         easing: theme.transitions.easing.sharp,
                         duration: theme.transitions.duration.enteringScreen,
@@ -546,7 +550,7 @@ export function AppLayout() {
                 sx={{
                     flexGrow: 1,
                     p: { xs: 2, md: 3 },
-                    width: { md: `calc(100% - ${currentWidth}px)` },
+                    width: { md: `calc(100% - ${currentWidth})` },
                     transition: theme.transitions.create('width', {
                         easing: theme.transitions.easing.sharp,
                         duration: theme.transitions.duration.enteringScreen,

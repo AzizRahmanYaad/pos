@@ -95,6 +95,55 @@ async function warmRecentSales(userId: number): Promise<void> {
 }
 
 /**
+ * The recent purchases, each fetched in full.
+ *
+ * Same reason as the sales above, for the other side of the counter: a list
+ * row is not a purchase, and receiving a delivery needs the lines and costs
+ * that only the full record carries. Without this a shopkeeper could see
+ * that a delivery was expected but not open it, and so could not book it in
+ * — which is exactly what happens when a lorry arrives during an outage.
+ *
+ * Drafts first: a received purchase is finished business, a draft is the one
+ * somebody still has to act on.
+ */
+const RECENT_PURCHASES = 15;
+
+async function warmRecentPurchases(userId: number): Promise<void> {
+    try {
+        const list = await rawClient.get('/purchases', { params: { per_page: 60 } });
+        const rows = Array.isArray(list.data?.data) ? list.data.data : [];
+        const held = new Set((await allCaches(userId)).map((entry) => entry.key));
+
+        const wanted = [
+            ...rows.filter((row: Record<string, unknown>) => row.status === 'draft'),
+            ...rows.filter((row: Record<string, unknown>) => row.status !== 'draft'),
+        ].slice(0, RECENT_PURCHASES);
+
+        for (const row of wanted) {
+            if (typeof row?.id !== 'number') continue;
+            if (held.has(`GET /api/v1/purchases/${row.id}`)) continue;
+
+            try {
+                const detail = await rawClient.get(`/purchases/${row.id}`);
+
+                await writeCache({
+                    key: `GET /api/v1/purchases/${row.id}`,
+                    userId,
+                    status: detail.status,
+                    body: detail.data,
+                    fetchedAt: Date.now(),
+                });
+            } catch {
+                // One purchase that will not load is not worth abandoning
+                // the rest.
+            }
+        }
+    } catch {
+        // No list, nothing to walk.
+    }
+}
+
+/**
  * The statements of everyone who owes money, or is owed it.
  *
  * A settled account is not the one anybody opens during an outage. The
@@ -189,6 +238,7 @@ export async function warmOfflineCache(userId: number): Promise<void> {
         }
 
         await warmRecentSales(userId);
+        await warmRecentPurchases(userId);
         await warmOpenLedgers(userId);
     } finally {
         running = false;

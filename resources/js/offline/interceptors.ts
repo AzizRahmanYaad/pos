@@ -8,10 +8,12 @@ import {
     pendingEntries,
     readCacheForPath,
     writeCache,
+    type CachedResponse,
     type OutboxEntry,
 } from '@/offline/db';
 import { foldQueuedIntoCashAccounts, isCashAccountPath } from '@/offline/cash';
 import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
+import { buildQueuedPurchase, purchaseIdFor, queuedPurchaseDetail } from '@/offline/purchases';
 import { buildQueuedSale, queuedSaleDetail, saleIdFor } from '@/offline/sales';
 import {
     foldQueuedIntoLedger,
@@ -186,6 +188,21 @@ async function withQueuedWork(body: unknown, path: string, userId: number): Prom
 }
 
 /**
+ * The full record behind a queued create, for the screens that draw one.
+ *
+ * Only the writes whose payload is not already the record need this: a
+ * customer's payload *is* the customer, but a sale's payload is a basket
+ * and a purchase's is a delivery note, and both screens draw totals that
+ * only exist once somebody works them out.
+ */
+function buildQueuedRecord(
+    entry: OutboxEntry,
+    caches: CachedResponse[],
+): Record<string, unknown> | null {
+    return buildQueuedSale(entry, caches) ?? buildQueuedPurchase(entry, caches);
+}
+
+/**
  * Everything a queued return does to the books, measured before the local
  * copy of the sale is changed by that same return.
  *
@@ -244,6 +261,88 @@ async function refundEffect(entry: OutboxEntry, userId: number): Promise<OutboxE
             saleDate: typeof sale.sale_date === 'string' ? sale.sale_date : null,
             ...refundedTrading(sale, payload),
             dueForgiven,
+        },
+    };
+}
+
+/**
+ * What receiving a delivery does to the books, measured before the local
+ * copy of the purchase is changed by that same receipt.
+ *
+ * Receiving is where a purchase finally counts: a draft owes nobody
+ * anything, and only on receipt does the supplier get credited, the day get
+ * its purchase, and — if it is settled in the same step — the drawer get
+ * lighter.
+ */
+async function receiveEffect(entry: OutboxEntry, userId: number): Promise<OutboxEntry['effect'] | null> {
+    const match = entry.url.split('?')[0].match(/^\/purchases\/(-?\d+)\/receive$/);
+
+    if (!match) return null;
+
+    const purchaseId = Number(match[1]);
+    const caches = await allCaches(userId);
+
+    const cached = caches
+        .filter((entry) => entry.key === `GET /api/v1/purchases/${purchaseId}`)
+        .map((entry) => (entry.body as { data?: unknown })?.data as Record<string, unknown> | undefined)
+        .find(Boolean) ?? null;
+
+    let purchase = cached;
+
+    if (!purchase) {
+        const queued = (await pendingEntries(userId)).find((row) => row.method === 'POST'
+            && row.url.split('?')[0] === '/purchases'
+            && purchaseIdFor(row) === purchaseId);
+
+        purchase = queued ? buildQueuedPurchase(queued, caches) : null;
+    }
+
+    // A purchase the device holds only as a list row still carries the
+    // figures that matter here, and a delivery must not go unrecorded just
+    // because its detail screen was never opened.
+    if (!purchase) {
+        purchase = caches
+            .flatMap((entry) => {
+                if (!entry.key.startsWith('GET /api/v1/purchases')) return [];
+                const body = entry.body as { data?: unknown };
+
+                return Array.isArray(body?.data) ? (body.data as Record<string, unknown>[]) : [];
+            })
+            .find((row) => row.id === purchaseId) ?? null;
+    }
+
+    if (!purchase) return null;
+
+    const payload = (entry.data ?? {}) as Record<string, unknown>;
+    const payment = (payload.payment ?? null) as Record<string, unknown> | null;
+    const paid = payment ? Number(payment.amount) || 0 : 0;
+    const grandTotal = Number(purchase.grand_total) || 0;
+    const label = typeof purchase.purchase_number === 'string'
+        ? `Purchase ${purchase.purchase_number}`
+        : 'Purchase';
+
+    // Credit for the goods, debit for anything handed over — the two
+    // postings the server makes, kept apart so the statement reconciles.
+    const ledger = [
+        ...(grandTotal > 0 ? [{ amount: grandTotal, debit: false, label }] : []),
+        ...(paid > 0 ? [{ amount: paid, debit: true, label: `Payment for ${purchase.purchase_number ?? ''}`.trim() }] : []),
+    ];
+
+    return {
+        ...(typeof purchase.supplier_id === 'number' && ledger.length > 0
+            ? { partyKind: 'supplier' as const, partyId: purchase.supplier_id, balanceShift: paid - grandTotal }
+            : {}),
+        label,
+        ledger,
+        cash: payment && typeof payment.cash_account_id === 'number' && paid > 0
+            ? [{ accountId: payment.cash_account_id, delta: -paid }]
+            : [],
+        purchase: {
+            // The day the purchase is *dated*, which is the day the server
+            // counts it on, whenever it was actually booked in.
+            purchaseDate: typeof purchase.purchase_date === 'string' ? purchase.purchase_date : null,
+            grandTotal,
+            supplierPaid: paid,
         },
     };
 }
@@ -358,6 +457,9 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                 const caches = await allCaches(currentUserId);
                 const unsent = await pendingEntries(currentUserId);
                 const queued = queuedSaleDetail(path, unsent, caches)
+                    // A delivery entered during the outage, which has to be
+                    // openable or it can never be received.
+                    ?? queuedPurchaseDetail(path, unsent, caches)
                     // A customer or supplier the device holds in a list but
                     // never fetched on its own. The row is the record.
                     ?? foldQueuedIntoParties(recordFromList(path, caches), path, unsent)
@@ -402,10 +504,13 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                     attempts: 0,
                 };
 
-                // Before anything local is patched: a return's effect on what
-                // the customer owes depends on the sale as it stands *now*,
-                // and applyWriteLocally is about to change that.
-                entry.effect = await refundEffect(entry, currentUserId) ?? undefined;
+                // Before anything local is patched: what a return forgives,
+                // and what a receipt puts on the supplier's account, both
+                // depend on the record as it stands *now* — and
+                // applyWriteLocally is about to change it.
+                entry.effect = await refundEffect(entry, currentUserId)
+                    ?? await receiveEffect(entry, currentUserId)
+                    ?? undefined;
 
                 try {
                     await enqueue(entry);
@@ -417,10 +522,10 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
 
                 // Show it on the screen that made it. Queuing silently is
                 // indistinguishable, to the user, from being ignored.
-                // A sale built from its payload alone lists as 0.00 with no
+                // A record built from its payload alone lists as 0.00 with no
                 // status, because the payload carries none of the figures the
                 // list draws. This builds the record the server would have.
-                const optimistic = await applyWriteLocally(entry, buildQueuedSale);
+                const optimistic = await applyWriteLocally(entry, buildQueuedRecord);
 
                 await refreshUnsentCount(currentUserId);
 

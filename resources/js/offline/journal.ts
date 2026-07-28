@@ -216,6 +216,50 @@ function foldRefund(journal: Journal, entry: OutboxEntry): void {
     journal.profit_or_loss -= refund.refundValue - refund.refundedCost;
 }
 
+/**
+ * Add a queued delivery to the day, once it has been received.
+ *
+ * A draft owes nobody anything and the server counts none of it, so nothing
+ * happens until the goods are booked in. The purchase itself lands on the
+ * day it is *dated* — that is the date the server totals by — while any
+ * settlement made in the same step is cash out today, where its ledger
+ * entry is posted.
+ */
+function foldReceive(journal: Journal, entry: OutboxEntry): void {
+    const received = entry.effect?.purchase;
+
+    if (!received) return;
+
+    if (received.supplierPaid > 0) {
+        journal.supplier_payments_total += received.supplierPaid;
+        journal.cash_out_total += received.supplierPaid;
+
+        journal.transactions.push({
+            type: 'supplier_payment',
+            time: new Date(entry.createdAt).toISOString(),
+            description: entry.effect?.label ?? 'Supplier payment',
+            amount: received.supplierPaid,
+            direction: 'out',
+            [PENDING_FLAG]: true,
+        });
+    }
+
+    const dated = received.purchaseDate ? localDate(Date.parse(received.purchaseDate)) : null;
+
+    if (dated !== journal.date) return;
+
+    journal.purchases_total += received.grandTotal;
+
+    journal.transactions.push({
+        type: 'purchase',
+        time: new Date(entry.createdAt).toISOString(),
+        description: entry.effect?.label ?? 'Purchase',
+        amount: received.grandTotal,
+        direction: 'out',
+        [PENDING_FLAG]: true,
+    });
+}
+
 /** Writes that change a day's money. Anything else leaves the journal alone. */
 const FOLDERS: Record<string, (j: Journal, e: OutboxEntry, c: CachedResponse[]) => void> = {
     '/sales': foldSale,
@@ -228,6 +272,7 @@ function folderFor(url: string): ((j: Journal, e: OutboxEntry, c: CachedResponse
     const path = url.split('?')[0];
 
     if (/^\/sales\/-?\d+\/refund$/.test(path)) return foldRefund;
+    if (/^\/purchases\/-?\d+\/receive$/.test(path)) return foldReceive;
 
     return FOLDERS[path];
 }

@@ -50,6 +50,14 @@ export interface OutboxEntry {
         label?: string;
         /** Money leaving or entering each account. Negative is out. */
         cash?: { accountId: number; delta: number }[];
+        /**
+         * The statement lines this change adds, where it adds more than one.
+         * Receiving a delivery and settling it in the same step is two
+         * postings against the supplier, not one netted line, and a
+         * statement that combined them would not reconcile against the
+         * server's once the queue drained.
+         */
+        ledger?: { amount: number; debit: boolean; label: string }[];
         /** What the return takes back out of the day it was sold on. */
         refund?: {
             /** The day the *sale* belongs to, which is the day it scored. */
@@ -57,6 +65,12 @@ export interface OutboxEntry {
             refundValue: number;
             refundedCost: number;
             dueForgiven: number;
+        };
+        /** What a received delivery adds to the day it is dated. */
+        purchase?: {
+            purchaseDate: string | null;
+            grandTotal: number;
+            supplierPaid: number;
         };
     };
 }
@@ -429,6 +443,33 @@ export function refundLocally(record: Record<string, unknown>, payload: Record<s
 }
 
 /**
+ * What receiving a delivery does to the purchase on this device.
+ *
+ * Mirrors ReceivePurchaseAction's effect on the record itself: the status
+ * changes, the lines count as received, and a payment made in the same step
+ * comes off what is still owed. Without the amounts a shopkeeper who
+ * received and settled in one go was still shown the full sum outstanding,
+ * and would have paid it twice.
+ */
+export function receiveLocally(
+    record: Record<string, unknown>,
+    payload: Record<string, unknown>,
+): Record<string, unknown> {
+    const payment = (payload.payment ?? null) as Record<string, unknown> | null;
+    const paid = payment ? Number(payment.amount) || 0 : 0;
+    const items = Array.isArray(record.items) ? (record.items as Record<string, unknown>[]) : [];
+
+    return {
+        ...record,
+        status: 'received',
+        items: items.map((item) => ({ ...item, received_quantity: Number(item.quantity) || 0 })),
+        paid_amount: Math.round(((Number(record.paid_amount) || 0) + paid) * 100) / 100,
+        due_amount: Math.max(0, Math.round(((Number(record.due_amount) || 0) - paid) * 100) / 100),
+        [PENDING_FLAG]: true,
+    };
+}
+
+/**
  * How much of a sale a return gives back, in money.
  *
  * Mirrors RefundSaleAction: the value returned as a fraction of the whole
@@ -472,7 +513,7 @@ export function refundShare(
 const ACTIONS: Record<string, (record: Record<string, unknown>, payload: Record<string, unknown>) => Record<string, unknown>> = {
     '/sales:refund': refundLocally,
     '/purchases:cancel': (record) => ({ ...record, status: 'cancelled', [PENDING_FLAG]: true }),
-    '/purchases:receive': (record) => ({ ...record, status: 'received', [PENDING_FLAG]: true }),
+    '/purchases:receive': receiveLocally,
 };
 
 /** The rows of a list response, whether it is wrapped in "data" or bare. */

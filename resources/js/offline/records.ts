@@ -206,6 +206,24 @@ export function isLedgerPath(path: string): boolean {
 }
 
 /**
+ * What put this line on the statement, in the words the server uses.
+ *
+ * Read from the request rather than assumed: everything carrying a recorded
+ * effect used to be labelled a sale, which was true while returns were the
+ * only such thing and became a lie the moment a delivery could be received
+ * offline — a supplier looking at "Sale" against their own invoice has
+ * every reason to stop trusting the page.
+ */
+function sourceTypeOf(entry: OutboxEntry): string {
+    const path = entry.url.split('?')[0];
+
+    if (path.startsWith('/purchases')) return 'Purchase';
+    if (path.startsWith('/sales')) return 'Sale';
+
+    return 'Payment';
+}
+
+/**
  * Add payments taken during the outage to the statement.
  *
  * Taking a payment and then showing the customer a statement that does not
@@ -252,28 +270,38 @@ export function foldQueuedIntoLedger(
     // Oldest first so each running balance follows the one before it.
     for (const entry of [...mine].sort((a, b) => a.createdAt - b.createdAt)) {
         const payload = (entry.data ?? {}) as Record<string, unknown>;
-        const shift = entry.effect ? (entry.effect.balanceShift ?? 0)
-            : (payload.direction === 'in' ? -num(payload.amount) : num(payload.amount));
-        const amount = Math.abs(shift);
-        const debit = shift > 0;
 
-        balance = Math.round((balance + shift) * 100) / 100;
+        // Receiving a delivery and settling it in one step is two postings,
+        // not one netted line; anything else states a single movement.
+        const lines = entry.effect?.ledger?.length
+            ? entry.effect.ledger
+            : [{
+                amount: Math.abs(entry.effect
+                    ? (entry.effect.balanceShift ?? 0)
+                    : (payload.direction === 'in' ? -num(payload.amount) : num(payload.amount))),
+                debit: (entry.effect
+                    ? (entry.effect.balanceShift ?? 0)
+                    : (payload.direction === 'in' ? -num(payload.amount) : num(payload.amount))) > 0,
+                label: entry.effect?.label
+                    ?? (typeof payload.description === 'string' && payload.description ? payload.description : ''),
+            }];
 
-        added.push({
-            id: -added.length - 1,
-            entry_type: debit ? 'debit' : 'credit',
-            amount,
-            running_balance: balance,
-            description: entry.effect?.label
-                ?? (typeof payload.description === 'string' && payload.description
-                    ? payload.description
-                    : null),
-            source_type: entry.effect ? 'Sale' : 'Payment',
-            transaction_date: new Date(entry.createdAt).toISOString(),
-            archived_at: null,
-            created_by: null,
-            __pending: true,
-        });
+        for (const line of lines) {
+            balance = Math.round((balance + (line.debit ? line.amount : -line.amount)) * 100) / 100;
+
+            added.push({
+                id: -added.length - 1,
+                entry_type: line.debit ? 'debit' : 'credit',
+                amount: line.amount,
+                running_balance: balance,
+                description: line.label || null,
+                source_type: sourceTypeOf(entry),
+                transaction_date: new Date(entry.createdAt).toISOString(),
+                archived_at: null,
+                created_by: null,
+                __pending: true,
+            });
+        }
     }
 
     // The statement is newest first, which is how the screen reads it.

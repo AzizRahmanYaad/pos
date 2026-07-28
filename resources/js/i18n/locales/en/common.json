@@ -837,6 +837,7 @@
         "conflicts_title": "Changes the server refused",
         "conflicts_hint": "These were made on this device but the server would not accept them — usually because somebody else changed the same thing first, or the period has since been closed. Check the record on the server, then discard the copy here.",
         "discard": "Discard",
-        "print_needs_connection": "Printing and PDFs need a connection. Everything else keeps working offline."
+        "print_needs_connection": "Printing and PDFs need a connection. Everything else keeps working offline.",
+        "not_sent_yet": "Not sent yet"
     }
 }

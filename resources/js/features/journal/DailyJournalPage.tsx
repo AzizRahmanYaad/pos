@@ -289,12 +289,26 @@ export function DailyJournalPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <Typography variant="body2">{tx.description}</Typography>
-                                                <Chip
-                                                    size="small"
-                                                    variant="outlined"
-                                                    label={t(`journal_page.type_${tx.type}`)}
-                                                    sx={{ height: 18, fontSize: 10, mt: 0.5 }}
-                                                />
+                                                <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
+                                                    <Chip
+                                                        size="small"
+                                                        variant="outlined"
+                                                        label={t(`journal_page.type_${tx.type}`)}
+                                                        sx={{ height: 18, fontSize: 10 }}
+                                                    />
+                                                    {/* Real money, real goods — but the server has not seen
+                                                        it yet. Saying so is the difference between a figure
+                                                        somebody can act on and one they have to guess about. */}
+                                                    {tx.__pending && (
+                                                        <Chip
+                                                            size="small"
+                                                            color="warning"
+                                                            variant="outlined"
+                                                            label={t('offline.not_sent_yet')}
+                                                            sx={{ height: 18, fontSize: 10 }}
+                                                        />
+                                                    )}
+                                                </Stack>
                                             </TableCell>
                                             <TableCell align="right">
                                                 <Typography

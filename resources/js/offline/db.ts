@@ -133,15 +133,21 @@ export async function readCache(key: string, userId: number): Promise<CachedResp
  * hold a perfectly good copy of the customer list and still show the user
  * an empty table. A near miss is worth far more than nothing here: the
  * alternative is not fresher data, it is no data.
+ *
+ * Except where the query string *is* the question. A report asked for one
+ * date must never be answered with another day's figures — that is not a
+ * near miss, it is a wrong answer about money with nothing to mark it as
+ * wrong. Those callers pass exactOnly.
  */
 export async function readCacheForPath(
     key: string,
     path: string,
     userId: number,
+    exactOnly = false,
 ): Promise<CachedResponse | undefined> {
     const exact = await readCache(key, userId);
 
-    if (exact) return exact;
+    if (exact || exactOnly) return exact;
 
     try {
         const all = await (await db()).getAllFromIndex('responses', 'byUser', userId);
@@ -159,6 +165,15 @@ export async function readCacheForPath(
             .sort((a, b) => b.fetchedAt - a.fetchedAt)[0];
     } catch {
         return undefined;
+    }
+}
+
+/** Every response this device holds for one user, for callers that combine them. */
+export async function allCaches(userId: number): Promise<CachedResponse[]> {
+    try {
+        return await (await db()).getAllFromIndex('responses', 'byUser', userId);
+    } catch {
+        return [];
     }
 }
 

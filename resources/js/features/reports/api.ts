@@ -86,6 +86,8 @@ export interface DailyJournalTransaction {
     description: string;
     amount: number;
     direction: 'in' | 'out';
+    /** Taken on this device with no connection, and not yet sent. */
+    __pending?: boolean;
 }
 
 export interface DailyJournal {
@@ -103,6 +105,8 @@ export interface DailyJournal {
     net_cash_movement: number;
     profit_or_loss: number;
     transactions: DailyJournalTransaction[];
+    /** How many of the above are still waiting to reach the server. */
+    unsent_count?: number;
 }
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {

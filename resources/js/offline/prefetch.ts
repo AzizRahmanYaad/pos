@@ -1,5 +1,6 @@
 import { rawClient } from '@/offline/rawClient';
 import { writeCache } from '@/offline/db';
+import { localDate } from '@/offline/journal';
 
 /**
  * Everything a shop needs on the device before the line goes down.
@@ -43,6 +44,23 @@ const WARM: Array<{ url: string; params?: Record<string, unknown> }> = [
     { url: '/activity-log' },
 ];
 
+/**
+ * The journal is asked for by date, so there is no one answer to keep — and
+ * a day is exactly what a shop wants to see during an outage. Today gives
+ * the queue something to be added to; the days either side cover a till
+ * still open past midnight and the usual "what did we take yesterday?".
+ */
+function datedWarm(): Array<{ url: string; params?: Record<string, unknown> }> {
+    const days = [-1, 0, 1].map((offset) => {
+        const day = new Date();
+        day.setDate(day.getDate() + offset);
+
+        return localDate(day.getTime());
+    });
+
+    return days.map((date) => ({ url: '/reports/daily-journal', params: { date } }));
+}
+
 let running = false;
 
 export async function warmOfflineCache(userId: number): Promise<void> {
@@ -51,7 +69,7 @@ export async function warmOfflineCache(userId: number): Promise<void> {
     running = true;
 
     try {
-        for (const { url, params } of WARM) {
+        for (const { url, params } of [...WARM, ...datedWarm()]) {
             try {
                 const response = await rawClient.get(url, { params });
 

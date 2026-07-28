@@ -1,6 +1,15 @@
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import i18n from '@/i18n/i18n';
-import { applyWriteLocally, enqueue, readCacheForPath, writeCache, type OutboxEntry } from '@/offline/db';
+import {
+    allCaches,
+    applyWriteLocally,
+    enqueue,
+    pendingEntries,
+    readCacheForPath,
+    writeCache,
+    type OutboxEntry,
+} from '@/offline/db';
+import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
 import { IDEMPOTENCY_HEADER } from '@/offline/rawClient';
 import { reportReachable, refreshUnsentCount, useSyncStore } from '@/offline/syncStore';
 
@@ -142,6 +151,21 @@ function failFastWhenKnownOffline(config: InternalAxiosRequestConfig): InternalA
 }
 
 /**
+ * Add what this device has done but not yet sent to a cached answer.
+ *
+ * Only the daily journal needs this so far, and it needs it badly: a shop
+ * that sold all afternoon with no connection would otherwise open the
+ * journal at closing time and be told the day was empty.
+ */
+async function withQueuedWork(body: unknown, path: string, userId: number): Promise<unknown> {
+    if (!isDatedReport(path)) return body;
+
+    const [entries, caches] = await Promise.all([pendingEntries(userId), allCaches(userId)]);
+
+    return foldQueuedIntoJournal(body, entries, caches);
+}
+
+/**
  * Attach offline behaviour to an axios instance.
  *
  * Reads fall back to the last answer this device received. Writes that
@@ -187,15 +211,17 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
             }
 
             if (method === 'GET') {
+                const path = `${config.baseURL ?? ''}${config.url ?? ''}`;
                 const hit = await readCacheForPath(
                     cacheKey(config),
-                    `${config.baseURL ?? ''}${config.url ?? ''}`,
+                    path,
                     currentUserId,
+                    isDatedReport(path),
                 );
 
                 if (hit) {
                     return {
-                        data: hit.body,
+                        data: await withQueuedWork(hit.body, path, currentUserId),
                         status: hit.status,
                         statusText: 'OK (offline)',
                         headers: {},

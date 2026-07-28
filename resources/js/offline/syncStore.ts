@@ -86,6 +86,17 @@ export const useSyncStore = create<SyncState>((set, get) => ({
                 return;
             }
 
+            if (outcome === 'later') {
+                // The server is up and has asked us to slow down — a till
+                // draining a long outage will trip its rate limit part way
+                // through. Stop the pass rather than hammering; the timer
+                // picks the rest up shortly, in the same order.
+                set({ status: 'online' });
+                await get().refresh(userId);
+
+                return;
+            }
+
             // Refused. Retrying will not change the answer, so it stops here
             // and waits for somebody to look at it.
             await get().refresh(userId);

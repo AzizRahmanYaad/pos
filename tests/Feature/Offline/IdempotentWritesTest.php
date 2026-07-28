@@ -269,6 +269,37 @@ class IdempotentWritesTest extends TestCase
         $this->assertNull($response->headers->get(EnsureIdempotentWrites::PENDING_HEADER));
     }
 
+    /**
+     * A till reconnecting after a long outage sends everything it has at
+     * once and trips the rate limit part way through. The refusal it gets
+     * back has to be one the device can tell apart from a real rejection,
+     * or paid-for sales end up needing a person instead of another minute.
+     */
+    public function test_draining_a_long_queue_is_throttled_rather_than_rejected(): void
+    {
+        $product = $this->stockedProduct();
+
+        $throttled = null;
+
+        // The API limit is per minute, per user; well past it is the point.
+        for ($i = 0; $i < 130; $i++) {
+            $response = $this->withHeader(EnsureIdempotentWrites::HEADER, (string) Str::uuid())
+                ->postJson('/api/v1/customers', ['name' => 'Ahmad '.$i]);
+
+            if ($response->getStatusCode() === 429) {
+                $throttled = $response;
+                break;
+            }
+        }
+
+        $this->assertNotNull($throttled, 'the API never throttled, so the queue could never trip it');
+
+        // 429 and nothing else: a device that reads this as a rejection
+        // would file a real sale away as a conflict.
+        $throttled->assertStatus(429);
+        $this->assertNotNull($throttled->headers->get('Retry-After'));
+    }
+
     public function test_requests_without_a_key_are_untouched(): void
     {
         $product = $this->stockedProduct();

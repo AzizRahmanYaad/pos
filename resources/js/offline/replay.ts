@@ -9,7 +9,7 @@ import {
 } from '@/offline/db';
 import { IDEMPOTENCY_HEADER, rawClient } from '@/offline/rawClient';
 
-export type ReplayOutcome = 'sent' | 'offline' | 'refused';
+export type ReplayOutcome = 'sent' | 'offline' | 'later' | 'refused';
 
 /** Set by the server on the one refusal that is worth sending again. */
 const PENDING_HEADER = 'idempotency-pending';
@@ -99,14 +99,22 @@ export async function replayQueuedRequest(entry: OutboxEntry): Promise<ReplayOut
         // cycling silently instead of in front of the person who made it,
         // so only the marked one goes back in the queue — and even that
         // gives up eventually rather than never being seen.
-        const retryable = status === 409
-            && String(response?.headers?.[PENDING_HEADER] ?? '') !== ''
-            && entry.attempts + 1 < MAX_ATTEMPTS;
+        //
+        // A 429 is the other kind of "not now". A till that reconnects after
+        // a long outage drains dozens of sales at once and trips the rate
+        // limit part way through; treating that as a refusal would strand
+        // real, paid-for sales as conflicts for somebody to sort out by
+        // hand, when all they needed was another minute.
+        const clearsItself = status === 429
+            || (status === 409 && String(response?.headers?.[PENDING_HEADER] ?? '') !== '');
+        const retryable = clearsItself && entry.attempts + 1 < MAX_ATTEMPTS;
 
         if (retryable) {
             await updateEntry({ ...entry, state: 'pending', attempts: entry.attempts + 1 });
 
-            return 'offline';
+            // Being told to slow down is not being offline. Saying so keeps
+            // the connection indicator honest while the drain waits.
+            return status === 429 ? 'later' : 'offline';
         }
 
         const message = axios.isAxiosError(error)

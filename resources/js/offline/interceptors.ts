@@ -10,6 +10,7 @@ import {
     type OutboxEntry,
 } from '@/offline/db';
 import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
+import { buildQueuedSale, queuedSaleDetail } from '@/offline/sales';
 import { IDEMPOTENCY_HEADER } from '@/offline/rawClient';
 import { reportReachable, refreshUnsentCount, useSyncStore } from '@/offline/syncStore';
 
@@ -233,6 +234,27 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                     } as AxiosResponse;
                 }
 
+                // Nothing cached. It may still be a sale this device took
+                // itself and the server has never seen — opening it is the
+                // first thing a cashier does after taking one offline.
+                const queued = queuedSaleDetail(
+                    path,
+                    await pendingEntries(currentUserId),
+                    await allCaches(currentUserId),
+                );
+
+                if (queued !== null) {
+                    return {
+                        data: queued,
+                        status: 200,
+                        statusText: 'OK (offline)',
+                        headers: {},
+                        config,
+                        request: undefined,
+                        fromCache: true,
+                    } as AxiosResponse;
+                }
+
                 return Promise.reject(error);
             }
 
@@ -267,7 +289,10 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
 
                 // Show it on the screen that made it. Queuing silently is
                 // indistinguishable, to the user, from being ignored.
-                const optimistic = await applyWriteLocally(entry);
+                // A sale built from its payload alone lists as 0.00 with no
+                // status, because the payload carries none of the figures the
+                // list draws. This builds the record the server would have.
+                const optimistic = await applyWriteLocally(entry, buildQueuedSale);
 
                 await refreshUnsentCount(currentUserId);
 

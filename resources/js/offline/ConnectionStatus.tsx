@@ -49,8 +49,14 @@ export function ConnectionStatus() {
 
         void refresh(user.id);
 
+        // A device that comes back and is then reopened never sees the
+        // browser's "online" event — it was already online when the page
+        // loaded — so without this the day's takings sit on the till until
+        // the half-minute timer happens to come round.
+        if (navigator.onLine) void sync(user.id);
+
         return watchConnection(() => useAuthStore.getState().user?.id ?? null);
-    }, [user, refresh]);
+    }, [user, refresh, sync]);
 
     if (!user) return null;
 

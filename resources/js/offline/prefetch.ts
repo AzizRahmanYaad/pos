@@ -1,5 +1,5 @@
 import { rawClient } from '@/offline/rawClient';
-import { writeCache } from '@/offline/db';
+import { allCaches, countUnsent, writeCache } from '@/offline/db';
 import { localDate } from '@/offline/journal';
 
 /**
@@ -42,7 +42,57 @@ const WARM: Array<{ url: string; params?: Record<string, unknown> }> = [
     { url: '/permissions' },
     { url: '/users' },
     { url: '/activity-log' },
+    { url: '/customers/summary' },
 ];
+
+/**
+ * The recent sales, each fetched in full.
+ *
+ * A list row is not a record: opening one asks for /sales/{id}, and taking
+ * a return needs the lines and quantities that only the full sale carries.
+ * Without this a cashier could see that a sale happened during an outage
+ * but not what was in it, and could not refund it — which is exactly when
+ * a customer is standing there wanting to give something back.
+ */
+const RECENT_SALES = 15;
+
+/**
+ * Only the ones this device does not already hold.
+ *
+ * A sale never changes after it is rung up, apart from a return — and a
+ * return comes back through the queue, which patches the cached copy
+ * itself. Re-fetching all of them on every warm pass would spend most of
+ * the account's rate limit on answers the device already has, and that
+ * limit is shared with the queue trying to drain.
+ */
+async function warmRecentSales(userId: number): Promise<void> {
+    try {
+        const list = await rawClient.get('/sales', { params: { per_page: RECENT_SALES } });
+        const rows = Array.isArray(list.data?.data) ? list.data.data : [];
+        const held = new Set((await allCaches(userId)).map((entry) => entry.key));
+
+        for (const row of rows.slice(0, RECENT_SALES)) {
+            if (typeof row?.id !== 'number') continue;
+            if (held.has(`GET /api/v1/sales/${row.id}`)) continue;
+
+            try {
+                const detail = await rawClient.get(`/sales/${row.id}`);
+
+                await writeCache({
+                    key: `GET /api/v1/sales/${row.id}`,
+                    userId,
+                    status: detail.status,
+                    body: detail.data,
+                    fetchedAt: Date.now(),
+                });
+            } catch {
+                // One sale that will not load is not worth abandoning the rest.
+            }
+        }
+    } catch {
+        // No list, nothing to walk.
+    }
+}
 
 /**
  * The journal is asked for by date, so there is no one answer to keep — and
@@ -66,6 +116,13 @@ let running = false;
 export async function warmOfflineCache(userId: number): Promise<void> {
     if (running || (typeof navigator !== 'undefined' && navigator.onLine === false)) return;
 
+    // Never while the till still has takings to send. Warming is thirty-odd
+    // requests against a rate limit the queue has to share, and a device
+    // reconnecting after an outage would spend it refreshing screens instead
+    // of getting the day's sales to the server. The sync calls this itself
+    // once the queue is empty, which is the right moment for it.
+    if (await countUnsent(userId) > 0) return;
+
     running = true;
 
     try {
@@ -86,6 +143,8 @@ export async function warmOfflineCache(userId: number): Promise<void> {
                 // A screen this user may not open, or a moment of bad line.
             }
         }
+
+        await warmRecentSales(userId);
     } finally {
         running = false;
     }

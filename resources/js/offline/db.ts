@@ -311,6 +311,92 @@ function idFromUrl(url: string): number | null {
     return Number.isFinite(last) ? last : null;
 }
 
+/**
+ * "/sales/5/refund" — something done *to* record 5, not a new record.
+ *
+ * Without this the queue could not tell a refund from a sale: the last path
+ * segment is not a number, so the write looked like a create and a phantom
+ * row was added to the sales list every time somebody took a return with no
+ * connection. Purchases have the same shape, for receiving and cancelling.
+ */
+interface UrlAction {
+    id: number;
+    action: string;
+}
+
+function actionFromUrl(url: string): UrlAction | null {
+    const parts = url.split('?')[0].split('/').filter(Boolean);
+
+    if (parts.length < 3) return null;
+
+    const action = parts[parts.length - 1];
+    const id = Number(parts[parts.length - 2]);
+
+    if (!Number.isFinite(id) || /^-?\d+$/.test(action)) return null;
+
+    return { id, action };
+}
+
+/** A response holding one record rather than a list of them. */
+function patchRecord(
+    body: unknown,
+    id: number,
+    apply: (record: Record<string, unknown>) => Record<string, unknown>,
+): unknown {
+    if (body === null || typeof body !== 'object') return body;
+
+    const shaped = body as { data?: unknown };
+    const record = (shaped.data ?? body) as Record<string, unknown>;
+
+    if (Array.isArray(record) || typeof record !== 'object' || record === null) return body;
+    if (record.id !== id) return body;
+
+    const next = apply(record);
+
+    return shaped.data === undefined ? next : { ...shaped, data: next };
+}
+
+/**
+ * What a return looks like on this device before the server has seen it.
+ *
+ * The quantities matter as much as the status: the return dialog offers
+ * only what is still refundable, so a second return taken during the same
+ * outage must not be allowed to give back goods that have already gone.
+ */
+export function refundLocally(record: Record<string, unknown>, payload: Record<string, unknown>): Record<string, unknown> {
+    const asked = Array.isArray(payload.items) ? (payload.items as Record<string, unknown>[]) : null;
+    const items = Array.isArray(record.items) ? (record.items as Record<string, unknown>[]) : [];
+
+    const nextItems = items.map((item) => {
+        const quantity = Number(item.quantity) || 0;
+        const already = Number(item.refunded_quantity) || 0;
+        // No list at all means the whole sale is being returned.
+        const asking = asked === null
+            ? quantity - already
+            : Number(asked.find((row) => row.sale_item_id === item.id)?.quantity ?? 0);
+
+        const refunded = Math.min(quantity, already + asking);
+
+        return { ...item, refunded_quantity: refunded, refundable_quantity: Math.max(0, quantity - refunded) };
+    });
+
+    const fully = nextItems.every((item) => (Number(item.refundable_quantity) || 0) <= 0.0001);
+
+    return {
+        ...record,
+        items: nextItems,
+        status: fully ? 'refunded' : 'partially_refunded',
+        [PENDING_FLAG]: true,
+    };
+}
+
+/** Local effects of an action on an existing record, where we know them. */
+const ACTIONS: Record<string, (record: Record<string, unknown>, payload: Record<string, unknown>) => Record<string, unknown>> = {
+    '/sales:refund': refundLocally,
+    '/purchases:cancel': (record) => ({ ...record, status: 'cancelled', [PENDING_FLAG]: true }),
+    '/purchases:receive': (record) => ({ ...record, status: 'received', [PENDING_FLAG]: true }),
+};
+
 /** The rows of a list response, whether it is wrapped in "data" or bare. */
 function listRows(body: unknown): Record<string, unknown>[] | null {
     if (Array.isArray(body)) return body as Record<string, unknown>[];
@@ -479,7 +565,10 @@ function belongsToResource(key: string, root: string): boolean {
  * concerned the application simply ignored them. Every cached list for the
  * same resource is patched so the record appears, marked as not yet sent.
  */
-export async function applyWriteLocally(entry: OutboxEntry): Promise<Record<string, unknown> | null> {
+export async function applyWriteLocally(
+    entry: OutboxEntry,
+    buildOptimistic?: (entry: OutboxEntry, caches: CachedResponse[]) => Record<string, unknown> | null,
+): Promise<Record<string, unknown> | null> {
     try {
         const database = await db();
         const tx = database.transaction('responses', 'readwrite');
@@ -498,16 +587,30 @@ export async function applyWriteLocally(entry: OutboxEntry): Promise<Record<stri
         // actually holds a row will do.
         const sample = mine.map((cached) => listRows(cached.body)?.[0] ?? null).find(Boolean) ?? null;
 
+        const acted = actionFromUrl(entry.url);
+        const effect = acted ? ACTIONS[`${root}:${acted.action}`] : undefined;
+
         let optimistic: Record<string, unknown> | null = null;
 
         for (const cached of mine) {
             let body = cached.body;
 
-            if (entry.method === 'POST' && targetId === null) {
-                optimistic = optimistic ?? withListShape(
-                    withResolvedNames({ ...payload, id: tempId, [PENDING_FLAG]: true }, all),
-                    sample,
-                );
+            if (acted !== null) {
+                // Something done to a record that already exists. Even where
+                // we do not know how to show the effect, it must never be
+                // mistaken for a new record — a return would add a sale.
+                if (!effect) continue;
+
+                body = patchList(body, (rows) =>
+                    rows.map((row) => (row.id === acted.id ? effect(row, payload) : row)));
+                body = patchRecord(body, acted.id, (record) => effect(record, payload));
+            } else if (entry.method === 'POST' && targetId === null) {
+                optimistic = optimistic
+                    ?? buildOptimistic?.(entry, all)
+                    ?? withListShape(
+                        withResolvedNames({ ...payload, id: tempId, [PENDING_FLAG]: true }, all),
+                        sample,
+                    );
                 body = patchList(body, (rows) => [optimistic as Record<string, unknown>, ...rows]);
             } else if ((entry.method === 'PUT' || entry.method === 'PATCH') && targetId !== null) {
                 body = patchList(body, (rows) =>

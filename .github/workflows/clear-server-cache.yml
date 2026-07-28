@@ -12,6 +12,16 @@ name: Clear server caches and logs
 # which the application rebuilds on demand.
 
 on:
+  # Also on a change to this workflow or the script it runs: the
+  # repository's default branch is not main, and both the "Run workflow"
+  # button and the dispatch API only accept workflows present on the
+  # default branch — so editing one of these files is the reliable way to
+  # run it. Same reasoning as diagnose-hosting.yml.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/clear-server-cache.yml'
+      - 'deploy/clear-caches.sh'
   workflow_dispatch:
 
 permissions:

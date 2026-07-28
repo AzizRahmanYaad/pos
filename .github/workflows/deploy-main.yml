@@ -82,8 +82,18 @@ jobs:
             echo "Hostinger secrets not set - skipping live deploy, artifact only."
           fi
 
+      # The route to this server is not always up. A single SSH timeout used
+      # to throw away the whole release: the build succeeded, the artifact
+      # was fine, and the shop kept running the previous version with nobody
+      # told why. rsync is incremental, so a retry resumes rather than
+      # restarts — each attempt costs a connection, not a re-upload.
+      #
+      # Repeated as three guarded steps because a `uses:` step cannot be
+      # wrapped in a shell retry loop.
       - name: Deploy to Hostinger via rsync over SSH
+        id: rsync1
         if: steps.cfg.outputs.deploy == 'true'
+        continue-on-error: true
         uses: burnett01/rsync-deployments@7.0.2
         with:
           # Never delete server-side state: .env, storage (logos, logs,
@@ -102,8 +112,52 @@ jobs:
           remote_user: ${{ secrets.HOSTINGER_SSH_USER }}
           remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
 
+      - name: Retry rsync deploy (attempt 2)
+        id: rsync2
+        if: steps.cfg.outputs.deploy == 'true' && steps.rsync1.outcome == 'failure'
+        continue-on-error: true
+        uses: burnett01/rsync-deployments@7.0.2
+        with:
+          switches: >-
+            -avz --delete
+            --exclude=.env
+            --exclude=storage/
+            --exclude=bootstrap/cache/
+            --exclude=database/database.sqlite
+          path: dist/
+          remote_path: ${{ secrets.HOSTINGER_APP_PATH }}
+          remote_host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          remote_port: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
+          remote_user: ${{ secrets.HOSTINGER_SSH_USER }}
+          remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
+      # The last attempt is not tolerant: if the server cannot be reached
+      # three times running, the deploy has genuinely failed and saying so
+      # is the only honest outcome.
+      - name: Retry rsync deploy (attempt 3)
+        if: steps.cfg.outputs.deploy == 'true' && steps.rsync2.outcome == 'failure'
+        uses: burnett01/rsync-deployments@7.0.2
+        with:
+          switches: >-
+            -avz --delete
+            --exclude=.env
+            --exclude=storage/
+            --exclude=bootstrap/cache/
+            --exclude=database/database.sqlite
+          path: dist/
+          remote_path: ${{ secrets.HOSTINGER_APP_PATH }}
+          remote_host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          remote_port: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
+          remote_user: ${{ secrets.HOSTINGER_SSH_USER }}
+          remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
+      # The script itself ships with the code and is idempotent, so a second
+      # attempt after a dropped connection repeats work rather than breaking
+      # it — the same position the next deploy would leave the server in.
       - name: Run remote migrations, seeders, and cache rebuild
+        id: release1
         if: steps.cfg.outputs.deploy == 'true'
+        continue-on-error: true
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
@@ -111,29 +165,19 @@ jobs:
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            cd "${{ secrets.HOSTINGER_APP_PATH }}"
-            # Hostinger's default CLI php is ancient (7.4); find a PHP >= 8.4
-            # binary among the versioned/alt-php paths, or use the
-            # HOSTINGER_PHP_BIN secret when set.
-            PHP_BIN="${{ secrets.HOSTINGER_PHP_BIN }}"
-            if [ -z "$PHP_BIN" ]; then
-              for c in php8.4 php84 /opt/alt/php84/usr/bin/php /usr/bin/php8.4 /usr/local/bin/php8.4 php8.5 /opt/alt/php85/usr/bin/php php; do
-                if command -v "$c" >/dev/null 2>&1 && "$c" -r 'exit(PHP_VERSION_ID >= 80401 ? 0 : 1);' >/dev/null 2>&1; then
-                  PHP_BIN="$c"
-                  break
-                fi
-              done
-            fi
-            if [ -z "$PHP_BIN" ]; then
-              echo "ERROR: no PHP >= 8.4 CLI found on the server. Set the HOSTINGER_PHP_BIN secret to the full path of a PHP 8.4 binary."
-              exit 1
-            fi
-            echo "Using PHP binary: $PHP_BIN"
-            "$PHP_BIN" -v | head -1
-            "$PHP_BIN" artisan migrate --force
-            "$PHP_BIN" artisan db:seed --force
-            "$PHP_BIN" artisan ledger:rebuild-balances
-            "$PHP_BIN" artisan storage:link || true
-            "$PHP_BIN" artisan config:cache
-            "$PHP_BIN" artisan route:cache
-            "$PHP_BIN" artisan view:cache
+            export APP_PATH="${{ secrets.HOSTINGER_APP_PATH }}"
+            export PHP_BIN="${{ secrets.HOSTINGER_PHP_BIN }}"
+            bash "$APP_PATH/deploy/remote-release.sh"
+
+      - name: Retry remote release (attempt 2)
+        if: steps.cfg.outputs.deploy == 'true' && steps.release1.outcome == 'failure'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            export APP_PATH="${{ secrets.HOSTINGER_APP_PATH }}"
+            export PHP_BIN="${{ secrets.HOSTINGER_PHP_BIN }}"
+            bash "$APP_PATH/deploy/remote-release.sh"

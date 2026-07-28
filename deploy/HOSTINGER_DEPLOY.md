@@ -126,11 +126,16 @@ confirm the app forces HTTPS in production (already configured in
 # locally / in CI: rebuild the artifact, then on the server:
 cd ~/pos-app
 php artisan down
-# upload new files here, then:
-php artisan migrate --force
-php artisan config:cache && php artisan route:cache && php artisan view:cache
+# upload new files here, then run the same script CI runs:
+APP_PATH=~/pos-app bash deploy/remote-release.sh
 php artisan up
 ```
+
+`deploy/remote-release.sh` is what the workflow runs over SSH, so finishing
+a deploy by hand and finishing one from CI leave the server in exactly the
+same state. Set `PHP_BIN` if the script cannot find a PHP 8.4 binary. Every
+step in it is safe to run twice, which is what lets the workflow retry it
+when the connection drops midway.
 
 Take a `mysqldump` backup before running migrations in production — this
 app holds financial records (sales, purchases, ledgers, payroll), so a

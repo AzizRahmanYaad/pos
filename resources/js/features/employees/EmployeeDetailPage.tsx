@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+    Alert,
     Avatar,
     Box,
     Chip,
@@ -42,7 +43,7 @@ export function EmployeeDetailPage() {
     const id = Number(useParams().id);
     const [busyPdf, setBusyPdf] = useState(false);
 
-    const { data: employee, isLoading } = useQuery({
+    const { data: employee, isLoading, isError } = useQuery({
         queryKey: ['employee', id],
         queryFn: () => fetchEmployee(id),
     });
@@ -109,8 +110,20 @@ export function EmployeeDetailPage() {
         }
     };
 
-    if (isLoading || !employee) {
+    if (isLoading) {
         return <BrandSpinner fullPage minHeight={280} label={t('common.loading')} />;
+    }
+
+    // An employee record this device has never held, asked for with no
+    // connection. The spinner used to stay up for ever here, which reads
+    // as an app that has hung rather than as the one thing that is
+    // actually true: it cannot be fetched right now.
+    if (isError || !employee) {
+        return (
+            <Alert severity="info" sx={{ mt: 2 }}>
+                {t('offline.record_unavailable')}
+            </Alert>
+        );
     }
 
     return (

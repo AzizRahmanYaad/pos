@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+    Alert,
     Avatar,
     Box,
     Button,
@@ -55,7 +56,7 @@ export function PurchaseDetailPage() {
     const [paying, setPaying] = useState(false);
     const [receiving, setReceiving] = useState(false);
 
-    const { data: purchase, isLoading } = useQuery({
+    const { data: purchase, isLoading, isError } = useQuery({
         queryKey: ['purchase', id],
         queryFn: () => fetchPurchase(id),
     });
@@ -141,8 +142,20 @@ export function PurchaseDetailPage() {
         }
     };
 
-    if (isLoading || !purchase) {
+    if (isLoading) {
         return <BrandSpinner fullPage minHeight={280} label={t('common.loading')} />;
+    }
+
+    // A purchase this device has never held, asked for with no connection.
+    // The spinner used to stay up for ever here, which reads as an app that
+    // has hung rather than as the one thing that is actually true: it
+    // cannot be fetched right now.
+    if (isError || !purchase) {
+        return (
+            <Alert severity="info" sx={{ mt: 2 }}>
+                {t('offline.record_unavailable')}
+            </Alert>
+        );
     }
 
     return (

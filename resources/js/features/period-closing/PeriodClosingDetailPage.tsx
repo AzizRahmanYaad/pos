@@ -174,7 +174,7 @@ export function PeriodClosingDetailPage() {
     const queryClient = useQueryClient();
     const id = Number(useParams().id);
 
-    const { data: closing, isLoading } = useQuery({
+    const { data: closing, isLoading, isError } = useQuery({
         queryKey: ['period-closing', id],
         queryFn: () => fetchPeriodClosing(id),
     });
@@ -275,8 +275,20 @@ export function PeriodClosingDetailPage() {
 
     const activities = closing?.activities ?? [];
 
-    if (isLoading || !closing) {
+    if (isLoading) {
         return <BrandSpinner fullPage minHeight={280} label={t('common.loading')} />;
+    }
+
+    // A closed period this device has never held, asked for with no
+    // connection. The spinner used to stay up for ever here, which reads
+    // as an app that has hung rather than as the one thing that is
+    // actually true: it cannot be fetched right now.
+    if (isError || !closing) {
+        return (
+            <Alert severity="info" sx={{ mt: 2 }}>
+                {t('offline.record_unavailable')}
+            </Alert>
+        );
     }
 
     return (

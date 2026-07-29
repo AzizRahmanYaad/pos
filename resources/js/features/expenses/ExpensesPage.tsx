@@ -30,10 +30,8 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { AddButton } from '@/components/AddButton';
 import { LoadingButton } from '@/components/LoadingButton';
+import { DocumentActions } from '@/components/DocumentActions';
 import { downloadOrToast } from '@/lib/reportDownload';
-import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
-import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
-import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { useTranslation } from 'react-i18next';
 import {
@@ -219,35 +217,12 @@ export function ExpensesPage() {
                         </Button>
                     )}
                     <Box sx={{ flexGrow: 1 }} />
-                    <LoadingButton
-                        variant="outlined"
-                        startIcon={<PrintOutlinedIcon />}
-                        loading={busyPdf}
-                        onClick={() => openPdf(true)}
-                    >
-                        {t('purchases_page.print')}
-                    </LoadingButton>
-                    <Tooltip title={t('ledger.download_pdf')}>
-                        <span>
-                            <LoadingButton
-                                variant="outlined"
-                                startIcon={<PictureAsPdfOutlinedIcon />}
-                                loading={busyPdf}
-                                onClick={() => openPdf(false)}
-                            >
-                                PDF
-                            </LoadingButton>
-                        </span>
-                    </Tooltip>
-                    <LoadingButton
-                        variant="contained"
-                        startIcon={<WhatsAppIcon />}
-                        loading={busyPdf}
-                        onClick={shareWhatsApp}
-                        sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
-                    >
-                        {t('ledger.whatsapp')}
-                    </LoadingButton>
+                    <DocumentActions
+                    onPrint={() => openPdf(true)}
+                    onPdf={() => openPdf(false)}
+                    onWhatsApp={shareWhatsApp}
+                    busy={busyPdf}
+                />
                 </Stack>
                 {busyPdf && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
             </Paper>

@@ -3,6 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { useNavigate, useParams } from 'react-router-dom';
 import { DualDateField } from '@/components/DualDateField';
 import { LoadingButton } from '@/components/LoadingButton';
+import { DocumentActions } from '@/components/DocumentActions';
 import {
     Alert,
     Avatar,
@@ -36,8 +37,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOutlined';
-import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
-import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { useTranslation } from 'react-i18next';
 import {
     clearPartyLedger,
@@ -267,27 +266,9 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                         }}
                     />
                     <Box sx={{ flexGrow: 1 }} />
-                    <Tooltip title={t('ledger.download_pdf')}>
-                        <span>
-                            <IconButton
-                                color="primary"
-                                aria-label={t('ledger.download_pdf')}
-                                disabled={busyPdf}
-                                onClick={openPdf}
-                            >
-                                {busyPdf ? <CircularProgress size={20} /> : <PictureAsPdfOutlinedIcon />}
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                    <LoadingButton
-                        variant="contained"
-                        loading={busyPdf}
-                        startIcon={<WhatsAppIcon />}
-                        onClick={shareWhatsApp}
-                        sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
-                    >
-                        {t('ledger.whatsapp')}
-                    </LoadingButton>
+                    {/* No print here: a statement is sent, not put on paper
+                        at the counter. */}
+                    <DocumentActions onPdf={openPdf} onWhatsApp={shareWhatsApp} busy={busyPdf} />
                     <Can permission="ledger.clear">
                         <Tooltip title={canClear ? '' : t('ledger.clear_blocked')}>
                             <span>

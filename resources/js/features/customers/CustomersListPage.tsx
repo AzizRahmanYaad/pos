@@ -115,7 +115,6 @@ export function CustomersListPage() {
                     <ReportActions
                         download={() => downloadCustomerListPdf(search || undefined)}
                         message={t('customers_page.wa_message', { company: companyName })}
-                        size="medium"
                     />
                     <Can permission="customers.create">
                         <AddButton label={t('parties.new_customer')} onClick={() => setAddOpen(true)} />

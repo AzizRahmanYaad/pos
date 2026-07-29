@@ -22,9 +22,6 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
-import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
-import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
 import { BrandSpinner } from '@/components/BrandSpinner';
@@ -34,6 +31,7 @@ import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { fetchBusinessSettings } from '@/features/settings/api';
 import { formatDate } from '@/lib/calendar';
 import { LoadingButton } from '@/components/LoadingButton';
+import { DocumentActions } from '@/components/DocumentActions';
 import { downloadOrToast } from '@/lib/reportDownload';
 
 export function PayrollRunDetailPage() {
@@ -173,30 +171,12 @@ export function PayrollRunDetailPage() {
 
             {/* Actions */}
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center" sx={{ mb: 2 }}>
-                <LoadingButton variant="outlined" startIcon={<PrintOutlinedIcon />} loading={busyPdf} onClick={() => openPdf(true)}>
-                    {t('purchases_page.print')}
-                </LoadingButton>
-                <Tooltip title={t('ledger.download_pdf')}>
-                    <span>
-                        <LoadingButton
-                            variant="outlined"
-                            startIcon={<PictureAsPdfOutlinedIcon />}
-                            loading={busyPdf}
-                            onClick={() => openPdf(false)}
-                        >
-                            PDF
-                        </LoadingButton>
-                    </span>
-                </Tooltip>
-                <LoadingButton
-                    variant="contained"
-                    startIcon={<WhatsAppIcon />}
-                    loading={busyPdf}
-                    onClick={shareWhatsApp}
-                    sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
-                >
-                    {t('ledger.whatsapp')}
-                </LoadingButton>
+                <DocumentActions
+                    onPrint={() => openPdf(true)}
+                    onPdf={() => openPdf(false)}
+                    onWhatsApp={shareWhatsApp}
+                    busy={busyPdf}
+                />
                 <Box sx={{ flexGrow: 1 }} />
                 {run.status === 'draft' && (
                     <Stack direction="row" spacing={1.5} alignItems="center">

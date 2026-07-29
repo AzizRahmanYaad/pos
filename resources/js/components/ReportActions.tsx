@@ -1,10 +1,5 @@
 import { useState } from 'react';
-import { Stack, Tooltip } from '@mui/material';
-import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
-import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
-import WhatsAppIcon from '@mui/icons-material/WhatsApp';
-import { useTranslation } from 'react-i18next';
-import { LoadingButton } from '@/components/LoadingButton';
+import { DocumentActions } from '@/components/DocumentActions';
 import { downloadOrToast } from '@/lib/reportDownload';
 
 interface DownloadResult {
@@ -18,15 +13,13 @@ interface ReportActionsProps {
     download?: () => Promise<DownloadResult>;
     /** Message used when sharing to WhatsApp. */
     message?: string;
-    size?: 'small' | 'medium' | 'large';
 }
 
 /**
  * The shared Print / PDF / WhatsApp action row used across list and detail
  * reports, so every printable document behaves the same way.
  */
-export function ReportActions({ download, message, size = 'medium' }: ReportActionsProps) {
-    const { t } = useTranslation();
+export function ReportActions({ download, message }: ReportActionsProps) {
     const [busy, setBusy] = useState(false);
 
     const openPdf = async (print: boolean) => {
@@ -77,45 +70,13 @@ export function ReportActions({ download, message, size = 'medium' }: ReportActi
         }
     };
 
-    const disabled = !download;
-
     return (
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <LoadingButton
-                variant="outlined"
-                size={size}
-                startIcon={<PrintOutlinedIcon />}
-                loading={busy}
-                disabled={disabled}
-                onClick={() => openPdf(true)}
-            >
-                {t('purchases_page.print')}
-            </LoadingButton>
-            <Tooltip title={t('ledger.download_pdf')}>
-                <span>
-                    <LoadingButton
-                        variant="outlined"
-                        size={size}
-                        startIcon={<PictureAsPdfOutlinedIcon />}
-                        loading={busy}
-                        disabled={disabled}
-                        onClick={() => openPdf(false)}
-                    >
-                        PDF
-                    </LoadingButton>
-                </span>
-            </Tooltip>
-            <LoadingButton
-                variant="contained"
-                size={size}
-                startIcon={<WhatsAppIcon />}
-                loading={busy}
-                disabled={disabled}
-                onClick={shareWhatsApp}
-                sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
-            >
-                {t('ledger.whatsapp')}
-            </LoadingButton>
-        </Stack>
+        <DocumentActions
+            onPrint={() => openPdf(true)}
+            onPdf={() => openPdf(false)}
+            onWhatsApp={shareWhatsApp}
+            busy={busy}
+            disabled={!download}
+        />
     );
 }

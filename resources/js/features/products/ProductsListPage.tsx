@@ -172,7 +172,6 @@ export function ProductsListPage() {
                     <ReportActions
                         download={() => downloadProductListPdf(search || undefined)}
                         message={t('products_page.wa_message', { company: companyName })}
-                        size="medium"
                     />
                     <Can permission="products.create">
                         <AddButton label={t('products_page.new_product')} onClick={() => setAddOpen(true)} />

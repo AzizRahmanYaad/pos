@@ -5,16 +5,18 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { useTranslation } from 'react-i18next';
 
 /**
- * A little under a third off MUI's "small" icon, asked for directly.
+ * Just under a third larger than MUI's "small" icon, asked for directly.
  *
- * The button keeps its own padding rather than shrinking with the glyph:
- * the icon is what needed to be quieter, and a control this size is already
- * near the smallest a finger can reliably find on a tablet at the counter.
+ * These are wordless, so the glyph is the whole of what identifies them —
+ * and they are reached for on a tablet at a counter, often in a hurry. The
+ * button grows with the icon rather than holding it in a tighter frame,
+ * which also puts the tap target comfortably clear of the smallest a finger
+ * can reliably find.
  */
-const ICON_SCALE = 0.7;
-const ICON_SIZE = `${1.25 * ICON_SCALE}rem`; // 0.875rem
+const ICON_SCALE = 1.3;
+const ICON_SIZE = `${1.25 * ICON_SCALE}rem`; // 1.625rem
 /** Matched to the glyph, so swapping in a spinner never shifts the row. */
-const SPINNER_PX = 15;
+const SPINNER_PX = 28;
 
 interface DocumentActionsProps {
     /** Omitted on screens that have nothing to send to a printer. */

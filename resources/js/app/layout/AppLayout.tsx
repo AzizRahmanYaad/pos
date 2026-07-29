@@ -74,6 +74,27 @@ const DRAWER_WIDTH = '15.25rem'; // 244px at the natural scale
 const COLLAPSED_WIDTH = '4.75rem'; // 76px at the natural scale
 const COLLAPSE_KEY = 'pos_sidebar_collapsed';
 
+/**
+ * The navigation menu, a tenth larger than the app around it.
+ *
+ * Deliberately confined to the menu rows — the links, the group headers and
+ * the icons that sit with them — and applied to nothing else. The drawer
+ * keeps its width, so the header, the page beside it and every screen the
+ * navigation leads to are untouched.
+ *
+ * Derived from the sizes rather than typed over them, so the one number
+ * above is the whole change: it can be raised, lowered or taken back out
+ * without hunting for the figures it was folded into.
+ */
+const MENU_SCALE = 1.1;
+const MENU_LINK_FONT = 14 * MENU_SCALE; // 15.4px
+const MENU_GROUP_FONT = 12 * MENU_SCALE; // 13.2px
+const MENU_ROW_PY = 0.85 * MENU_SCALE;
+const MENU_ICON_SLOT = 34 * MENU_SCALE; // 37.4px
+/** MUI's own default and "small", each taken up by the same tenth. */
+const MENU_ICON_SIZE = `${1.5 * MENU_SCALE}rem`;
+const MENU_CHEVRON_SIZE = `${1.25 * MENU_SCALE}rem`;
+
 
 function initials(name: string): string {
     return name
@@ -190,7 +211,7 @@ export function AppLayout() {
                     selected={selected}
                     onClick={() => setMobileOpen(false)}
                     sx={{
-                        py: 0.85,
+                        py: MENU_ROW_PY,
                         justifyContent: mini ? 'center' : 'flex-start',
                         px: mini ? 1.25 : 2,
                         pl: !mini && nested ? 3.5 : undefined,
@@ -198,9 +219,10 @@ export function AppLayout() {
                 >
                     <ListItemIcon
                         sx={{
-                            minWidth: mini ? 0 : 34,
+                            minWidth: mini ? 0 : MENU_ICON_SLOT,
                             justifyContent: 'center',
                             color: selected ? 'primary.dark' : 'text.secondary',
+                            '& .MuiSvgIcon-root': { fontSize: MENU_ICON_SIZE },
                         }}
                     >
                         {item.icon}
@@ -209,7 +231,7 @@ export function AppLayout() {
                         <ListItemText
                             primary={t(item.labelKey)}
                             primaryTypographyProps={{
-                                fontSize: 14,
+                                fontSize: MENU_LINK_FONT,
                                 fontWeight: selected ? 700 : 500,
                                 color: selected ? 'text.primary' : 'text.secondary',
                             }}
@@ -253,16 +275,17 @@ export function AppLayout() {
                                     <ListItemButton
                                         onClick={() => toggleGroup(entry.id)}
                                         sx={{
-                                            py: 0.85,
+                                            py: MENU_ROW_PY,
                                             justifyContent: mini ? 'center' : 'flex-start',
                                             px: mini ? 1.25 : 2,
                                         }}
                                     >
                                         <ListItemIcon
                                             sx={{
-                                                minWidth: mini ? 0 : 34,
+                                                minWidth: mini ? 0 : MENU_ICON_SLOT,
                                                 justifyContent: 'center',
                                                 color: groupHasActiveChild(entry) ? 'primary.dark' : 'text.secondary',
+                                                '& .MuiSvgIcon-root': { fontSize: MENU_ICON_SIZE },
                                             }}
                                         >
                                             {entry.icon}
@@ -272,14 +295,16 @@ export function AppLayout() {
                                                 <ListItemText
                                                     primary={t(entry.labelKey)}
                                                     primaryTypographyProps={{
-                                                        fontSize: 12,
+                                                        fontSize: MENU_GROUP_FONT,
                                                         fontWeight: 700,
                                                         letterSpacing: 0.6,
                                                         textTransform: 'uppercase',
                                                         color: groupHasActiveChild(entry) ? 'text.primary' : 'text.secondary',
                                                     }}
                                                 />
-                                                {isGroupOpen(entry) ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+                                                {isGroupOpen(entry)
+                                                    ? <ExpandLess sx={{ fontSize: MENU_CHEVRON_SIZE }} />
+                                                    : <ExpandMore sx={{ fontSize: MENU_CHEVRON_SIZE }} />}
                                             </>
                                         )}
                                     </ListItemButton>

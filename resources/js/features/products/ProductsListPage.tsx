@@ -47,6 +47,7 @@ import {
     type ProductListItem,
 } from '@/features/products/api';
 import { createStockAdjustment } from '@/features/inventory/api';
+import { fetchWarehouses } from '@/features/warehouses/api';
 import { AddProductDialog } from '@/features/products/AddProductDialog';
 import { EditProductDialog } from '@/features/products/EditProductDialog';
 import { EditPricingDialog } from '@/features/products/EditPricingDialog';
@@ -87,6 +88,7 @@ export function ProductsListPage() {
     });
 
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
+    const { data: warehouses } = useQuery({ queryKey: ['warehouses'], queryFn: fetchWarehouses });
     const companyName = settings?.company_name ?? '';
 
     const [addOpen, setAddOpen] = useState(false);
@@ -130,7 +132,7 @@ export function ProductsListPage() {
 
     const openDialog = (product: ProductListItem) => {
         setAdjusting(product);
-        setWarehouseId(product.stocks[0]?.warehouse_id ?? '');
+        setWarehouseId(product.stocks[0]?.warehouse_id ?? warehouses?.[0]?.id ?? '');
         setQuantity('');
         setReason('');
         setError(null);
@@ -497,11 +499,22 @@ export function ProductsListPage() {
                             onChange={(e) => setWarehouseId(Number(e.target.value))}
                             fullWidth
                         >
-                            {adjusting?.stocks.map((stock) => (
-                                <MenuItem key={stock.warehouse_id} value={stock.warehouse_id}>
-                                    {stock.warehouse_name} ({stock.quantity})
-                                </MenuItem>
-                            ))}
+                            {/* Every warehouse, not only the ones this product
+                                already sits in. A product with no stock yet had
+                                an empty list and so could never be given any —
+                                and a product added during an outage carries no
+                                stock rows at all, which made the one screen
+                                that could stock it refuse to offer anywhere to
+                                put it. */}
+                            {(warehouses ?? []).map((warehouse) => {
+                                const held = adjusting?.stocks.find((s) => s.warehouse_id === warehouse.id);
+
+                                return (
+                                    <MenuItem key={warehouse.id} value={warehouse.id}>
+                                        {warehouse.name} ({held?.quantity ?? 0})
+                                    </MenuItem>
+                                );
+                            })}
                         </TextField>
                         <TextField
                             label={t('products_page.quantity_placeholder')}

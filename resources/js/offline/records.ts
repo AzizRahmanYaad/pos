@@ -13,6 +13,15 @@ import type { CachedResponse, OutboxEntry } from '@/offline/db';
 
 const PARTY_PATHS = ['/customers', '/suppliers', '/employees'];
 
+/**
+ * Resources whose list row carries everything the record screen draws.
+ *
+ * A payroll run qualifies because the list loads its items too — so the
+ * detail page, and the Pay button on it, work during an outage from the
+ * list that was warmed before it. A sale does not qualify and is not here.
+ */
+const RECORD_FROM_LIST = [...PARTY_PATHS, '/payroll-runs'];
+
 function num(value: unknown): number {
     const parsed = typeof value === 'string' ? Number(value) : value;
 
@@ -55,7 +64,7 @@ export function recordFromList(path: string, caches: CachedResponse[]): unknown 
 
     const [, resource, rawId] = match;
 
-    if (!PARTY_PATHS.includes(resource)) return null;
+    if (!RECORD_FROM_LIST.includes(resource)) return null;
 
     const id = Number(rawId);
     const row = listRows(caches, resource).find((entry) => entry.id === id);
@@ -83,9 +92,20 @@ function balanceShift(entries: OutboxEntry[], kind: string, partyId: number): nu
             return partyKind === kind && id === partyId ? total + (shift ?? 0) : total;
         }
 
-        if (entry.url.split('?')[0] !== '/payments') return total;
-
+        const path = entry.url.split('?')[0];
         const payload = (entry.data ?? {}) as Record<string, unknown>;
+
+        // An advance is a debit against the member of staff who took it —
+        // they owe it back out of a future payroll run.
+        const advance = path.match(/^\/employees\/(-?\d+)\/advances$/);
+
+        if (advance) {
+            return kind === 'employee' && Number(advance[1]) === partyId
+                ? total + num(payload.amount)
+                : total;
+        }
+
+        if (path !== '/payments') return total;
 
         if (payload.party_type !== kind || payload.party_id !== partyId) return total;
 
@@ -95,11 +115,38 @@ function balanceShift(entries: OutboxEntry[], kind: string, partyId: number): nu
     }, 0);
 }
 
+/**
+ * What a member of staff still owes back, counting advances still queued.
+ *
+ * Their balance and this figure move together on the server, and the two sit
+ * side by side on the same screen — leaving one behind makes the other look
+ * like a mistake.
+ */
+function advanceShift(entries: OutboxEntry[], kind: string, partyId: number): number {
+    if (kind !== 'employee') return 0;
+
+    return entries.reduce((total, entry) => {
+        if (entry.method !== 'POST' || entry.state === 'conflict') return total;
+
+        const advance = entry.url.split('?')[0].match(/^\/employees\/(-?\d+)\/advances$/);
+
+        if (!advance || Number(advance[1]) !== partyId) return total;
+
+        return total + num(((entry.data ?? {}) as Record<string, unknown>).amount);
+    }, 0);
+}
+
 /** The party paths whose rows carry a balance worth correcting. */
-const BALANCE_PATHS: Record<string, string> = { '/customers': 'customer', '/suppliers': 'supplier' };
+const BALANCE_PATHS: Record<string, string> = {
+    '/customers': 'customer',
+    '/suppliers': 'supplier',
+    // Staff carry a balance too: an advance is money they owe back, and the
+    // screen that says so is the same screen, drawn from the same rows.
+    '/employees': 'employee',
+};
 
 export function isPartyPath(path: string): boolean {
-    return /\/api\/v1\/(customers|suppliers)(\/-?\d+)?(\?|\{|$)/.test(path);
+    return /\/api\/v1\/(customers|suppliers|employees)(\/-?\d+)?(\?|\{|$)/.test(path);
 }
 
 /**
@@ -121,12 +168,16 @@ export function foldQueuedIntoParties(body: unknown, path: string, entries: Outb
         if (typeof row?.id !== 'number') return row;
 
         const shift = balanceShift(entries, kind, row.id);
+        const advances = advanceShift(entries, kind, row.id);
 
-        if (shift === 0) return row;
+        if (shift === 0 && advances === 0) return row;
 
         return {
             ...row,
             current_balance: Math.round((num(row.current_balance) + shift) * 100) / 100,
+            ...(advances === 0
+                ? {}
+                : { outstanding_advances: Math.round((num(row.outstanding_advances) + advances) * 100) / 100 }),
             __pending: true,
         };
     };
@@ -219,6 +270,7 @@ function sourceTypeOf(entry: OutboxEntry): string {
 
     if (path.startsWith('/purchases')) return 'Purchase';
     if (path.startsWith('/sales')) return 'Sale';
+    if (/^\/employees\/-?\d+\/advances$/.test(path)) return 'EmployeeAdvance';
 
     return 'Payment';
 }
@@ -244,7 +296,7 @@ export function foldQueuedIntoLedger(
 
     if (!Array.isArray(page.data)) return body;
 
-    const kind = target.resource === '/customers' ? 'customer' : 'supplier';
+    const kind = BALANCE_PATHS[target.resource];
 
     const mine = entries.filter((entry) => {
         if (entry.method !== 'POST' || entry.state === 'conflict') return false;
@@ -255,7 +307,12 @@ export function foldQueuedIntoLedger(
             return entry.effect.partyKind === kind && entry.effect.partyId === target.id;
         }
 
-        if (entry.url.split('?')[0] !== '/payments') return false;
+        const path = entry.url.split('?')[0];
+        const advance = path.match(/^\/employees\/(-?\d+)\/advances$/);
+
+        if (advance) return kind === 'employee' && Number(advance[1]) === target.id;
+
+        if (path !== '/payments') return false;
 
         const payload = (entry.data ?? {}) as Record<string, unknown>;
 
@@ -273,8 +330,16 @@ export function foldQueuedIntoLedger(
 
         // Receiving a delivery and settling it in one step is two postings,
         // not one netted line; anything else states a single movement.
+        const advance = entry.url.split('?')[0].match(/^\/employees\/-?\d+\/advances$/);
+
         const lines = entry.effect?.ledger?.length
             ? entry.effect.ledger
+            : advance
+            ? [{
+                amount: num(payload.amount),
+                debit: true,
+                label: typeof payload.reason === 'string' && payload.reason ? payload.reason : 'Salary advance',
+            }]
             : [{
                 amount: Math.abs(entry.effect
                     ? (entry.effect.balanceShift ?? 0)

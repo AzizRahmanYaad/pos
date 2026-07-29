@@ -260,6 +260,38 @@ function foldReceive(journal: Journal, entry: OutboxEntry): void {
     });
 }
 
+/**
+ * Add a queued payroll payment to the day.
+ *
+ * Salaries paid today are today's cost, exactly as the server's journal
+ * treats them, and the money leaves the drawer with them. No line is added
+ * to the day's transactions because the server lists none either — a row
+ * that vanished on sync would read as a payment that had been reversed.
+ */
+function foldPayroll(journal: Journal, entry: OutboxEntry): void {
+    const paid = entry.effect?.payroll?.total;
+
+    if (!paid) return;
+
+    journal.salaries_total += paid;
+    journal.cash_out_total += paid;
+    journal.profit_or_loss -= paid;
+}
+
+/**
+ * Money handed to a member of staff before payday.
+ *
+ * It leaves the drawer but is not a cost: they owe it back, and the server
+ * books it against them rather than against the day's profit.
+ */
+function foldAdvance(journal: Journal, entry: OutboxEntry): void {
+    const amount = num(((entry.data ?? {}) as Record<string, unknown>).amount);
+
+    if (amount <= 0) return;
+
+    journal.cash_out_total += amount;
+}
+
 /** Writes that change a day's money. Anything else leaves the journal alone. */
 const FOLDERS: Record<string, (j: Journal, e: OutboxEntry, c: CachedResponse[]) => void> = {
     '/sales': foldSale,
@@ -273,6 +305,8 @@ function folderFor(url: string): ((j: Journal, e: OutboxEntry, c: CachedResponse
 
     if (/^\/sales\/-?\d+\/refund$/.test(path)) return foldRefund;
     if (/^\/purchases\/-?\d+\/receive$/.test(path)) return foldReceive;
+    if (/^\/payroll-runs\/-?\d+\/pay$/.test(path)) return foldPayroll;
+    if (/^\/employees\/-?\d+\/advances$/.test(path)) return foldAdvance;
 
     return FOLDERS[path];
 }

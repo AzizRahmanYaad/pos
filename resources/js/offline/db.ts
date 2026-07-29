@@ -72,6 +72,8 @@ export interface OutboxEntry {
             grandTotal: number;
             supplierPaid: number;
         };
+        /** What a paid payroll run costs the day, in salaries. */
+        payroll?: { total: number };
         /**
          * What this puts on the shelf, or takes off it. Positive arrives.
          *
@@ -523,6 +525,14 @@ const ACTIONS: Record<string, (record: Record<string, unknown>, payload: Record<
     '/sales:refund': refundLocally,
     '/purchases:cancel': (record) => ({ ...record, status: 'cancelled', [PENDING_FLAG]: true }),
     '/purchases:receive': receiveLocally,
+    // Paying is the only thing a draft run can have done to it, so a run
+    // still shown as draft afterwards offers to pay the same wages twice.
+    '/payroll-runs:pay': (record) => ({
+        ...record,
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        [PENDING_FLAG]: true,
+    }),
 };
 
 /** The rows of a list response, whether it is wrapped in "data" or bare. */

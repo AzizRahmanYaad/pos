@@ -80,6 +80,11 @@ export function cashDeltas(entry: OutboxEntry): CashDelta[] {
         return payment ? movement(payment.cash_account_id, -num(payment.amount)) : [];
     }
 
+    // Money handed to a member of staff before payday.
+    if (/^\/employees\/-?\d+\/advances$/.test(path)) {
+        return movement(payload.cash_account_id, -num(payload.amount));
+    }
+
     return [];
 }
 

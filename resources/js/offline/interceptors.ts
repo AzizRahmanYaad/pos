@@ -369,6 +369,53 @@ async function receiveEffect(entry: OutboxEntry, userId: number): Promise<Outbox
 }
 
 /**
+ * What paying a payroll run does to the money.
+ *
+ * The amount is the run's own net total, which lives on the run rather than
+ * in the request — the request names only the account to pay from. So it is
+ * read here, while the run is still unpaid and still says what it is worth.
+ */
+async function payrollEffect(entry: OutboxEntry, userId: number): Promise<OutboxEntry['effect'] | null> {
+    const match = entry.url.split('?')[0].match(/^\/payroll-runs\/(-?\d+)\/pay$/);
+
+    if (!match) return null;
+
+    const runId = Number(match[1]);
+    const caches = await allCaches(userId);
+
+    const run = caches
+        .filter((cached) => cached.key === `GET /api/v1/payroll-runs/${runId}`)
+        .map((cached) => (cached.body as { data?: unknown })?.data as Record<string, unknown> | undefined)
+        .find(Boolean)
+        ?? caches
+            .flatMap((cached) => {
+                if (!cached.key.startsWith('GET /api/v1/payroll-runs')) return [];
+                const body = cached.body as { data?: unknown };
+
+                return Array.isArray(body?.data) ? (body.data as Record<string, unknown>[]) : [];
+            })
+            .find((row) => row.id === runId)
+        ?? null;
+
+    if (!run) return null;
+
+    const payload = (entry.data ?? {}) as Record<string, unknown>;
+    const total = Number(run.total_net_pay) || 0;
+
+    if (total <= 0 || typeof payload.cash_account_id !== 'number') return null;
+
+    const period = [run.period_month, run.period_year].every((part) => typeof part === 'number')
+        ? ` ${run.period_month}/${run.period_year}`
+        : '';
+
+    return {
+        label: `Payroll${period}`,
+        cash: [{ accountId: payload.cash_account_id, delta: -total }],
+        payroll: { total },
+    };
+}
+
+/**
  * What the returned goods were sold for and what they had cost.
  *
  * Both come off the day the sale was rung up on, exactly as the server's
@@ -539,6 +586,7 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                 // applyWriteLocally is about to change it.
                 entry.effect = await refundEffect(entry, currentUserId)
                     ?? await receiveEffect(entry, currentUserId)
+                    ?? await payrollEffect(entry, currentUserId)
                     ?? undefined;
 
                 try {

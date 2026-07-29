@@ -40,10 +40,25 @@ export function stockDeltas(entry: OutboxEntry): StockDelta[] {
     if (entry.effect?.stock) return entry.effect.stock;
 
     const payload = (entry.data ?? {}) as Record<string, unknown>;
+    const path = entry.url.split('?')[0];
 
-    if (entry.url.split('?')[0] === '/sales') {
+    // A manual correction says plainly what it does: the quantity is signed,
+    // positive adding to the shelf and negative taking off it, exactly as
+    // AdjustStockAction reads it.
+    if (path === '/stock-adjustments') {
+        return typeof payload.product_id === 'number'
+            ? [{
+                productId: payload.product_id,
+                warehouseId: typeof payload.warehouse_id === 'number' ? payload.warehouse_id : null,
+                quantity: num(payload.quantity),
+            }]
+            : [];
+    }
+
+    if (path === '/sales') {
         const items = Array.isArray(payload.items) ? (payload.items as Record<string, unknown>[]) : [];
         const warehouseId = typeof payload.warehouse_id === 'number' ? payload.warehouse_id : null;
+
 
         return items
             .filter((item) => typeof item.product_id === 'number')

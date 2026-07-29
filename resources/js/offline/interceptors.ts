@@ -15,6 +15,7 @@ import { foldQueuedIntoCashAccounts, isCashAccountPath } from '@/offline/cash';
 import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
 import { buildQueuedPurchase, purchaseIdFor, queuedPurchaseDetail } from '@/offline/purchases';
 import { buildQueuedSale, queuedSaleDetail, saleIdFor } from '@/offline/sales';
+import { foldQueuedIntoStock, isStockPath } from '@/offline/stock';
 import {
     foldQueuedIntoLedger,
     foldQueuedIntoParties,
@@ -175,14 +176,16 @@ async function withQueuedWork(body: unknown, path: string, userId: number): Prom
     const ledger = isLedgerPath(path);
     const party = isPartyPath(path);
     const cash = isCashAccountPath(path);
+    const stock = isStockPath(path);
 
-    if (!dated && !ledger && !party && !cash) return body;
+    if (!dated && !ledger && !party && !cash && !stock) return body;
 
     const entries = await pendingEntries(userId);
 
     if (ledger) return foldQueuedIntoLedger(body, path, entries);
     if (party) return foldQueuedIntoParties(body, path, entries);
     if (cash) return foldQueuedIntoCashAccounts(body, entries);
+    if (stock) return foldQueuedIntoStock(body, path, entries, await allCaches(userId));
 
     return foldQueuedIntoJournal(body, entries, await allCaches(userId));
 }
@@ -249,6 +252,12 @@ async function refundEffect(entry: OutboxEntry, userId: number): Promise<OutboxE
         .filter((row): row is { accountId: number; delta: number } =>
             typeof row.accountId === 'number' && row.delta !== 0);
 
+    // The goods are their own effect, alongside the money — kept at the top
+    // level rather than inside the trading figures, because what comes back
+    // onto the shelf is not a figure about a day, and folding it in there
+    // was enough to make the stock count silently ignore every return.
+    const { refundValue, refundedCost, stock } = refundedTrading(sale, payload);
+
     return {
         // A walk-in has nobody to credit, but the money and the goods still
         // moved, so the rest of the effect is recorded regardless.
@@ -257,9 +266,11 @@ async function refundEffect(entry: OutboxEntry, userId: number): Promise<OutboxE
             : {}),
         label,
         cash,
+        stock,
         refund: {
             saleDate: typeof sale.sale_date === 'string' ? sale.sale_date : null,
-            ...refundedTrading(sale, payload),
+            refundValue,
+            refundedCost,
             dueForgiven,
         },
     };
@@ -344,6 +355,16 @@ async function receiveEffect(entry: OutboxEntry, userId: number): Promise<Outbox
             grandTotal,
             supplierPaid: paid,
         },
+        // The goods themselves, arriving into the warehouse the purchase
+        // named. Read now, while the lines still say what was ordered rather
+        // than what has just been marked received.
+        stock: (Array.isArray(purchase.items) ? (purchase.items as Record<string, unknown>[]) : [])
+            .filter((item) => typeof item.product_id === 'number' && (Number(item.quantity) || 0) > 0)
+            .map((item) => ({
+                productId: item.product_id as number,
+                warehouseId: typeof purchase.warehouse_id === 'number' ? purchase.warehouse_id : null,
+                quantity: Number(item.quantity) || 0,
+            })),
     };
 }
 
@@ -357,12 +378,14 @@ async function receiveEffect(entry: OutboxEntry, userId: number): Promise<Outbox
 function refundedTrading(
     sale: Record<string, unknown>,
     payload: Record<string, unknown>,
-): { refundValue: number; refundedCost: number } {
+): { refundValue: number; refundedCost: number; stock: NonNullable<OutboxEntry['effect']>['stock'] } {
     const asked = Array.isArray(payload.items) ? (payload.items as Record<string, unknown>[]) : null;
     const items = Array.isArray(sale.items) ? (sale.items as Record<string, unknown>[]) : [];
+    const warehouseId = typeof sale.warehouse_id === 'number' ? sale.warehouse_id : null;
 
     let refundValue = 0;
     let refundedCost = 0;
+    const stock: NonNullable<NonNullable<OutboxEntry['effect']>['stock']> = [];
 
     for (const item of items) {
         const quantity = Number(item.quantity) || 0;
@@ -375,11 +398,17 @@ function refundedTrading(
 
         refundValue += (Number(item.line_total) || 0) * (asking / quantity);
         refundedCost += (Number(item.cost_price_snapshot) || 0) * asking;
+
+        // Back on the shelf, into the warehouse it left from.
+        if (typeof item.product_id === 'number') {
+            stock.push({ productId: item.product_id, warehouseId, quantity: asking });
+        }
     }
 
     return {
         refundValue: Math.round(refundValue * 100) / 100,
         refundedCost: Math.round(refundedCost * 100) / 100,
+        stock,
     };
 }
 

@@ -72,6 +72,15 @@ export interface OutboxEntry {
             grandTotal: number;
             supplierPaid: number;
         };
+        /**
+         * What this puts on the shelf, or takes off it. Positive arrives.
+         *
+         * Recorded rather than re-read for the same reason as the rest: a
+         * receipt marks its own lines received the instant it is queued, and
+         * a return marks its own quantities returned, so by the time anyone
+         * asks what moved, neither record can say.
+         */
+        stock?: { productId: number; warehouseId: number | null; quantity: number }[];
     };
 }
 

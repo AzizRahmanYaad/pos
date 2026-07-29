@@ -14,7 +14,7 @@
         "payroll": "معاشونه",
         "period_closing": "تصفیه",
         "reports": "راپورونه",
-        "journal": "ورځنۍ یادداشت",
+        "journal": "روزنامچه",
         "settings": "تنظیمات",
         "users": "د کاروونکو مدیریت",
         "stocks": "ذخیره",
@@ -432,7 +432,7 @@
         "breakdown_chart": "پیسې چیرته ولګېدې"
     },
     "journal_page": {
-        "title": "ورځنۍ یادداشت",
+        "title": "روزنامچه",
         "subtitle": "د ورځې ټول پلورنه، پیرود، تادیات، او لګښتونه — په یو ځای کې.",
         "previous_day": "تېره ورځ",
         "next_day": "راتلونکې ورځ",
@@ -455,7 +455,7 @@
         "type_customer_collection": "راټولونه",
         "type_supplier_payment": "عرضه کوونکي ته تادیه",
         "type_expense": "لګښت",
-        "wa_message": "ورځنۍ یادداشت د {{company}} لپاره {{date}} — پایله {{result}}",
+        "wa_message": "روزنامچه د {{company}} لپاره {{date}} — پایله {{result}}",
         "salaries": "ورکړل شوي معاشونه"
     },
     "dashboard_page": {
@@ -582,7 +582,7 @@
             "none_granted": "لاسرسی نشته",
             "module": {
                 "dashboard": "ډشبورډ",
-                "journal": "ورځنۍ کتابچه",
+                "journal": "روزنامچه",
                 "pos": "د پلورنې ټکی",
                 "sales": "پلورنې",
                 "purchases": "پیرودنې",
@@ -818,7 +818,7 @@
         },
         "modules": {
             "dashboard": "ډشبورډ",
-            "journal": "ورځنۍ کتابچه",
+            "journal": "روزنامچه",
             "pos": "د پلورنې ټکی",
             "sales": "پلورنې",
             "purchases": "پیرودنې",

@@ -4,6 +4,18 @@ import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { useTranslation } from 'react-i18next';
 
+/**
+ * A little under a third off MUI's "small" icon, asked for directly.
+ *
+ * The button keeps its own padding rather than shrinking with the glyph:
+ * the icon is what needed to be quieter, and a control this size is already
+ * near the smallest a finger can reliably find on a tablet at the counter.
+ */
+const ICON_SCALE = 0.7;
+const ICON_SIZE = `${1.25 * ICON_SCALE}rem`; // 0.875rem
+/** Matched to the glyph, so swapping in a spinner never shifts the row. */
+const SPINNER_PX = 15;
+
 interface DocumentActionsProps {
     /** Omitted on screens that have nothing to send to a printer. */
     onPrint?: () => void;
@@ -34,7 +46,7 @@ export function DocumentActions({ onPrint, onPdf, onWhatsApp, busy = false, disa
 
     // Kept at the icon's own size so a spinner never resizes the row —
     // buttons that shuffle sideways mid-tap get the wrong one pressed.
-    const spinner = <CircularProgress size={18} color="inherit" />;
+    const spinner = <CircularProgress size={SPINNER_PX} color="inherit" />;
 
     return (
         <Stack direction="row" spacing={0.5} alignItems="center">
@@ -42,7 +54,7 @@ export function DocumentActions({ onPrint, onPdf, onWhatsApp, busy = false, disa
                 <Tooltip title={t('purchases_page.print')}>
                     <span>
                         <IconButton size="small" aria-label={t('purchases_page.print')} disabled={off} onClick={onPrint}>
-                            {busy ? spinner : <PrintOutlinedIcon fontSize="small" />}
+                            {busy ? spinner : <PrintOutlinedIcon sx={{ fontSize: ICON_SIZE }} />}
                         </IconButton>
                     </span>
                 </Tooltip>
@@ -50,7 +62,7 @@ export function DocumentActions({ onPrint, onPdf, onWhatsApp, busy = false, disa
             <Tooltip title={t('ledger.download_pdf')}>
                 <span>
                     <IconButton size="small" aria-label={t('ledger.download_pdf')} disabled={off} onClick={onPdf}>
-                        {busy ? spinner : <PictureAsPdfOutlinedIcon fontSize="small" />}
+                        {busy ? spinner : <PictureAsPdfOutlinedIcon sx={{ fontSize: ICON_SIZE }} />}
                     </IconButton>
                 </span>
             </Tooltip>
@@ -65,7 +77,7 @@ export function DocumentActions({ onPrint, onPdf, onWhatsApp, busy = false, disa
                         // the app is still recognisable at this size.
                         sx={{ color: '#25D366', '&:hover': { bgcolor: 'rgba(37, 211, 102, 0.08)' } }}
                     >
-                        {busy ? spinner : <WhatsAppIcon fontSize="small" />}
+                        {busy ? spinner : <WhatsAppIcon sx={{ fontSize: ICON_SIZE }} />}
                     </IconButton>
                 </span>
             </Tooltip>

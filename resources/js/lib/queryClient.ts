@@ -3,7 +3,14 @@ import { isAxiosError } from 'axios';
 import i18n from '@/i18n/i18n';
 import { showToast } from '@/store/toastStore';
 
-function extractErrorMessage(error: unknown): string {
+/**
+ * What the server said went wrong, or a generic apology when it said
+ * nothing. Exported so a form can put the real reason next to the fields it
+ * concerns: a toast reading "could not save" tells a shopkeeper nothing
+ * they can act on, where "the email has already been taken" tells them
+ * everything.
+ */
+export function extractErrorMessage(error: unknown): string {
     if (isAxiosError(error)) {
         const message = (error.response?.data as { message?: string } | undefined)?.message;
         if (message) return message;

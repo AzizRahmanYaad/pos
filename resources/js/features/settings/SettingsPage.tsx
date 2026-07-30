@@ -21,6 +21,7 @@ import {
     type BusinessSettings,
 } from '@/features/settings/api';
 import { Can } from '@/components/Can';
+import { extractErrorMessage } from '@/lib/queryClient';
 import { MyAccountForm } from '@/features/settings/MyAccountForm';
 import { WarehousesForm } from '@/features/settings/WarehousesForm';
 
@@ -30,6 +31,7 @@ function BusinessSettingsForm() {
     const { data } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
     const [form, setForm] = useState<BusinessSettings | null>(null);
     const [success, setSuccess] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (data) setForm(data);
@@ -44,7 +46,11 @@ function BusinessSettingsForm() {
         onSuccess: (updated) => {
             queryClient.setQueryData(['business-settings'], updated);
             setSuccess(true);
+            setError(null);
         },
+        // Beside the form as well as in the toast: a refusal names the field
+        // it is about, and the field is here.
+        onError: (failure) => setError(extractErrorMessage(failure)),
     });
 
     if (!form) return null;
@@ -58,6 +64,7 @@ function BusinessSettingsForm() {
                 {t('nav.settings')}
             </Typography>
             <Stack spacing={2}>
+                {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
                 {success && <Alert severity="success" onClose={() => setSuccess(false)}>{t('actions.save')} ✓</Alert>}
                 <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>

@@ -18,7 +18,12 @@ class TenantProvisioner
     public function provision(Tenant $tenant): void
     {
         TenantContext::run($tenant->id, function () use ($tenant) {
-            BusinessSetting::query()->firstOrCreate([], ['company_name' => $tenant->name]);
+            // The whole row, not just the name: a settings row missing its
+            // currency or invoice prefix is one the shop cannot save.
+            BusinessSetting::query()->firstOrCreate([], [
+                ...BusinessSetting::defaults(),
+                'company_name' => $tenant->name,
+            ]);
 
             Warehouse::query()->firstOrCreate(
                 ['is_default' => true],

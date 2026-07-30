@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Avatar, Box, Grid, IconButton, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Avatar, Box, Grid, IconButton, Paper, Stack, TextField, Typography } from '@mui/material';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import { useTranslation } from 'react-i18next';
 import { LoadingButton } from '@/components/LoadingButton';
 import { updateProfile } from '@/features/auth/api';
 import { useAuthStore } from '@/store/authStore';
+import { extractErrorMessage } from '@/lib/queryClient';
 
 function initials(name: string): string {
     return name
@@ -34,6 +35,7 @@ export function MyAccountForm() {
     const [address, setAddress] = useState(user?.address ?? '');
     const [logo, setLogo] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(user?.logo_url ?? null);
+    const [error, setError] = useState<string | null>(null);
 
     const mutation = useMutation({
         mutationFn: () => updateProfile({ name, email, phone, address, logo }),
@@ -46,7 +48,12 @@ export function MyAccountForm() {
             setUser(updated);
             setLogo(null);
             setLogoPreview(updated.logo_url);
+            setError(null);
         },
+        // An email already in use is the usual refusal here, and it is worth
+        // saying so: "could not save" leaves somebody retyping a name that
+        // was never the problem.
+        onError: (failure) => setError(extractErrorMessage(failure)),
     });
 
     const pickLogo = (file: File | null) => {
@@ -64,6 +71,13 @@ export function MyAccountForm() {
             </Typography>
 
             <Grid container spacing={2}>
+                {error && (
+                    <Grid item xs={12}>
+                        <Alert severity="error" onClose={() => setError(null)}>
+                            {error}
+                        </Alert>
+                    </Grid>
+                )}
                 <Grid item xs={12}>
                     <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar src={logoPreview ?? undefined} sx={{ width: 64, height: 64, fontWeight: 700 }}>

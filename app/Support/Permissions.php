@@ -208,6 +208,16 @@ class Permissions
     }
 
     /**
+     * Whether a permission is one of the platform owner's own. Anything
+     * else is a shop's, and is refused to the platform account however it
+     * came to be held — see User::hasPermissionTo().
+     */
+    public static function belongsToPlatformOwner(string $permission): bool
+    {
+        return in_array(explode('.', $permission)[0], self::platformOwnerModules(), true);
+    }
+
+    /**
      * Permissions attached to a role. Only the two structural roles carry
      * permissions: the platform superadmin, and the Company Admin who owns
      * everything inside their own business. Staff roles are presets applied

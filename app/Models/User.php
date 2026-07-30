@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Contracts\Permission;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'phone', 'address', 'logo_path', 'locale', 'is_active', 'access_expires_at', 'tenant_id', 'created_by', 'password'])]
@@ -21,8 +22,14 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
+    // The permission check is wrapped rather than replaced — see
+    // hasPermissionTo() below, which asks the original once the platform
+    // account's confinement has had its say.
+    use HasRoles {
+        hasPermissionTo as heldPermissionTo;
+    }
     use RecordsActivity;
 
     /**
@@ -61,10 +68,65 @@ class User extends Authenticatable
      * Whether this account administers the platform itself rather than a
      * single business — it owns the company list and their user limits,
      * and is the only account that legitimately has no tenant of its own.
+     *
+     * Read from the permission rows directly rather than through can():
+     * every permission check consults this to decide what the platform
+     * account may do, and asking it back would be a loop.
      */
     public function isPlatformOwner(): bool
     {
-        return $this->can(Permissions::of(Permissions::COMPANIES, Permissions::VIEW));
+        return $this->getAllPermissions()
+            ->contains('name', Permissions::of(Permissions::COMPANIES, Permissions::VIEW));
+    }
+
+    /**
+     * Every permission check in the application arrives here — the gate,
+     * the policies, the form requests, the middleware and the blade
+     * helpers alike all end up asking this one question.
+     *
+     * Which makes it the place to hold the platform account to its remit.
+     * It runs businesses and the accounts inside them; it sells nothing and
+     * banks nothing. A shop's permission that has found its way onto it —
+     * ticked by hand on the permission screen, left behind by an older
+     * version of this application, or set straight in the database — is
+     * refused here rather than honoured, so no row in a table can put the
+     * platform account on somebody's till.
+     *
+     * @param  string|int|Permission|\BackedEnum  $permission
+     */
+    public function hasPermissionTo($permission, ?string $guardName = null): bool
+    {
+        $name = match (true) {
+            is_string($permission) => $permission,
+            $permission instanceof Permission => $permission->name,
+            default => null,
+        };
+
+        if ($name !== null && ! Permissions::belongsToPlatformOwner($name) && $this->isPlatformOwner()) {
+            return false;
+        }
+
+        return $this->heldPermissionTo($permission, $guardName);
+    }
+
+    /**
+     * What this account can actually do, once the platform account's
+     * confinement is applied. The navigation and every guard on the
+     * frontend are driven from this, so a shop's screen cannot appear in
+     * the platform account's menu on the strength of a permission the
+     * server would refuse anyway.
+     *
+     * @return string[]
+     */
+    public function effectivePermissions(): array
+    {
+        $held = $this->getAllPermissions()->pluck('name');
+
+        if ($this->isPlatformOwner()) {
+            $held = $held->filter(fn (string $permission) => Permissions::belongsToPlatformOwner($permission));
+        }
+
+        return $held->values()->all();
     }
 
     /** The account that opened this one, if anybody on the platform did. */

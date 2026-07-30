@@ -118,6 +118,42 @@ class PlatformOwnerScopeTest extends TestCase
         $this->assertGreaterThan(30, $refused);
     }
 
+    /**
+     * The permission screen is a grid of tick boxes, and a database can be
+     * edited by hand. Neither can put the platform account on a till: a
+     * shop's permission granted to it directly is refused, and never
+     * reaches the screens either, which are driven from the same answer.
+     */
+    public function test_a_shops_permission_granted_to_it_directly_still_does_nothing(): void
+    {
+        $superadmin = $this->platformOwner();
+
+        $superadmin->givePermissionTo([
+            Permissions::of(Permissions::POS, Permissions::ACCESS),
+            Permissions::of(Permissions::PRODUCTS, Permissions::VIEW),
+            Permissions::of(Permissions::SALES, Permissions::VIEW),
+            Permissions::of(Permissions::SETTINGS, Permissions::VIEW),
+        ]);
+
+        $superadmin = $superadmin->fresh();
+
+        $this->assertFalse($superadmin->can(Permissions::of(Permissions::POS, Permissions::ACCESS)));
+        $this->assertFalse($superadmin->can(Permissions::of(Permissions::PRODUCTS, Permissions::VIEW)));
+        $this->assertTrue($superadmin->can(Permissions::of(Permissions::USERS, Permissions::VIEW)));
+
+        $this->actingAs($superadmin)->getJson('/api/v1/products')->assertForbidden();
+        $this->actingAs($superadmin)->getJson('/api/v1/sales')->assertForbidden();
+        $this->actingAs($superadmin)->getJson('/api/v1/settings')->assertForbidden();
+
+        // The menu is built from this list, so a screen the server refuses
+        // must never appear in it.
+        $held = $this->actingAs($superadmin)->getJson('/api/v1/auth/me')->assertOk()->json('data.permissions');
+
+        $this->assertNotContains(Permissions::of(Permissions::POS, Permissions::ACCESS), $held);
+        $this->assertNotContains(Permissions::of(Permissions::SALES, Permissions::VIEW), $held);
+        $this->assertContains(Permissions::of(Permissions::USERS, Permissions::VIEW), $held);
+    }
+
     /** A denied attempt is worth knowing about, so it still reaches the log. */
     public function test_an_attempt_on_a_shops_screens_is_recorded(): void
     {

@@ -27,11 +27,13 @@ class UserResource extends JsonResource
             'access_expires_at' => $this->access_expires_at,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),
             // Everything this account can actually do, role and directly
-            // assigned permissions combined — this is what the navigation
-            // and every frontend guard is driven from.
+            // assigned permissions combined, less anything the platform
+            // account is confined out of — this is what the navigation and
+            // every frontend guard is driven from, so it must say exactly
+            // what the server will allow and nothing more.
             'permissions' => $this->when(
                 $this->relationLoaded('roles') || $this->relationLoaded('permissions'),
-                fn () => $this->getAllPermissions()->pluck('name')->values(),
+                fn () => $this->effectivePermissions(),
             ),
             // Just the ticked boxes, so the permission screen reopens
             // showing what was actually saved against the account.

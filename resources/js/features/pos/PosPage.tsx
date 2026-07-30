@@ -97,7 +97,17 @@ export function PosPage() {
         );
     }, [products, search]);
 
+    /**
+     * A product nobody has priced cannot be rung up. It is not a price of
+     * zero — it is a price the shopkeeper has not decided yet, and a till
+     * that guesses at it either gives the goods away or invents a figure
+     * the shop never agreed to.
+     */
+    const unpriced = (product: ProductListItem) => product.sale_price <= 0;
+
     const addToCart = (product: ProductListItem) => {
+        if (unpriced(product)) return;
+
         setCart((prev) => {
             const existing = prev.find((line) => line.product.id === product.id);
             if (existing) {
@@ -118,6 +128,8 @@ export function PosPage() {
 
         if (!product) {
             setScanError(t('pos_page.barcode_not_found', { code }));
+        } else if (unpriced(product)) {
+            setScanError(t('pos_page.no_price_set', { name: product.name }));
         } else if (product.track_inventory && product.total_stock <= 0) {
             setScanError(t('pos_page.out_of_stock', { name: product.name }));
         } else {
@@ -364,18 +376,23 @@ export function PosPage() {
                     {filteredProducts.map((product, index) => {
                         const color = CARD_COLORS[index % CARD_COLORS.length];
                         const out = product.track_inventory && product.total_stock <= 0;
+                        const noPrice = unpriced(product);
+                        // Both refusals look the same on the tile, because
+                        // to the cashier they are the same thing: this is
+                        // not something you can sell right now.
+                        const blocked = out || noPrice;
                         return (
                             <Paper
                                 key={product.id}
                                 variant="outlined"
-                                onClick={() => !out && addToCart(product)}
+                                onClick={() => !blocked && addToCart(product)}
                                 sx={{
                                     p: 1.5,
                                     borderRadius: 2.5,
-                                    cursor: out ? 'not-allowed' : 'pointer',
-                                    opacity: out ? 0.5 : 1,
+                                    cursor: blocked ? 'not-allowed' : 'pointer',
+                                    opacity: blocked ? 0.5 : 1,
                                     transition: 'transform 120ms ease, box-shadow 120ms ease',
-                                    '&:hover': out
+                                    '&:hover': blocked
                                         ? {}
                                         : {
                                               transform: 'translateY(-2px)',
@@ -403,9 +420,15 @@ export function PosPage() {
                                     </Typography>
                                 </Stack>
                                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                    <Typography variant="subtitle2" fontWeight={800} color="primary.main">
-                                        {product.sale_price.toFixed(2)}
-                                    </Typography>
+                                    {noPrice ? (
+                                        <Typography variant="caption" fontWeight={700} color="error.main">
+                                            {t('pos_page.no_price')}
+                                        </Typography>
+                                    ) : (
+                                        <Typography variant="subtitle2" fontWeight={800} color="primary.main">
+                                            {product.sale_price.toFixed(2)}
+                                        </Typography>
+                                    )}
                                     {product.track_inventory && (
                                         <Chip
                                             size="small"

@@ -98,5 +98,6 @@
     "Total operating expenses": "ټول عملیاتي لګښتونه",
     "Unit cost": "د واحد لګښت",
     "Warehouse": "ګدام",
-    "of": "له"
+    "of": "له",
+    "\":name\" has no sale price yet. Set its price before selling it.": "د «:name» لپاره لا د پلورنې بیه نه ده ټاکل شوې. له پلورلو مخکې یې بیه وټاکئ."
 }

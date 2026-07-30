@@ -293,6 +293,65 @@ class SaleTest extends TestCase
         $response->assertCreated()->assertJsonPath('data.due_amount', 0);
     }
 
+    /**
+     * A product entered in a hurry to get it into stock, with its price left
+     * for later, must not be sellable — not from the till, which hides it,
+     * and not from a line typed straight at the API either.
+     */
+    public function test_a_product_with_no_sale_price_cannot_be_sold(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+
+        $unpriced = Product::factory()->create(['name' => 'Unpriced Rice', 'sale_price' => 0]);
+        app(RecordStockMovementAction::class)->execute($unpriced, $warehouse, StockMovement::TYPE_OPENING, 50, 10);
+
+        $cashier = User::factory()->create();
+        $this->grantRole($cashier, 'cashier');
+
+        $response = $this->actingAs($cashier)->postJson('/api/v1/sales', [
+            'warehouse_id' => $warehouse->id,
+            'items' => [
+                // A price typed on the line does not make the goods priced:
+                // the shop never decided what they are worth.
+                ['product_id' => $unpriced->id, 'quantity' => 1, 'unit_id' => $unpriced->unit_id, 'unit_price' => 40],
+            ],
+            'payments' => [
+                ['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 40],
+            ],
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors('items.0.product_id');
+        // Named, so the cashier knows which line to take out of the basket.
+        $errors = $response->json('errors');
+        $this->assertStringContainsString('Unpriced Rice', implode(' ', $errors['items.0.product_id']));
+
+        $this->assertDatabaseCount('sales', 0);
+    }
+
+    /** The priced goods in the same basket are not punished for it. */
+    public function test_a_priced_product_still_sells_normally(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $warehouse = Warehouse::factory()->create();
+        $cashAccount = CashAccount::factory()->create();
+        $priced = $this->stockedProduct($warehouse);
+
+        $cashier = User::factory()->create();
+        $this->grantRole($cashier, 'cashier');
+
+        $this->actingAs($cashier)->postJson('/api/v1/sales', [
+            'warehouse_id' => $warehouse->id,
+            'items' => [
+                ['product_id' => $priced->id, 'quantity' => 1, 'unit_id' => $priced->unit_id, 'unit_price' => 25],
+            ],
+            'payments' => [
+                ['cash_account_id' => $cashAccount->id, 'method' => 'cash', 'amount' => 25],
+            ],
+        ])->assertCreated();
+    }
+
     public function test_cashier_only_sees_their_own_sales_in_the_list(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

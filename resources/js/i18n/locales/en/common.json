@@ -261,6 +261,8 @@
         "change_due": "Change to return: {{amount}}",
         "walk_in_must_pay": "A walk-in sale must be fully paid before completing.",
         "out_of_stock": "\"{{name}}\" is out of stock.",
+        "no_price": "No price",
+        "no_price_set": "\"{{name}}\" has no sale price yet. Set its price before selling it.",
         "sale_completed_offline": "Sale {{invoice}} taken offline — it will be sent when the connection returns."
     },
     "receipt": {

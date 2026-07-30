@@ -98,5 +98,6 @@
     "Total operating expenses": "مجموع مصارف عملیاتی",
     "Unit cost": "قیمت فی واحد",
     "Warehouse": "گدام",
-    "of": "از"
+    "of": "از",
+    "\":name\" has no sale price yet. Set its price before selling it.": "برای «:name» هنوز قیمت فروش تعیین نشده است. پیش از فروش، قیمت آن را تعیین کنید."
 }

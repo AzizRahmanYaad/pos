@@ -8,10 +8,23 @@ use Illuminate\Http\Request;
 
 class StockController extends Controller
 {
+    /** What a page of stock holds when nobody says otherwise. */
+    private const PER_PAGE = 25;
+
+    /** A shop warming its offline cache asks for the lot; nobody asks for more. */
+    private const MAX_PER_PAGE = 500;
+
     /**
      * Every tracked product's available stock, per warehouse and in total,
      * with reorder status — optionally filtered by search, warehouse, or
-     * stock status (low / out of stock).
+     * stock status (low / out of stock), and returned a page at a time.
+     *
+     * The rows are worked out in PHP rather than SQL: "low" and "out" are a
+     * product's total against its own reorder level, which the query cannot
+     * answer while the totals are still spread across warehouses. So the
+     * page is taken after that work, not before — the count a shopkeeper
+     * sees is of the products that actually match, not of everything the
+     * query touched.
      */
     public function index(Request $request)
     {
@@ -39,7 +52,23 @@ class StockController extends Controller
             ->when($status === 'reorder', fn ($rows) => $rows->whereIn('status', ['low', 'out']))
             ->values();
 
-        return response()->json(['data' => $products]);
+        $perPage = min(max($request->integer('per_page', self::PER_PAGE), 1), self::MAX_PER_PAGE);
+        $total = $products->count();
+        $lastPage = max((int) ceil($total / $perPage), 1);
+        // A filter that shortens the list while the reader sits on page 9
+        // must not answer with nothing; the last page there is is the
+        // honest answer, and it is what the screen then shows.
+        $page = min(max($request->integer('page', 1), 1), $lastPage);
+
+        return response()->json([
+            'data' => $products->forPage($page, $perPage)->values(),
+            'meta' => [
+                'current_page' => $page,
+                'last_page' => $lastPage,
+                'per_page' => $perPage,
+                'total' => $total,
+            ],
+        ]);
     }
 
     /**

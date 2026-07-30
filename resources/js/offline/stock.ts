@@ -97,9 +97,18 @@ function isSummaryPath(path: string): boolean {
     return path.includes('/inventory/stock/summary');
 }
 
-/** The stock list this device holds, which the summary is recounted from. */
+/**
+ * The stock list this device holds, which the summary is recounted from.
+ *
+ * The fullest copy, not the first one found: the list is served a page at a
+ * time, so the device may hold both a page somebody opened and the whole
+ * list the warm pass fetched. Counting "how many products are low" from a
+ * page of twenty-five would answer for twenty-five products and call it the
+ * shop — the widest copy is the only one that can answer the question.
+ */
 function cachedStockRows(caches: CachedResponse[]): Record<string, unknown>[] {
     const prefix = 'GET /api/v1/inventory/stock';
+    let widest: Record<string, unknown>[] = [];
 
     for (const cached of caches) {
         if (!cached.key.startsWith(prefix)) continue;
@@ -111,10 +120,12 @@ function cachedStockRows(caches: CachedResponse[]): Record<string, unknown>[] {
 
         const rows = (cached.body as { data?: unknown })?.data;
 
-        if (Array.isArray(rows) && rows.length) return rows as Record<string, unknown>[];
+        if (Array.isArray(rows) && rows.length > widest.length) {
+            widest = rows as Record<string, unknown>[];
+        }
     }
 
-    return [];
+    return widest;
 }
 
 /**

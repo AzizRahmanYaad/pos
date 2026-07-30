@@ -33,12 +33,15 @@ const WARM: WarmEntry[] = [
     { url: '/cash-accounts' },
     { url: '/expense-categories' },
     { url: '/employees' },
-    { url: '/expenses' },
+    // Asked for in full, not a page at a time: what the device holds during
+    // an outage should be the whole list, and the stock summary is recounted
+    // from this copy rather than from whatever page was last opened.
+    { url: '/expenses', params: { per_page: 500 } },
     { url: '/sales' },
     { url: '/purchases' },
     { url: '/payroll-runs' },
     { url: '/period-closings' },
-    { url: '/inventory/stock' },
+    { url: '/inventory/stock', params: { per_page: 500 } },
     { url: '/inventory/stock/summary' },
     { url: '/inventory/stock/alerts' },
     { url: '/stock-movements' },

@@ -36,15 +36,42 @@ export interface ExpenseRange {
     to?: string;
 }
 
-export async function fetchExpenses(range: ExpenseRange = {}): Promise<ExpenseListItem[]> {
-    const { data } = await apiClient.get<CollectionResponse<ExpenseListItem>>('/expenses', {
+export interface PageMeta {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
+export interface ExpensePage {
+    data: ExpenseListItem[];
+    meta: PageMeta;
+}
+
+export async function fetchExpensesPage(
+    params: { page: number; perPage: number } & ExpenseRange,
+): Promise<ExpensePage> {
+    const { data } = await apiClient.get<ExpensePage>('/expenses', {
         params: {
-            per_page: 500,
-            ...(range.from ? { from: range.from } : {}),
-            ...(range.to ? { to: range.to } : {}),
+            page: params.page,
+            per_page: params.perPage,
+            ...(params.from ? { from: params.from } : {}),
+            ...(params.to ? { to: params.to } : {}),
         },
     });
-    return data.data;
+
+    // A device answering from its offline cache may hold a copy written
+    // before this page counted anything, so the total falls back to what
+    // actually arrived rather than leaving the footer blank.
+    return {
+        data: data.data ?? [],
+        meta: data.meta ?? {
+            current_page: params.page,
+            last_page: params.page,
+            per_page: params.perPage,
+            total: data.data?.length ?? 0,
+        },
+    };
 }
 
 export interface ExpenseCategoryTotal {

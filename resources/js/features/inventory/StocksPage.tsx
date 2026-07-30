@@ -14,6 +14,7 @@ import {
     TableCell,
     TableContainer,
     TableHead,
+    TablePagination,
     TableRow,
     TextField,
     ToggleButton,
@@ -28,7 +29,7 @@ import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined
 import HighlightOffOutlinedIcon from '@mui/icons-material/HighlightOffOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
-import { fetchStockList, fetchStockSummary, type StockListItem } from '@/features/inventory/api';
+import { fetchStockPage, fetchStockSummary, type StockListItem } from '@/features/inventory/api';
 import { fetchWarehouses } from '@/features/warehouses/api';
 import { fetchBusinessSettings } from '@/features/settings/api';
 
@@ -89,9 +90,14 @@ export function StocksPage() {
     const [search, setSearch] = useState('');
     const [warehouseId, setWarehouseId] = useState<number | ''>('');
     const [status, setStatus] = useState<StatusFilter>('all');
+    const [page, setPage] = useState(0);
+    const [perPage, setPerPage] = useState(25);
 
     useEffect(() => {
-        const handle = setTimeout(() => setSearch(searchInput.trim()), 300);
+        const handle = setTimeout(() => {
+            setSearch(searchInput.trim());
+            setPage(0);
+        }, 300);
         return () => clearTimeout(handle);
     }, [searchInput]);
 
@@ -102,10 +108,11 @@ export function StocksPage() {
     };
 
     const { data: stocks, isLoading, isFetching } = useQuery({
-        queryKey: ['stock-list', filters],
-        queryFn: () => fetchStockList(filters),
+        queryKey: ['stock-list', page, perPage, filters],
+        queryFn: () => fetchStockPage({ page: page + 1, perPage, ...filters }),
         placeholderData: keepPreviousData,
     });
+    const rows = stocks?.data;
     const { data: summary } = useQuery({ queryKey: ['stock-summary'], queryFn: fetchStockSummary });
     const { data: warehouses } = useQuery({ queryKey: ['warehouses'], queryFn: fetchWarehouses });
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
@@ -195,7 +202,10 @@ export function StocksPage() {
                         size="small"
                         label={t('fields.warehouse')}
                         value={warehouseId}
-                        onChange={(e) => setWarehouseId(e.target.value === '' ? '' : Number(e.target.value))}
+                        onChange={(e) => {
+                            setWarehouseId(e.target.value === '' ? '' : Number(e.target.value));
+                            setPage(0);
+                        }}
                         sx={{ minWidth: 180 }}
                     >
                         <MenuItem value="">{t('stocks_page.all_warehouses')}</MenuItem>
@@ -209,7 +219,11 @@ export function StocksPage() {
                         size="small"
                         value={status}
                         exclusive
-                        onChange={(_, next) => next && setStatus(next)}
+                        onChange={(_, next) => {
+                            if (!next) return;
+                            setStatus(next);
+                            setPage(0);
+                        }}
                     >
                         <ToggleButton value="all">{t('stocks_page.filter_all')}</ToggleButton>
                         <ToggleButton value="low">{t('stocks_page.filter_low')}</ToggleButton>
@@ -239,7 +253,7 @@ export function StocksPage() {
                                     </TableCell>
                                 </TableRow>
                             )}
-                            {stocks?.map((row) => (
+                            {rows?.map((row) => (
                                 <TableRow key={row.id} hover>
                                     <TableCell>
                                         <Typography variant="body2" fontWeight={600}>
@@ -288,7 +302,7 @@ export function StocksPage() {
                                     </TableCell>
                                 </TableRow>
                             ))}
-                            {stocks && stocks.length === 0 && (
+                            {rows && rows.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={6}>
                                         <Box sx={{ py: 6, textAlign: 'center' }}>
@@ -301,6 +315,19 @@ export function StocksPage() {
                         </TableBody>
                     </Table>
                 </TableContainer>
+
+                <TablePagination
+                    component="div"
+                    count={stocks?.meta.total ?? 0}
+                    page={page}
+                    onPageChange={(_, next) => setPage(next)}
+                    rowsPerPage={perPage}
+                    onRowsPerPageChange={(e) => {
+                        setPerPage(Number(e.target.value));
+                        setPage(0);
+                    }}
+                    rowsPerPageOptions={[25, 50, 100]}
+                />
             </Paper>
         </Box>
     );

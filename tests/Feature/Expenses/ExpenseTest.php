@@ -127,6 +127,50 @@ class ExpenseTest extends TestCase
         $response->assertCreated()->assertJsonPath('data.amount', 75);
     }
 
+    /**
+     * The expenses screen used to ask for five hundred at once and show the
+     * lot. It reads a page at a time now, and the count it prints is of
+     * every expense in the range, not of the page in front of it.
+     */
+    public function test_expenses_are_listed_a_page_at_a_time(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $manager = User::factory()->create();
+        $this->grantRole($manager, 'manager');
+
+        $category = ExpenseCategory::factory()->create();
+        $cashAccount = CashAccount::factory()->create(['opening_balance' => 100000]);
+
+        foreach (range(1, 30) as $index) {
+            app(CreateExpenseAction::class)->execute([
+                'expense_category_id' => $category->id,
+                'cash_account_id' => $cashAccount->id,
+                'amount' => 10,
+                'description' => "Expense {$index}",
+            ], $manager->id);
+        }
+
+        $this->actingAs($manager)
+            ->getJson('/api/v1/expenses')
+            ->assertOk()
+            ->assertJsonCount(25, 'data')
+            ->assertJsonPath('meta.total', 30)
+            ->assertJsonPath('meta.per_page', 25);
+
+        $this->actingAs($manager)
+            ->getJson('/api/v1/expenses?page=2')
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('meta.current_page', 2);
+
+        // The whole list still comes in one call for a device filling its
+        // offline cache.
+        $this->actingAs($manager)
+            ->getJson('/api/v1/expenses?per_page=500')
+            ->assertOk()
+            ->assertJsonCount(30, 'data');
+    }
+
     public function test_cashier_cannot_create_expense(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

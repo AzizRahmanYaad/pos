@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Alert,
     Box,
@@ -22,6 +22,7 @@ import {
     TableCell,
     TableContainer,
     TableHead,
+    TablePagination,
     TableRow,
     TextField,
     Tooltip,
@@ -35,7 +36,7 @@ import { downloadOrToast } from '@/lib/reportDownload';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { useTranslation } from 'react-i18next';
 import {
-    fetchExpenses,
+    fetchExpensesPage,
     fetchExpenseCategories,
     fetchExpenseSummary,
     downloadExpenseReportPdf,
@@ -56,11 +57,21 @@ export function ExpensesPage() {
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
     const range = useMemo(() => ({ from: from || undefined, to: to || undefined }), [from, to]);
+    const [page, setPage] = useState(0);
+    const [perPage, setPerPage] = useState(25);
 
-    const { data: expenses } = useQuery({
-        queryKey: ['expenses', range],
-        queryFn: () => fetchExpenses(range),
+    // A narrowed date range is a different list; staying on page four of the
+    // old one would show an empty table over a full total.
+    useEffect(() => {
+        setPage(0);
+    }, [range]);
+
+    const { data: expensePage } = useQuery({
+        queryKey: ['expenses', page, perPage, range],
+        queryFn: () => fetchExpensesPage({ page: page + 1, perPage, ...range }),
+        placeholderData: keepPreviousData,
     });
+    const expenses = expensePage?.data;
     const { data: summary } = useQuery({
         queryKey: ['expenses-summary', range],
         queryFn: () => fetchExpenseSummary(range),
@@ -356,6 +367,19 @@ export function ExpensesPage() {
                         </TableBody>
                     </Table>
                 </TableContainer>
+
+                <TablePagination
+                    component="div"
+                    count={expensePage?.meta.total ?? 0}
+                    page={page}
+                    onPageChange={(_, next) => setPage(next)}
+                    rowsPerPage={perPage}
+                    onRowsPerPageChange={(e) => {
+                        setPerPage(Number(e.target.value));
+                        setPage(0);
+                    }}
+                    rowsPerPageOptions={[25, 50, 100]}
+                />
             </Paper>
 
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="xs">

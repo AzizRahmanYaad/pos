@@ -13,13 +13,21 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class ExpenseController extends Controller
 {
+    /** What a page holds, and the most anybody may ask for at once. */
+    private const PER_PAGE = 25;
+
+    /** A device filling its offline cache asks for the lot; nobody asks for more. */
+    private const MAX_PER_PAGE = 500;
+
     public function index()
     {
         $this->authorize('viewAny', Expense::class);
 
+        $perPage = min(max(request()->integer('per_page', self::PER_PAGE), 1), self::MAX_PER_PAGE);
+
         $expenses = $this->filtered()
             ->with(['category', 'cashAccount', 'purchase'])
-            ->paginate(request()->integer('per_page', 25))
+            ->paginate($perPage)
             ->withQueryString();
 
         return ExpenseResource::collection($expenses);

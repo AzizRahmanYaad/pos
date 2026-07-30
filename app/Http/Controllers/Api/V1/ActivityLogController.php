@@ -105,19 +105,35 @@ class ActivityLogController extends Controller
      * business out of another's history; on top of that a Company Admin sees
      * their own trail and their own staff's, matching exactly the people
      * they can manage on the Users screen.
+     *
+     * The platform owner is scoped the same way, to the accounts it opened
+     * itself. It used to see every action in every business, which is a
+     * different thing entirely: a shopkeeper's cashier voiding a sale is
+     * that shop's affair, and reading it is neither the platform's business
+     * nor something the shop agreed to. What the platform owner needs is
+     * the trail of the Company Admins it issues and renews — no more.
      */
     private function visibleTo(User $actor): Builder
     {
-        return Activity::query()->unless($actor->isPlatformOwner(), function (Builder $query) use ($actor) {
-            $manageable = User::query()
-                ->where('tenant_id', $actor->tenant_id)
+        return Activity::query()->when(
+            $actor->isPlatformOwner(),
+            fn (Builder $query) => $query->whereIn('causer_id', User::query()
                 ->where(fn (Builder $scope) => $scope
-                    ->where('created_by', $actor->id)
-                    ->orWhere('id', $actor->id))
-                ->select('id');
+                    ->whereNull('created_by')
+                    ->orWhereHas('creator', fn (Builder $creator) => $creator
+                        ->whereHas('roles', fn (Builder $role) => $role->where('name', 'superadmin'))))
+                ->select('id')),
+            function (Builder $query) use ($actor) {
+                $manageable = User::query()
+                    ->where('tenant_id', $actor->tenant_id)
+                    ->where(fn (Builder $scope) => $scope
+                        ->where('created_by', $actor->id)
+                        ->orWhere('id', $actor->id))
+                    ->select('id');
 
-            $query->where('tenant_id', $actor->tenant_id)
-                ->whereIn('causer_id', $manageable);
-        });
+                $query->where('tenant_id', $actor->tenant_id)
+                    ->whereIn('causer_id', $manageable);
+            },
+        );
     }
 }

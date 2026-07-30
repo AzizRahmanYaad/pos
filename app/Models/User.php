@@ -103,11 +103,13 @@ class User extends Authenticatable
     /**
      * The permissions this account is allowed to hand out.
      *
-     * A Company Admin is capped at what they hold themselves, which is what
-     * stops them promoting a cashier past their own reach. The platform
-     * owner is the deliberate exception: it provisions accounts for
-     * businesses whose day-to-day access it pointedly does not have, so it
-     * may grant anything a company is allowed to hold.
+     * A Company Admin is capped twice over: at what they hold themselves,
+     * which stops them promoting a cashier past their own reach, and at
+     * what staff may hold at all, which keeps user management and the
+     * activity log in the admin's own hands. The platform owner is the
+     * deliberate exception on the second count — it mints the Company
+     * Admins who need both — while pointedly holding no day-to-day access
+     * of its own.
      *
      * @return string[]
      */
@@ -119,6 +121,6 @@ class User extends Authenticatable
             return array_values(array_unique([...Permissions::forCompany(), ...$own]));
         }
 
-        return array_values($own);
+        return array_values(array_intersect($own, Permissions::forStaff()));
     }
 }

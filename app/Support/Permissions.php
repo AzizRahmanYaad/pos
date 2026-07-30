@@ -88,9 +88,11 @@ class Permissions
     /**
      * Every module, in the order the navigation presents them, with the
      * actions it supports and the navigation group it belongs to. `admin`
-     * marks the platform-owner modules a company never sees.
+     * marks the platform-owner modules a company never sees; `owner` marks
+     * the ones that belong to a Company Admin alone and are never theirs to
+     * delegate to their own staff.
      *
-     * @return array<string, array{group:string, actions:string[], admin?:bool}>
+     * @return array<string, array{group:string, actions:string[], admin?:bool, owner?:bool}>
      */
     public static function modules(): array
     {
@@ -118,9 +120,9 @@ class Permissions
             self::REPORTS => ['group' => 'insight', 'actions' => [self::VIEW, self::PRINT, self::EXPORT]],
             self::PERIOD_CLOSING => ['group' => 'insight', 'actions' => [self::VIEW, self::CLOSE, self::REOPEN]],
 
-            self::USERS => ['group' => 'administration', 'actions' => [self::VIEW, self::CREATE, self::EDIT, self::DELETE]],
+            self::USERS => ['group' => 'administration', 'actions' => [self::VIEW, self::CREATE, self::EDIT, self::DELETE], 'owner' => true],
             self::SETTINGS => ['group' => 'administration', 'actions' => [self::VIEW, self::EDIT]],
-            self::ACTIVITY => ['group' => 'administration', 'actions' => [self::VIEW, self::EXPORT]],
+            self::ACTIVITY => ['group' => 'administration', 'actions' => [self::VIEW, self::EXPORT], 'owner' => true],
 
             self::COMPANIES => ['group' => 'platform', 'actions' => [self::VIEW, self::EDIT], 'admin' => true],
         ];
@@ -179,6 +181,34 @@ class Permissions
 
         foreach (self::modules() as $module => $definition) {
             if ($definition['admin'] ?? false) {
+                continue;
+            }
+
+            $permissions = [...$permissions, ...self::forModule($module)];
+        }
+
+        return $permissions;
+    }
+
+    /**
+     * What a Company Admin may hand to the staff they take on.
+     *
+     * Everything the company holds, less the admin's own office: who may
+     * sign in, and the record of what everyone did. Those two are withheld
+     * for the same reason — a sub-user who could open user management could
+     * grant themselves everything else and outlive their own dismissal, and
+     * one who could read the activity log could watch the people above
+     * them. Neither is a menu an admin should be able to tick by mistake,
+     * so it is not on the screen at all rather than merely refused on save.
+     *
+     * @return string[]
+     */
+    public static function forStaff(): array
+    {
+        $permissions = [];
+
+        foreach (self::modules() as $module => $definition) {
+            if (($definition['admin'] ?? false) || ($definition['owner'] ?? false)) {
                 continue;
             }
 

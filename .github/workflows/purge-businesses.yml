@@ -7,6 +7,19 @@ name: Purge businesses (destructive)
 # There is no undo, so it never runs on its own: not on a push, not on a
 # schedule, and not as part of a deploy. It has to be started by hand, and
 # the confirmation below has to be typed out in full.
+#
+# Two ways to start it, both deliberate:
+#
+#   - the "Run workflow" button, with PURGE typed into the box; or
+#   - a push that changes this file whose commit message says RUN-PURGE.
+#
+# The second exists because this repository's default branch is not main,
+# and GitHub only offers the button — and only accepts the dispatch API —
+# for workflows that exist on the default branch. The same workaround
+# diagnose-hosting.yml and clear-server-cache.yml already document. The
+# sentinel in the commit message is what keeps it from being a trap:
+# editing this file later cannot empty a live shop's database unless
+# whoever pushed it said so in as many words.
 on:
   workflow_dispatch:
     inputs:
@@ -14,6 +27,10 @@ on:
         description: Type PURGE to confirm deleting every business and all of its data
         required: true
         default: ''
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/purge-businesses.yml'
 
 permissions:
   contents: read
@@ -22,8 +39,10 @@ jobs:
   purge:
     runs-on: ubuntu-latest
     name: Delete every business and all of its data
-    # A dispatch with anything else in the box does nothing at all.
-    if: inputs.confirm == 'PURGE'
+    # Anything else in the box, or any other commit message, does nothing.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm == 'PURGE') ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, 'RUN-PURGE'))
 
     steps:
       - name: Run the purge on the server

@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
     Alert,
     Box,
     Button,
     Chip,
     CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     IconButton,
     InputAdornment,
     MenuItem,
@@ -29,12 +25,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import AssignmentReturnOutlinedIcon from '@mui/icons-material/AssignmentReturnOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { useTranslation } from 'react-i18next';
-import { LoadingButton } from '@/components/LoadingButton';
-import { fetchSalesPage, refundSale, type SaleListItem } from '@/features/sales/api';
-import { invalidateCashViews } from '@/lib/cashInvalidation';
+import { fetchSalesPage } from '@/features/sales/api';
 import { DualDateField } from '@/components/DualDateField';
 
 const STATUS_COLOR: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
@@ -47,7 +40,6 @@ const STATUS_COLOR: Record<string, 'success' | 'warning' | 'error' | 'default'> 
 export function SalesListPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
 
     const [page, setPage] = useState(0);
     const [perPage, setPerPage] = useState(10);
@@ -77,23 +69,6 @@ export function SalesListPage() {
                 to: toDate || undefined,
             }),
         placeholderData: keepPreviousData,
-    });
-
-    const [returning, setReturning] = useState<SaleListItem | null>(null);
-    const [returnError, setReturnError] = useState<string | null>(null);
-
-    const returnMutation = useMutation({
-        mutationFn: (sale: SaleListItem) => refundSale(sale.id),
-        meta: { successMessage: t('sales_page.return_success') },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['sales-page'] });
-            queryClient.invalidateQueries({ queryKey: ['products'] });
-            queryClient.invalidateQueries({ queryKey: ['products-page'] });
-            invalidateCashViews(queryClient);
-            setReturning(null);
-            setReturnError(null);
-        },
-        onError: () => setReturnError(t('sales_page.return_failed')),
     });
 
     const money = (v: number) => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -219,26 +194,19 @@ export function SalesListPage() {
                                     <TableCell align="right" sx={{ fontWeight: 700 }}>
                                         {money(sale.grand_total)}
                                     </TableCell>
+                                    {/* Opening the sale is the only action here.
+                                        A return is taken on the sale itself,
+                                        where the lines and quantities being
+                                        given back are in front of you — a
+                                        whole-invoice return from a list row
+                                        was one mis-click on a screen people
+                                        scroll through all day. */}
                                     <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                                         <Tooltip title={t('sales_page.view')}>
                                             <IconButton size="small" color="primary" onClick={() => navigate(`/sales/${sale.id}`)}>
                                                 <VisibilityOutlinedIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
-                                        {(sale.status === 'completed' || sale.status === 'partially_refunded') && (
-                                            <Tooltip title={t('sales_page.return')}>
-                                                <IconButton
-                                                    size="small"
-                                                    color="error"
-                                                    onClick={() => {
-                                                        setReturnError(null);
-                                                        setReturning(sale);
-                                                    }}
-                                                >
-                                                    <AssignmentReturnOutlinedIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -269,32 +237,6 @@ export function SalesListPage() {
                     rowsPerPageOptions={[10, 20, 50]}
                 />
             </Paper>
-
-            <Dialog open={returning !== null} onClose={() => setReturning(null)} maxWidth="xs" fullWidth>
-                <DialogTitle>{t('sales_page.return_sale')}</DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2} sx={{ mt: 1 }}>
-                        {returnError && <Alert severity="error">{returnError}</Alert>}
-                        <Typography>
-                            {t('sales_page.return_whole_confirm', { invoice: returning?.invoice_number })}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            {t('sales_page.return_partial_hint')}
-                        </Typography>
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setReturning(null)}>{t('actions.cancel')}</Button>
-                    <LoadingButton
-                        variant="contained"
-                        color="error"
-                        loading={returnMutation.isPending}
-                        onClick={() => returning && returnMutation.mutate(returning)}
-                    >
-                        {t('sales_page.return')}
-                    </LoadingButton>
-                </DialogActions>
-            </Dialog>
         </Box>
     );
 }

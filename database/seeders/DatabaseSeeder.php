@@ -22,7 +22,15 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             SuperAdminUserSeeder::class,
-            AdminUserSeeder::class,
         ]);
+
+        // The demo business is for a machine somebody is developing on. A
+        // live platform gets its businesses from the platform owner opening
+        // them, and this seeder runs on every deploy — so on production it
+        // would put admin@example.com and its "Default Business" back a few
+        // minutes after anybody deleted them, password and all.
+        if (! app()->isProduction()) {
+            $this->call(AdminUserSeeder::class);
+        }
     }
 }

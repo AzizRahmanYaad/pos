@@ -1,0 +1,66 @@
+name: Purge businesses (destructive)
+
+# Empties the live platform of businesses: every company account, every
+# shop's data, and the trail of both. The platform owner's account survives
+# so somebody can sign in afterwards and open the first real business.
+#
+# There is no undo, so it never runs on its own: not on a push, not on a
+# schedule, and not as part of a deploy. It has to be started by hand, and
+# the confirmation below has to be typed out in full.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type PURGE to confirm deleting every business and all of its data
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    name: Delete every business and all of its data
+    # A dispatch with anything else in the box does nothing at all.
+    if: inputs.confirm == 'PURGE'
+
+    steps:
+      - name: Run the purge on the server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            export APP_PATH="${{ secrets.HOSTINGER_APP_PATH }}"
+            cd "$APP_PATH"
+
+            # Hostinger's default CLI php is ancient; find one this
+            # application will actually run on, the same way the release
+            # script does.
+            PHP_BIN="${{ secrets.HOSTINGER_PHP_BIN }}"
+            if [ -z "$PHP_BIN" ]; then
+                for candidate in php8.4 php84 /opt/alt/php84/usr/bin/php /usr/bin/php8.4 \
+                    /usr/local/bin/php8.4 php8.5 /opt/alt/php85/usr/bin/php php; do
+                    if command -v "$candidate" >/dev/null 2>&1 &&
+                        "$candidate" -r 'exit(PHP_VERSION_ID >= 80401 ? 0 : 1);' >/dev/null 2>&1; then
+                        PHP_BIN="$candidate"
+                        break
+                    fi
+                done
+            fi
+
+            if [ -z "$PHP_BIN" ]; then
+                echo "ERROR: no PHP >= 8.4 CLI found on the server." >&2
+                exit 1
+            fi
+
+            "$PHP_BIN" artisan platform:purge-businesses --force
+
+            # Signed-in staff of a deleted business must not keep working
+            # from a cached screen, and the counts on the platform's own
+            # pages are all recounted from an empty database.
+            "$PHP_BIN" artisan cache:clear

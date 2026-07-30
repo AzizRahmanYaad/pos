@@ -189,6 +189,25 @@ class Permissions
     }
 
     /**
+     * The only modules the platform owner ever touches: the businesses on
+     * the platform, the accounts inside them, and the trail both leave
+     * behind. Everything else in this file is a shop's own trading, which
+     * the platform owner has no part in — it sells nothing, buys nothing
+     * and banks nothing.
+     *
+     * This is the list the superadmin role is built from *and* the list
+     * ConfinePlatformOwner turns people away at the door with, so the two
+     * can never drift apart and leave an endpoint reachable that no screen
+     * admits to.
+     *
+     * @return string[]
+     */
+    public static function platformOwnerModules(): array
+    {
+        return [self::COMPANIES, self::USERS, self::ACTIVITY];
+    }
+
+    /**
      * Permissions attached to a role. Only the two structural roles carry
      * permissions: the platform superadmin, and the Company Admin who owns
      * everything inside their own business. Staff roles are presets applied
@@ -204,12 +223,9 @@ class Permissions
             // Owns the platform: businesses, their user limits, and the
             // accounts inside them. Deliberately holds no operational
             // permissions, so it never lands in a company's POS.
-            'superadmin' => [
-                ...self::forModule(self::COMPANIES),
-                ...self::forModule(self::USERS),
-                // Owning the platform includes being able to audit it.
-                ...self::forModule(self::ACTIVITY),
-            ],
+            'superadmin' => array_merge(
+                ...array_map(fn (string $module) => self::forModule($module), self::platformOwnerModules()),
+            ),
             // Owns one business, top to bottom.
             'admin' => self::forCompany(),
             'manager' => [],

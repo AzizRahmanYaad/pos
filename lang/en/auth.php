@@ -17,5 +17,6 @@ return [
     'password' => 'The provided password is incorrect.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
     'access_expired' => 'Your access period has expired. Please contact the administrator to renew your subscription.',
+    'platform_owner_scope' => 'The platform account manages businesses and their users only. It has no access to a business\'s own operations.',
 
 ];

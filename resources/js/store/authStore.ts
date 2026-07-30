@@ -19,6 +19,18 @@ interface AuthState {
     setUser: (user: AuthUser) => void;
     can: (permission: string) => boolean;
     canAny: (permissions: string[]) => boolean;
+    isPlatformOwner: () => boolean;
+}
+
+/**
+ * The account that runs the platform rather than a shop: it opens
+ * businesses and the accounts inside them, and nothing else. It is the one
+ * account with no business of its own, so anything that asks the server
+ * about *a shop* — its settings, its stock, its takings — has nothing to
+ * ask for and would only be refused.
+ */
+export function isPlatformOwnerUser(user: AuthUser | null): boolean {
+    return user?.permissions.includes('companies.view') ?? false;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -112,6 +124,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const held = get().user?.permissions;
 
         return held !== undefined && permissions.some((permission) => held.includes(permission));
+    },
+
+    isPlatformOwner() {
+        return isPlatformOwnerUser(get().user);
     },
 }));
 

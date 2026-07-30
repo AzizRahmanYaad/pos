@@ -2,6 +2,12 @@ import { rawClient } from '@/offline/rawClient';
 import { allCaches, countUnsent, writeCache } from '@/offline/db';
 import { localDate } from '@/offline/journal';
 
+/** One answer worth having on the device before the line goes down. */
+interface WarmEntry {
+    url: string;
+    params?: Record<string, unknown>;
+}
+
 /**
  * Everything a shop needs on the device before the line goes down.
  *
@@ -13,8 +19,7 @@ import { localDate } from '@/offline/journal';
  * Written through the raw client so a failure here is silent and local:
  * warming a cache is not something to interrupt anyone about.
  */
-const WARM: Array<{ url: string; params?: Record<string, unknown> }> = [
-    { url: '/auth/me' },
+const WARM: WarmEntry[] = [
     { url: '/settings' },
     { url: '/products', params: { per_page: 500 } },
     { url: '/products' },
@@ -43,6 +48,21 @@ const WARM: Array<{ url: string; params?: Record<string, unknown> }> = [
     { url: '/users' },
     { url: '/activity-log' },
     { url: '/customers/summary' },
+];
+
+/**
+ * What the platform account gets instead: its own screens, and nothing of
+ * any shop's. It administers businesses and their accounts, so a till's
+ * worth of products, stock and takings is neither useful to it nor its to
+ * hold — and the server refuses it all of them anyway, which would make
+ * warming thirty-odd requests spent collecting refusals.
+ */
+const ADMIN_WARM: WarmEntry[] = [
+    { url: '/tenants' },
+    { url: '/roles' },
+    { url: '/permissions' },
+    { url: '/users' },
+    { url: '/activity-log' },
 ];
 
 /**
@@ -193,7 +213,7 @@ async function warmOpenLedgers(userId: number): Promise<void> {
  * the queue something to be added to; the days either side cover a till
  * still open past midnight and the usual "what did we take yesterday?".
  */
-function datedWarm(): Array<{ url: string; params?: Record<string, unknown> }> {
+function datedWarm(): WarmEntry[] {
     const days = [-1, 0, 1].map((offset) => {
         const day = new Date();
         day.setDate(day.getDate() + offset);
@@ -205,6 +225,31 @@ function datedWarm(): Array<{ url: string; params?: Record<string, unknown> }> {
 }
 
 let running = false;
+
+/**
+ * Fetch one answer onto the device, returning its body so the caller can
+ * read it. A screen this user may not open, or a moment of bad line, is
+ * nothing to stop for.
+ */
+async function warmOne(userId: number, { url, params }: WarmEntry): Promise<unknown> {
+    try {
+        const response = await rawClient.get(url, { params });
+
+        await writeCache({
+            // Must match how the api client builds its key, or the warmed
+            // copy is never the one looked up.
+            key: `GET /api/v1${url}${params ? JSON.stringify(params) : ''}`,
+            userId,
+            status: response.status,
+            body: response.data,
+            fetchedAt: Date.now(),
+        });
+
+        return response.data;
+    } catch {
+        return null;
+    }
+}
 
 export async function warmOfflineCache(userId: number): Promise<void> {
     if (running || (typeof navigator !== 'undefined' && navigator.onLine === false)) return;
@@ -219,23 +264,19 @@ export async function warmOfflineCache(userId: number): Promise<void> {
     running = true;
 
     try {
-        for (const { url, params } of [...WARM, ...datedWarm()]) {
-            try {
-                const response = await rawClient.get(url, { params });
+        // Who this is decides what is worth keeping, so it goes first — and
+        // it is the one answer every account needs on the device anyway.
+        const me = await warmOne(userId, { url: '/auth/me' });
+        const permissions = (me as { data?: { permissions?: string[] } } | null)?.data?.permissions ?? [];
+        const platformOwner = permissions.includes('companies.view');
 
-                await writeCache({
-                    // Must match how the api client builds its key, or the
-                    // warmed copy is never the one looked up.
-                    key: `GET /api/v1${url}${params ? JSON.stringify(params) : ''}`,
-                    userId,
-                    status: response.status,
-                    body: response.data,
-                    fetchedAt: Date.now(),
-                });
-            } catch {
-                // A screen this user may not open, or a moment of bad line.
-            }
+        for (const entry of platformOwner ? ADMIN_WARM : [...WARM, ...datedWarm()]) {
+            await warmOne(userId, entry);
         }
+
+        // The rest is a shop's own trading, which the platform account has
+        // no part in and no access to.
+        if (platformOwner) return;
 
         await warmRecentSales(userId);
         await warmRecentPurchases(userId);

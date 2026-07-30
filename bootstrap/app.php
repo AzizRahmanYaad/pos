@@ -9,6 +9,7 @@ use App\Domain\Purchases\Exceptions\PurchaseAlreadyProcessedException;
 use App\Domain\Sales\Exceptions\InvalidRefundException;
 use App\Domain\Sales\Exceptions\InvalidSalePaymentException;
 use App\Domain\Sales\Exceptions\SaleAlreadyProcessedException;
+use App\Http\Middleware\ConfinePlatformOwner;
 use App\Http\Middleware\EnsureAccessNotExpired;
 use App\Http\Middleware\EnsureIdempotentWrites;
 use App\Http\Middleware\PreventApiCaching;
@@ -50,7 +51,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->statefulApi();
         $middleware->throttleApi();
-        $middleware->api(append: [SetLocale::class, EnsureAccessNotExpired::class, PreventApiCaching::class, EnsureIdempotentWrites::class, RecordRequestActivity::class]);
+        // ConfinePlatformOwner goes last on purpose: it must sit *inside*
+        // the activity recorder, so an attempt to reach a shop's screens
+        // with the platform account is written to the log like any other
+        // refusal, instead of being turned away before anything sees it.
+        $middleware->api(append: [SetLocale::class, EnsureAccessNotExpired::class, PreventApiCaching::class, EnsureIdempotentWrites::class, RecordRequestActivity::class, ConfinePlatformOwner::class]);
         $middleware->web(append: [SetLocale::class]);
         $middleware->alias([
             'role' => RoleMiddleware::class,

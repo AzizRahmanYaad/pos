@@ -122,6 +122,7 @@ export function AppLayout() {
     const logout = useAuthStore((state) => state.logout);
     const canViewStock = useAuthStore((state) => state.can('inventory.view'));
     const canViewCash = useAuthStore((state) => state.can('ledger.view'));
+    const isPlatformOwner = useAuthStore((state) => state.isPlatformOwner());
 
     const handleLogout = async () => {
         closeProfile();
@@ -133,7 +134,14 @@ export function AppLayout() {
         }
     };
 
-    const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
+    // The header carries the shop's name. The platform account has no shop,
+    // and the server refuses it a business's settings, so it is never asked
+    // — it sees the application's own name instead.
+    const { data: settings } = useQuery({
+        queryKey: ['business-settings'],
+        queryFn: fetchBusinessSettings,
+        enabled: !isPlatformOwner,
+    });
     const companyName = settings?.company_name || t('app_name');
 
     const { data: stockAlerts } = useQuery({

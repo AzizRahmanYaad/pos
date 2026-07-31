@@ -21,7 +21,7 @@ import {
     type BusinessSettings,
 } from '@/features/settings/api';
 import { Can } from '@/components/Can';
-import { extractErrorMessage } from '@/lib/queryClient';
+import { extractErrorMessage, isOfflineFailure } from '@/lib/queryClient';
 import { MyAccountForm } from '@/features/settings/MyAccountForm';
 import { WarehousesForm } from '@/features/settings/WarehousesForm';
 
@@ -207,7 +207,11 @@ function ChangePasswordForm() {
             setError(null);
             setSuccess(true);
         },
-        onError: () => setError(t('settings_page.password_update_failed')),
+        onError: (failure) => setError(
+            isOfflineFailure(failure)
+                ? t('offline.needs_connection')
+                : t('settings_page.password_update_failed'),
+        ),
     });
 
     const submit = () => {

@@ -412,6 +412,26 @@ function patchRecord(
 }
 
 /**
+ * A response holding the one record its path names — the business settings.
+ * There is no id to match on: the path is the identity.
+ */
+function patchSingleton(
+    body: unknown,
+    apply: (record: Record<string, unknown>) => Record<string, unknown>,
+): unknown {
+    if (body === null || typeof body !== 'object') return body;
+
+    const shaped = body as { data?: unknown };
+    const record = (shaped.data ?? body) as Record<string, unknown>;
+
+    if (Array.isArray(record) || typeof record !== 'object' || record === null) return body;
+
+    const next = apply(record);
+
+    return shaped.data === undefined ? next : { ...shaped, data: next };
+}
+
+/**
  * What a return looks like on this device before the server has seen it.
  *
  * The quantities matter as much as the status: the return dialog offers
@@ -753,6 +773,17 @@ export async function applyWriteLocally(
             } else if ((entry.method === 'PUT' || entry.method === 'PATCH') && targetId !== null) {
                 body = patchList(body, (rows) =>
                     rows.map((row) => (row.id === targetId ? { ...row, ...payload, [PENDING_FLAG]: true } : row)));
+            } else if (entry.method === 'PUT' || entry.method === 'PATCH') {
+                // A record a business has exactly one of, named by its path
+                // rather than by an id — the business settings. Without this
+                // an owner who renamed the shop during an outage saw the old
+                // name in the header and on the form, and could not tell
+                // whether the change had been kept at all.
+                body = patchSingleton(body, (record) => {
+                    optimistic = { ...record, ...payload, [PENDING_FLAG]: true };
+
+                    return optimistic;
+                });
             } else if (entry.method === 'DELETE' && targetId !== null) {
                 body = patchList(body, (rows) => rows.filter((row) => row.id !== targetId));
             } else {

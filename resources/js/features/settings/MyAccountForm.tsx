@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { LoadingButton } from '@/components/LoadingButton';
 import { updateProfile } from '@/features/auth/api';
 import { useAuthStore } from '@/store/authStore';
-import { extractErrorMessage } from '@/lib/queryClient';
+import { extractErrorMessage, isOfflineFailure } from '@/lib/queryClient';
 
 function initials(name: string): string {
     return name
@@ -52,8 +52,12 @@ export function MyAccountForm() {
         },
         // An email already in use is the usual refusal here, and it is worth
         // saying so: "could not save" leaves somebody retyping a name that
-        // was never the problem.
-        onError: (failure) => setError(extractErrorMessage(failure)),
+        // was never the problem. An outage is worth separating out — your own
+        // account is the one thing the offline queue deliberately will not
+        // hold, so there is nothing to wait for and the reason should say so.
+        onError: (failure) => setError(
+            isOfflineFailure(failure) ? t('offline.needs_connection') : extractErrorMessage(failure),
+        ),
     });
 
     const pickLogo = (file: File | null) => {

@@ -12,6 +12,7 @@ import {
     type OutboxEntry,
 } from '@/offline/db';
 import { foldQueuedIntoCashAccounts, isCashAccountPath } from '@/offline/cash';
+import { foldQueuedIntoDashboard, isDashboardPath } from '@/offline/dashboard';
 import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
 import { buildQueuedPurchase, purchaseIdFor, queuedPurchaseDetail } from '@/offline/purchases';
 import { buildQueuedSale, queuedSaleDetail, saleIdFor } from '@/offline/sales';
@@ -177,8 +178,9 @@ async function withQueuedWork(body: unknown, path: string, userId: number): Prom
     const party = isPartyPath(path);
     const cash = isCashAccountPath(path);
     const stock = isStockPath(path);
+    const dashboard = isDashboardPath(path);
 
-    if (!dated && !ledger && !party && !cash && !stock) return body;
+    if (!dated && !ledger && !party && !cash && !stock && !dashboard) return body;
 
     const entries = await pendingEntries(userId);
 
@@ -186,6 +188,7 @@ async function withQueuedWork(body: unknown, path: string, userId: number): Prom
     if (party) return foldQueuedIntoParties(body, path, entries);
     if (cash) return foldQueuedIntoCashAccounts(body, entries);
     if (stock) return foldQueuedIntoStock(body, path, entries, await allCaches(userId));
+    if (dashboard) return foldQueuedIntoDashboard(body, path, entries, await allCaches(userId));
 
     return foldQueuedIntoJournal(body, entries, await allCaches(userId));
 }

@@ -862,6 +862,7 @@
         "conflicts_hint": "These were made on this device but the server would not accept them — usually because somebody else changed the same thing first, or the period has since been closed. Check the record on the server, then discard the copy here.",
         "discard": "Discard",
         "print_needs_connection": "Printing and PDFs need a connection. Everything else keeps working offline.",
+        "needs_connection": "This needs a connection. Your own name, photo and password are the one thing that cannot wait on this device — try again once the connection is back.",
         "not_sent_yet": "Not sent yet",
         "record_unavailable": "This record cannot be opened while there is no connection. It will be available again once the device is back online.",
         "partial_statement": "Only what was recorded on this device during the outage is shown. Earlier entries held by the server will appear once the connection returns."

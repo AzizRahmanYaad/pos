@@ -224,7 +224,24 @@ function datedWarm(): WarmEntry[] {
         return localDate(day.getTime());
     });
 
-    return days.map((date) => ({ url: '/reports/daily-journal', params: { date } }));
+    // The dashboard's two charts are asked for by window, not by day, so
+    // the warm pass has to ask for exactly the window the screen asks for —
+    // a near miss is a cache the dashboard never finds. Kept in step with
+    // DashboardPage: fourteen days of trend, and this month's expenses.
+    const iso = (at: Date) => at.toISOString().slice(0, 10);
+    const today = iso(new Date());
+
+    const trendFrom = new Date();
+    trendFrom.setDate(trendFrom.getDate() - 13);
+
+    const monthStart = new Date();
+    monthStart.setDate(1);
+
+    return [
+        ...days.map((date) => ({ url: '/reports/daily-journal', params: { date } })),
+        { url: '/reports/sales-summary', params: { from: iso(trendFrom), to: today, group_by: 'day' } },
+        { url: '/reports/expenses-by-category', params: { from: iso(monthStart), to: today } },
+    ];
 }
 
 let running = false;

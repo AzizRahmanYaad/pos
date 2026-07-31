@@ -56,7 +56,7 @@ export function localDate(at: number): string {
     return `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}`;
 }
 
-function num(value: unknown): number {
+export function num(value: unknown): number {
     const parsed = typeof value === 'string' ? Number(value) : value;
 
     return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : 0;
@@ -77,7 +77,7 @@ function rowsOf(caches: CachedResponse[], path: string): Record<string, unknown>
     return [];
 }
 
-function nameById(caches: CachedResponse[], path: string, id: unknown): string | null {
+export function nameById(caches: CachedResponse[], path: string, id: unknown): string | null {
     if (typeof id !== 'number') return null;
 
     const match = rowsOf(caches, path).find((row) => row.id === id);
@@ -92,7 +92,7 @@ function nameById(caches: CachedResponse[], path: string, id: unknown): string |
  * truth available is what the device was last told each product costs, which
  * is the same number the till itself shows.
  */
-function costOfItems(items: Record<string, unknown>[], caches: CachedResponse[]): number {
+export function costOfItems(items: Record<string, unknown>[], caches: CachedResponse[]): number {
     const products = rowsOf(caches, '/products');
 
     return items.reduce((total, item) => {

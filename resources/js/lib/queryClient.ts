@@ -4,6 +4,15 @@ import i18n from '@/i18n/i18n';
 import { showToast } from '@/store/toastStore';
 
 /**
+ * A request that never reached the server at all, as opposed to one it
+ * answered. The two are worlds apart to the person waiting: one means "try
+ * again when the line is back", the other means "the server said no".
+ */
+export function isOfflineFailure(error: unknown): boolean {
+    return isAxiosError(error) && error.response === undefined && error.code !== 'ERR_CANCELED';
+}
+
+/**
  * What the server said went wrong, or a generic apology when it said
  * nothing. Exported so a form can put the real reason next to the fields it
  * concerns: a toast reading "could not save" tells a shopkeeper nothing

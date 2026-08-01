@@ -38,6 +38,7 @@ import {
     type DailyJournalTransaction,
 } from '@/features/reports/api';
 import { fetchBusinessSettings } from '@/features/settings/api';
+import { grouped } from '@/lib/money';
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10);
@@ -79,8 +80,7 @@ export function DailyJournalPage() {
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
     const sym = settings?.currency_symbol ?? '';
     const companyName = settings?.company_name ?? '';
-    const money = (v: number) =>
-        `${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${sym ? ` ${sym}` : ''}`;
+    const money = (v: unknown) => `${grouped(v)}${sym ? ` ${sym}` : ''}`;
 
     const { data: journal, isFetching } = useQuery({
         queryKey: ['daily-journal', date],
@@ -317,7 +317,7 @@ export function DailyJournalPage() {
                                                     color={tx.direction === 'in' ? 'success.main' : 'error.main'}
                                                 >
                                                     {tx.direction === 'in' ? '+' : '−'}
-                                                    {tx.amount.toFixed(2)}
+                                                    {money(tx.amount)}
                                                 </Typography>
                                             </TableCell>
                                         </TableRow>

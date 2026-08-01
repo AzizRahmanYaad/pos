@@ -540,6 +540,43 @@ export function refundShare(
     return { fraction, cashRefunded, dueForgiven: Math.round(originalDue * fraction * 100) / 100 };
 }
 
+/**
+ * What a straight edit does to a record beyond copying the fields over.
+ *
+ * A product priced on margin is the case that needs it: the form sends the
+ * margin, not the price, because the server works the price out from what
+ * the goods cost. Offline nobody worked it out at all, so a shopkeeper who
+ * set a 20% margin during an outage saw the old price sitting there and no
+ * way to tell whether the change had taken. The cost the device was last
+ * told is the same figure the server would have used.
+ */
+const EDITS: Record<string, (record: Record<string, unknown>, payload: Record<string, unknown>) => Record<string, unknown>> = {
+    '/products': repriceLocally,
+};
+
+/** Mirrors Product::computeAutoPrice — markup on cost, or margin of price. */
+function repriceLocally(
+    record: Record<string, unknown>,
+    payload: Record<string, unknown>,
+): Record<string, unknown> {
+    const mode = payload.pricing_mode ?? record.pricing_mode;
+
+    if (mode !== 'margin') return record;
+
+    const percent = Number(payload.margin_percent ?? record.margin_percent);
+    const basis = payload.margin_basis ?? record.margin_basis ?? 'markup';
+    const cost = Number(record.average_cost) || Number(record.default_cost) || 0;
+
+    if (!Number.isFinite(percent) || cost <= 0) return record;
+    if (basis === 'profit' && percent >= 100) return record;
+
+    const price = basis === 'profit'
+        ? cost / (1 - percent / 100)
+        : cost * (1 + percent / 100);
+
+    return { ...record, sale_price: Math.round(price * 100) / 100 };
+}
+
 /** Local effects of an action on an existing record, where we know them. */
 const ACTIONS: Record<string, (record: Record<string, unknown>, payload: Record<string, unknown>) => Record<string, unknown>> = {
     '/sales:refund': refundLocally,
@@ -771,8 +808,16 @@ export async function applyWriteLocally(
                     );
                 body = patchList(body, (rows) => [optimistic as Record<string, unknown>, ...rows]);
             } else if ((entry.method === 'PUT' || entry.method === 'PATCH') && targetId !== null) {
+                const edit = EDITS[root];
+                const merge = (row: Record<string, unknown>) => {
+                    const merged = { ...row, ...payload, [PENDING_FLAG]: true };
+
+                    return edit ? edit(merged, payload) : merged;
+                };
+
                 body = patchList(body, (rows) =>
-                    rows.map((row) => (row.id === targetId ? { ...row, ...payload, [PENDING_FLAG]: true } : row)));
+                    rows.map((row) => (row.id === targetId ? merge(row) : row)));
+                body = patchRecord(body, targetId, merge);
             } else if (entry.method === 'PUT' || entry.method === 'PATCH') {
                 // A record a business has exactly one of, named by its path
                 // rather than by an id — the business settings. Without this

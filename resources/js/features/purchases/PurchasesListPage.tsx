@@ -32,6 +32,7 @@ import { AddButton } from '@/components/AddButton';
 import { fetchPurchasesPage, cancelPurchase, type PurchaseListItem } from '@/features/purchases/api';
 import { PaymentDialog } from '@/features/payments/PaymentDialog';
 import { ReceivePurchaseDialog } from '@/features/purchases/ReceivePurchaseDialog';
+import { money } from '@/lib/money';
 
 const STATUS_COLOR: Record<string, 'default' | 'success' | 'error'> = {
     draft: 'default',
@@ -178,7 +179,7 @@ export function PurchasesListPage() {
                                         />
                                     </TableCell>
                                     <TableCell align="right" sx={{ fontWeight: 700 }}>
-                                        {purchase.grand_total.toFixed(2)}
+                                        {money(purchase.grand_total)}
                                     </TableCell>
                                     <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                                         <Tooltip title={t('purchases_page.view')}>

@@ -44,6 +44,7 @@ import {
 import { fetchCashAccounts } from '@/features/cash-accounts/api';
 import { invalidateCashViews } from '@/lib/cashInvalidation';
 import { DualDateField } from '@/components/DualDateField';
+import { money } from '@/lib/money';
 
 function todayIso(): string {
     const now = new Date();
@@ -222,7 +223,7 @@ export function EmployeesListPage() {
                                             <Chip
                                                 size="small"
                                                 color="warning"
-                                                label={employee.outstanding_advances.toFixed(2)}
+                                                label={money(employee.outstanding_advances)}
                                             />
                                         ) : (
                                             '—'

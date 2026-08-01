@@ -56,6 +56,7 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import { grouped } from '@/lib/money';
 
 type ReportTab =
     | 'profit-loss'
@@ -125,8 +126,7 @@ export function ReportsPage() {
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
     const sym = settings?.currency_symbol ?? '';
     const companyName = settings?.company_name ?? '';
-    const money = (v: number) =>
-        `${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${sym ? ` ${sym}` : ''}`;
+    const money = (v: unknown) => `${grouped(v)}${sym ? ` ${sym}` : ''}`;
 
     /** A deduction of nothing is not a negative amount; "−0.00" reads as a
      *  mistake to anyone checking their own figures. */

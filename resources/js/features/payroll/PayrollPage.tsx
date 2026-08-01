@@ -38,6 +38,7 @@ import { useAuthStore } from '@/store/authStore';
 import { DualDateField } from '@/components/DualDateField';
 import { formatDate } from '@/lib/calendar';
 import { LoadingButton } from '@/components/LoadingButton';
+import { money } from '@/lib/money';
 
 function todayIso(): string {
     const now = new Date();
@@ -248,7 +249,7 @@ export function PayrollPage() {
                                             />
                                         </TableCell>
                                         <TableCell align="right" sx={{ fontWeight: 700 }}>
-                                            {run.total_net_pay.toFixed(2)}
+                                            {money(run.total_net_pay)}
                                         </TableCell>
                                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                                             <Tooltip title={t('actions.view')}>

@@ -14,6 +14,7 @@ import {
 import { foldQueuedIntoCashAccounts, isCashAccountPath } from '@/offline/cash';
 import { foldQueuedIntoDashboard, isDashboardPath } from '@/offline/dashboard';
 import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
+import { buildQueuedPayrollRun, queuedPayrollRunDetail } from '@/offline/payroll';
 import { buildQueuedProduct } from '@/offline/products';
 import { buildQueuedPurchase, purchaseIdFor, queuedPurchaseDetail } from '@/offline/purchases';
 import { buildQueuedSale, queuedSaleDetail, saleIdFor } from '@/offline/sales';
@@ -209,7 +210,8 @@ function buildQueuedRecord(
 ): Record<string, unknown> | null {
     return buildQueuedSale(entry, caches)
         ?? buildQueuedPurchase(entry, caches)
-        ?? buildQueuedProduct(entry, caches);
+        ?? buildQueuedProduct(entry, caches)
+        ?? buildQueuedPayrollRun(entry, caches);
 }
 
 /**
@@ -543,6 +545,9 @@ export function installOfflineInterceptors(client: AxiosInstance): void {
                     // A delivery entered during the outage, which has to be
                     // openable or it can never be received.
                     ?? queuedPurchaseDetail(path, unsent, caches)
+                    // A payroll run made during one, which has to be
+                    // openable or nobody can check what they are owed.
+                    ?? queuedPayrollRunDetail(path, unsent, caches)
                     // A customer or supplier the device holds in a list but
                     // never fetched on its own. The row is the record.
                     ?? foldQueuedIntoParties(recordFromList(path, caches), path, unsent)

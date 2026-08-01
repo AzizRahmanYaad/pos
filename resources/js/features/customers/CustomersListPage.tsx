@@ -43,6 +43,7 @@ import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
 import { ReportActions } from '@/components/ReportActions';
 import { fetchBusinessSettings } from '@/features/settings/api';
+import { grouped } from '@/lib/money';
 
 const AVATAR_COLORS = ['#1e6f5c', '#2b8a72', '#b8901f', '#3b7ea1', '#7d5ba6', '#a15b3b'];
 
@@ -83,8 +84,7 @@ export function CustomersListPage() {
     const { data: settings } = useQuery({ queryKey: ['business-settings'], queryFn: fetchBusinessSettings });
     const companyName = settings?.company_name ?? '';
     const sym = settings?.currency_symbol ?? '';
-    const money = (v: number) =>
-        `${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${sym ? ` ${sym}` : ''}`;
+    const money = (v: unknown) => `${grouped(v)}${sym ? ` ${sym}` : ''}`;
 
     const { data: summary } = useQuery({ queryKey: ['customers-summary'], queryFn: fetchCustomerSummary });
 
@@ -281,7 +281,7 @@ export function CustomersListPage() {
                                                     size="small"
                                                     color="error"
                                                     label={t('ledger.owes_you', {
-                                                        amount: customer.current_balance.toFixed(2),
+                                                        amount: money(customer.current_balance),
                                                     })}
                                                 />
                                             ) : customer.current_balance < 0 ? (

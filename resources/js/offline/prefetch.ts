@@ -46,6 +46,12 @@ const WARM: WarmEntry[] = [
     { url: '/inventory/stock/alerts' },
     { url: '/stock-movements' },
     { url: '/dashboard/summary' },
+    // The reports pack. Everything the Reports screen draws is kept, so an
+    // outage does not turn the whole tab into empty tables — a shopkeeper
+    // checking what they are owed does not care that the line is down.
+    { url: '/reports/inventory-valuation' },
+    { url: '/reports/receivables' },
+    { url: '/reports/payables' },
     { url: '/roles' },
     { url: '/permissions' },
     { url: '/users' },
@@ -167,6 +173,45 @@ async function warmRecentPurchases(userId: number): Promise<void> {
 }
 
 /**
+ * The recent payroll runs, each fetched in full.
+ *
+ * The same reason as sales and deliveries: a list row says a run exists,
+ * not what anybody is owed. Opening one asks for the run itself, and
+ * during an outage a shopkeeper paying wages needs the figures, not the
+ * fact that wages were once calculated.
+ */
+const RECENT_PAYROLL_RUNS = 12;
+
+async function warmRecentPayrollRuns(userId: number): Promise<void> {
+    try {
+        const list = await rawClient.get('/payroll-runs', { params: { per_page: RECENT_PAYROLL_RUNS } });
+        const rows = Array.isArray(list.data?.data) ? list.data.data : [];
+        const held = new Set((await allCaches(userId)).map((entry) => entry.key));
+
+        for (const row of rows.slice(0, RECENT_PAYROLL_RUNS)) {
+            if (typeof row?.id !== 'number') continue;
+            if (held.has(`GET /api/v1/payroll-runs/${row.id}`)) continue;
+
+            try {
+                const detail = await rawClient.get(`/payroll-runs/${row.id}`);
+
+                await writeCache({
+                    key: `GET /api/v1/payroll-runs/${row.id}`,
+                    userId,
+                    status: detail.status,
+                    body: detail.data,
+                    fetchedAt: Date.now(),
+                });
+            } catch {
+                // One run that will not load is not worth abandoning the rest.
+            }
+        }
+    } catch {
+        // No list, nothing to walk.
+    }
+}
+
+/**
  * The statements of everyone who owes money, or is owed it.
  *
  * A settled account is not the one anybody opens during an outage. The
@@ -237,10 +282,18 @@ function datedWarm(): WarmEntry[] {
     const monthStart = new Date();
     monthStart.setDate(1);
 
+    // The Reports screen opens on this month, grouped by day. Warmed with
+    // exactly that window, because a report asked for one range cannot be
+    // answered from another.
+    const month = { from: iso(monthStart), to: today };
+
     return [
         ...days.map((date) => ({ url: '/reports/daily-journal', params: { date } })),
         { url: '/reports/sales-summary', params: { from: iso(trendFrom), to: today, group_by: 'day' } },
-        { url: '/reports/expenses-by-category', params: { from: iso(monthStart), to: today } },
+        { url: '/reports/expenses-by-category', params: month },
+        { url: '/reports/profit-loss', params: month },
+        { url: '/reports/sales-summary', params: { ...month, group_by: 'day' } },
+        { url: '/reports/purchase-summary', params: { ...month, group_by: 'day' } },
     ];
 }
 
@@ -300,6 +353,7 @@ export async function warmOfflineCache(userId: number): Promise<void> {
 
         await warmRecentSales(userId);
         await warmRecentPurchases(userId);
+        await warmRecentPayrollRuns(userId);
         await warmOpenLedgers(userId);
     } finally {
         running = false;

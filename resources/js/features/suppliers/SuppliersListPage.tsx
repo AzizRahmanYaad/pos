@@ -37,6 +37,7 @@ import { PaymentDialog } from '@/features/payments/PaymentDialog';
 import { AddPartyDialog } from '@/components/AddPartyDialog';
 import { Can } from '@/components/Can';
 import { fetchBusinessSettings } from '@/features/settings/api';
+import { money } from '@/lib/money';
 
 const AVATAR_COLORS = ['#1e6f5c', '#2b8a72', '#b8901f', '#3b7ea1', '#7d5ba6', '#a15b3b'];
 
@@ -265,7 +266,7 @@ export function SuppliersListPage() {
                                                     size="small"
                                                     color="error"
                                                     label={t('ledger.you_owe', {
-                                                        amount: Math.abs(supplier.current_balance).toFixed(2),
+                                                        amount: money(Math.abs(supplier.current_balance)),
                                                     })}
                                                 />
                                             ) : supplier.current_balance > 0 ? (
@@ -273,7 +274,7 @@ export function SuppliersListPage() {
                                                     size="small"
                                                     color="success"
                                                     label={t('ledger.supplier_advance', {
-                                                        amount: supplier.current_balance.toFixed(2),
+                                                        amount: money(supplier.current_balance),
                                                     })}
                                                 />
                                             ) : (

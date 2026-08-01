@@ -49,6 +49,7 @@ import { fetchBusinessSettings } from '@/features/settings/api';
 import { Can } from '@/components/Can';
 import { formatDate } from '@/lib/calendar';
 import { downloadOrToast } from '@/lib/reportDownload';
+import { money } from '@/lib/money';
 
 /** "App\Models\Sale" → "sale" */
 function sourceKey(sourceType: string | null): string {
@@ -61,7 +62,7 @@ function describeBalance(
     balance: number,
     t: (key: string, opts?: Record<string, unknown>) => string,
 ): { tone: 'error' | 'success' | 'default'; label: string } {
-    const amount = Math.abs(balance).toFixed(2);
+    const amount = money(Math.abs(balance));
     if (Math.abs(balance) < 0.005) return { tone: 'default', label: t('ledger.settled') };
     if (kind === 'customer') {
         return balance > 0
@@ -405,7 +406,7 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                                         {entry.entry_type === 'debit' ? (
                                             <Typography variant="body2" fontWeight={700} sx={{ color: debit.color }}>
                                                 {debit.sign}
-                                                {entry.amount.toFixed(2)}
+                                                {money(entry.amount)}
                                             </Typography>
                                         ) : (
                                             <Typography variant="body2" color="text.disabled">
@@ -417,7 +418,7 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                                         {entry.entry_type === 'credit' ? (
                                             <Typography variant="body2" fontWeight={700} sx={{ color: credit.color }}>
                                                 {credit.sign}
-                                                {entry.amount.toFixed(2)}
+                                                {money(entry.amount)}
                                             </Typography>
                                         ) : (
                                             <Typography variant="body2" color="text.disabled">
@@ -431,7 +432,7 @@ export function PartyLedgerPage({ kind }: { kind: PartyKind }) {
                                             fontWeight={700}
                                             sx={{ color: balanceColor(kind, entry.running_balance) }}
                                         >
-                                            {entry.running_balance.toFixed(2)}
+                                            {money(entry.running_balance)}
                                         </Typography>
                                     </TableCell>
                                 </TableRow>

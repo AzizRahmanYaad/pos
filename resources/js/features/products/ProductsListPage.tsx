@@ -38,6 +38,7 @@ import AutoModeOutlinedIcon from '@mui/icons-material/AutoModeOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useTranslation } from 'react-i18next';
+import { money } from '@/lib/money';
 import { AddButton } from '@/components/AddButton';
 import { LoadingButton } from '@/components/LoadingButton';
 import {
@@ -336,7 +337,7 @@ export function ProductsListPage() {
                                         <TableCell align="right">
                                             <Tooltip title={t('products_page.item_cost_tooltip')}>
                                                 <Typography variant="body2" color="text.secondary">
-                                                    {product.average_cost.toFixed(2)}
+                                                    {money(product.average_cost)}
                                                 </Typography>
                                             </Tooltip>
                                         </TableCell>
@@ -355,7 +356,7 @@ export function ProductsListPage() {
                                                     </Tooltip>
                                                 )}
                                                 <Typography variant="body2" fontWeight={700} color="primary.main">
-                                                    {product.sale_price.toFixed(2)}
+                                                    {money(product.sale_price)}
                                                 </Typography>
                                             </Stack>
                                         </TableCell>

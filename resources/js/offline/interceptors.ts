@@ -14,6 +14,7 @@ import {
 import { foldQueuedIntoCashAccounts, isCashAccountPath } from '@/offline/cash';
 import { foldQueuedIntoDashboard, isDashboardPath } from '@/offline/dashboard';
 import { foldQueuedIntoJournal, isDatedReport } from '@/offline/journal';
+import { buildQueuedProduct } from '@/offline/products';
 import { buildQueuedPurchase, purchaseIdFor, queuedPurchaseDetail } from '@/offline/purchases';
 import { buildQueuedSale, queuedSaleDetail, saleIdFor } from '@/offline/sales';
 import { foldQueuedIntoStock, isStockPath } from '@/offline/stock';
@@ -199,13 +200,16 @@ async function withQueuedWork(body: unknown, path: string, userId: number): Prom
  * Only the writes whose payload is not already the record need this: a
  * customer's payload *is* the customer, but a sale's payload is a basket
  * and a purchase's is a delivery note, and both screens draw totals that
- * only exist once somebody works them out.
+ * only exist once somebody works them out. A product is the third: what it
+ * is worth and what is on the shelf are not in the form that created it.
  */
 function buildQueuedRecord(
     entry: OutboxEntry,
     caches: CachedResponse[],
 ): Record<string, unknown> | null {
-    return buildQueuedSale(entry, caches) ?? buildQueuedPurchase(entry, caches);
+    return buildQueuedSale(entry, caches)
+        ?? buildQueuedPurchase(entry, caches)
+        ?? buildQueuedProduct(entry, caches);
 }
 
 /**

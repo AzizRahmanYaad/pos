@@ -29,6 +29,7 @@ import RemoveShoppingCartOutlinedIcon from '@mui/icons-material/RemoveShoppingCa
 import PercentIcon from '@mui/icons-material/Percent';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import { useTranslation } from 'react-i18next';
+import { money } from '@/lib/money';
 import { fetchProducts, type ProductListItem } from '@/features/products/api';
 import { fetchCustomers } from '@/features/customers/api';
 import { fetchWarehouses } from '@/features/warehouses/api';
@@ -103,7 +104,7 @@ export function PosPage() {
      * that guesses at it either gives the goods away or invents a figure
      * the shop never agreed to.
      */
-    const unpriced = (product: ProductListItem) => product.sale_price <= 0;
+    const unpriced = (product: ProductListItem) => !(Number(product.sale_price) > 0);
 
     const addToCart = (product: ProductListItem) => {
         if (unpriced(product)) return;
@@ -426,7 +427,7 @@ export function PosPage() {
                                         </Typography>
                                     ) : (
                                         <Typography variant="subtitle2" fontWeight={800} color="primary.main">
-                                            {product.sale_price.toFixed(2)}
+                                            {money(product.sale_price)}
                                         </Typography>
                                     )}
                                     {product.track_inventory && (
@@ -587,7 +588,7 @@ export function PosPage() {
                                         {bargained && (
                                             <Typography variant="caption" color="warning.main">
                                                 {t('pos_page.price_adjusted', {
-                                                    original: line.product.sale_price.toFixed(2),
+                                                    original: money(line.product.sale_price),
                                                 })}
                                             </Typography>
                                         )}
